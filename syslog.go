@@ -2,17 +2,26 @@
 
 package zerolog
 
-import (
-	"log/syslog"
-)
+import "io"
 
-type syslogWriter struct {
-	w *syslog.Writer
+// SyslogWriter is an interface matching a syslog.Writer struct.
+type SyslogWriter interface {
+	io.Writer
+	Debug(m string) error
+	Info(m string) error
+	Warning(m string) error
+	Err(m string) error
+	Emerg(m string) error
+	Crit(m string) error
 }
 
-// SyslogWriter wraps a syslog.Writer and set the right syslog level
-// matching the log even level.
-func SyslogWriter(w *syslog.Writer) LevelWriter {
+type syslogWriter struct {
+	w SyslogWriter
+}
+
+// SyslogLevelWriter wraps a SyslogWriter and call the right syslog level
+// method matching the zerolog level.
+func SyslogLevelWriter(w SyslogWriter) LevelWriter {
 	return syslogWriter{w}
 }
 
