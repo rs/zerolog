@@ -6,27 +6,7 @@ import (
 	"time"
 )
 
-var (
-	// TimestampFieldName is the field name used for the timestamp field.
-	TimestampFieldName = "time"
-
-	// LevelFieldName is the field name used for the level field.
-	LevelFieldName = "level"
-
-	// MessageFieldName is the field name used for the message field.
-	MessageFieldName = "message"
-
-	// ErrorFieldName is the field name used for error fields.
-	ErrorFieldName = "error"
-
-	// SampleFieldName is the name of the field used to report sampling.
-	SampleFieldName = "sample"
-
-	// TimeFieldFormat defines the time format of the Time field type.
-	TimeFieldFormat = time.RFC3339
-
-	now = time.Now
-)
+var now = time.Now
 
 type FieldMode uint8
 

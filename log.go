@@ -30,7 +30,7 @@
 //
 // Level logging
 //
-//     zerolog.GlobalLevel = zerolog.InfoLevel
+//     zerolog.SetGlobalLevel(zerolog.InfoLevel)
 //
 //     log.Debug().Msg("filtered out message")
 //     log.Info().Msg("routed message")
@@ -122,17 +122,6 @@ const (
 	Sometimes = int64(100)
 	// Rarely samples log every 1000 events.
 	Rarely = int64(1000)
-)
-
-var (
-	// GlobalLevel defines the global override for log level. If this
-	// values is raised, all Loggers will use at least this value.
-	//
-	// To globally disable logs, set GlobalLevel to Disabled.
-	GlobalLevel = DebugLevel
-
-	// DisableSampling will disable sampling in all Loggers if true.
-	DisableSampling = false
 )
 
 // A Logger represents an active logging object that generates lines
@@ -270,10 +259,10 @@ func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) Eve
 
 // should returns true if the log event should be logged.
 func (l Logger) should(lvl Level) bool {
-	if lvl < l.level || lvl < GlobalLevel {
+	if lvl < l.level || lvl < globalLevel() {
 		return false
 	}
-	if !DisableSampling && l.sample > 0 && l.counter != nil {
+	if l.sample > 0 && l.counter != nil && !samplingDisabled() {
 		c := atomic.AddUint32(l.counter, 1)
 		return c%l.sample == 0
 	}
