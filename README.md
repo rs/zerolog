@@ -131,6 +131,8 @@ log.Logger = log.With().Str("foo", "bar").Logger()
 ```go
 sampled := log.Sample(10)
 sampled.Info().Msg("will be logged every 10 messages")
+
+// Output: {"time":1494567715,"sample":10,"message":"will be logged every 10 messages"}
 ```
 
 ## Global Settings
