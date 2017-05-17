@@ -12,7 +12,7 @@ The zerolog package provides a fast and simple logger dedicated to JSON output. 
 
 ## Benchmark
 
-All operations are allocation free:
+All operations are allocation free (those numbers *include* JSON encoding):
 
 ```
 BenchmarkLogEmpty-8            50000000      22 ns/op       0 B/op      0 allocs/op
