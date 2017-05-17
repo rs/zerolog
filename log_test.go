@@ -2,8 +2,10 @@ package zerolog
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestLog(t *testing.T) {
@@ -71,6 +73,84 @@ func TestInfo(t *testing.T) {
 }
 
 func TestWith(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out).With().
+		Str("foo", "bar").
+		Err(errors.New("some error")).
+		Bool("bool", true).
+		Int("int", 1).
+		Int8("int8", 2).
+		Int16("int16", 3).
+		Int32("int32", 4).
+		Int64("int64", 5).
+		Uint("uint", 6).
+		Uint8("uint8", 7).
+		Uint16("uint16", 8).
+		Uint32("uint32", 9).
+		Uint32("uint64", 10).
+		Float32("float32", 11).
+		Float64("float64", 12).
+		Time("time", time.Time{}).
+		Logger()
+	log.Log().Msg("")
+	if got, want := out.String(), `{"foo":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"time":"0001-01-01T00:00:00Z"}`+"\n"; got != want {
+		t.Errorf("invalid log output: got %q, want %q", got, want)
+	}
+}
+
+func TestFields(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().
+		Str("foo", "bar").
+		Err(errors.New("some error")).
+		Bool("bool", true).
+		Int("int", 1).
+		Int8("int8", 2).
+		Int16("int16", 3).
+		Int32("int32", 4).
+		Int64("int64", 5).
+		Uint("uint", 6).
+		Uint8("uint8", 7).
+		Uint16("uint16", 8).
+		Uint32("uint32", 9).
+		Uint32("uint64", 10).
+		Float32("float32", 11).
+		Float64("float64", 12).
+		Time("time", time.Time{}).
+		Msg("")
+	if got, want := out.String(), `{"foo":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"time":"0001-01-01T00:00:00Z"}`+"\n"; got != want {
+		t.Errorf("invalid log output: got %q, want %q", got, want)
+	}
+}
+
+func TestFieldsDisabled(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out).Level(InfoLevel)
+	log.Debug().
+		Str("foo", "bar").
+		Err(errors.New("some error")).
+		Bool("bool", true).
+		Int("int", 1).
+		Int8("int8", 2).
+		Int16("int16", 3).
+		Int32("int32", 4).
+		Int64("int64", 5).
+		Uint("uint", 6).
+		Uint8("uint8", 7).
+		Uint16("uint16", 8).
+		Uint32("uint32", 9).
+		Uint32("uint64", 10).
+		Float32("float32", 11).
+		Float64("float64", 12).
+		Time("time", time.Time{}).
+		Msg("")
+	if got, want := out.String(), ""; got != want {
+		t.Errorf("invalid log output: got %q, want %q", got, want)
+	}
+}
+
+func TestWithAndFieldsCombined(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out).With().Str("f1", "val").Str("f2", "val").Logger()
 	log.Log().Str("f3", "val").Msg("")
