@@ -8,10 +8,10 @@ import (
 
 var now = time.Now
 
-type FieldMode uint8
+type fieldMode uint8
 
 const (
-	zeroFieldMode FieldMode = iota
+	zeroFieldMode fieldMode = iota
 	rawFieldMode
 	quotedFieldMode
 	precomputedFieldMode
@@ -21,7 +21,7 @@ const (
 // field define a logger field.
 type field struct {
 	key  string
-	mode FieldMode
+	mode fieldMode
 	val  string
 	json []byte
 }

@@ -13,6 +13,8 @@ var pool = &sync.Pool{
 	},
 }
 
+// Event represents a log event. It is instancied by one of the level method of
+// Logger and finalized by the Msg or Msgf method.
 type Event struct {
 	buf     *bytes.Buffer
 	w       LevelWriter
@@ -65,6 +67,9 @@ func (e Event) Enabled() bool {
 }
 
 // Msg sends the event with msg added as the message field if not empty.
+//
+// NOTICE: once this methid is called, the Event should be disposed.
+// Calling Msg twice can have unexpected result.
 func (e Event) Msg(msg string) (n int, err error) {
 	if !e.enabled {
 		return 0, nil
@@ -79,6 +84,9 @@ func (e Event) Msg(msg string) (n int, err error) {
 }
 
 // Msgf sends the event with formated msg added as the message field if not empty.
+//
+// NOTICE: once this methid is called, the Event should be disposed.
+// Calling Msg twice can have unexpected result.
 func (e Event) Msgf(format string, v ...interface{}) (n int, err error) {
 	if !e.enabled {
 		return 0, nil
@@ -93,6 +101,7 @@ func (e Event) Msgf(format string, v ...interface{}) (n int, err error) {
 	return e.write()
 }
 
+// Str adds the field key with val as a string to the event context.
 func (e Event) Str(key, val string) Event {
 	if !e.enabled {
 		return e
@@ -100,6 +109,8 @@ func (e Event) Str(key, val string) Event {
 	return e.append(fStr(key, val))
 }
 
+// Err adds the field "error" with err as a string to the event context.
+// To customize the key name, change zerolog.ErrorFieldName.
 func (e Event) Err(err error) Event {
 	if !e.enabled {
 		return e
@@ -107,6 +118,7 @@ func (e Event) Err(err error) Event {
 	return e.append(fErr(err))
 }
 
+// Bool adds the field key with val as a Boolean to the event context.
 func (e Event) Bool(key string, b bool) Event {
 	if !e.enabled {
 		return e
@@ -114,6 +126,7 @@ func (e Event) Bool(key string, b bool) Event {
 	return e.append(fBool(key, b))
 }
 
+// Int adds the field key with i as a int to the event context.
 func (e Event) Int(key string, i int) Event {
 	if !e.enabled {
 		return e
@@ -121,6 +134,7 @@ func (e Event) Int(key string, i int) Event {
 	return e.append(fInt(key, i))
 }
 
+// Int8 adds the field key with i as a int8 to the event context.
 func (e Event) Int8(key string, i int8) Event {
 	if !e.enabled {
 		return e
@@ -128,6 +142,7 @@ func (e Event) Int8(key string, i int8) Event {
 	return e.append(fInt8(key, i))
 }
 
+// Int16 adds the field key with i as a int16 to the event context.
 func (e Event) Int16(key string, i int16) Event {
 	if !e.enabled {
 		return e
@@ -135,6 +150,7 @@ func (e Event) Int16(key string, i int16) Event {
 	return e.append(fInt16(key, i))
 }
 
+// Int32 adds the field key with i as a int32 to the event context.
 func (e Event) Int32(key string, i int32) Event {
 	if !e.enabled {
 		return e
@@ -142,6 +158,7 @@ func (e Event) Int32(key string, i int32) Event {
 	return e.append(fInt32(key, i))
 }
 
+// Int64 adds the field key with i as a int64 to the event context.
 func (e Event) Int64(key string, i int64) Event {
 	if !e.enabled {
 		return e
@@ -149,6 +166,7 @@ func (e Event) Int64(key string, i int64) Event {
 	return e.append(fInt64(key, i))
 }
 
+// Uint adds the field key with i as a uint to the event context.
 func (e Event) Uint(key string, i uint) Event {
 	if !e.enabled {
 		return e
@@ -156,6 +174,7 @@ func (e Event) Uint(key string, i uint) Event {
 	return e.append(fUint(key, i))
 }
 
+// Uint8 adds the field key with i as a uint8 to the event context.
 func (e Event) Uint8(key string, i uint8) Event {
 	if !e.enabled {
 		return e
@@ -163,6 +182,7 @@ func (e Event) Uint8(key string, i uint8) Event {
 	return e.append(fUint8(key, i))
 }
 
+// Uint16 adds the field key with i as a uint16 to the event context.
 func (e Event) Uint16(key string, i uint16) Event {
 	if !e.enabled {
 		return e
@@ -170,6 +190,7 @@ func (e Event) Uint16(key string, i uint16) Event {
 	return e.append(fUint16(key, i))
 }
 
+// Uint32 adds the field key with i as a uint32 to the event context.
 func (e Event) Uint32(key string, i uint32) Event {
 	if !e.enabled {
 		return e
@@ -177,6 +198,7 @@ func (e Event) Uint32(key string, i uint32) Event {
 	return e.append(fUint32(key, i))
 }
 
+// Uint64 adds the field key with i as a uint64 to the event context.
 func (e Event) Uint64(key string, i uint64) Event {
 	if !e.enabled {
 		return e
@@ -184,6 +206,7 @@ func (e Event) Uint64(key string, i uint64) Event {
 	return e.append(fUint64(key, i))
 }
 
+// Float32 adds the field key with f as a float32 to the event context.
 func (e Event) Float32(key string, f float32) Event {
 	if !e.enabled {
 		return e
@@ -191,6 +214,7 @@ func (e Event) Float32(key string, f float32) Event {
 	return e.append(fFloat32(key, f))
 }
 
+// Float64 adds the field key with f as a float64 to the event context.
 func (e Event) Float64(key string, f float64) Event {
 	if !e.enabled {
 		return e
@@ -198,6 +222,8 @@ func (e Event) Float64(key string, f float64) Event {
 	return e.append(fFloat64(key, f))
 }
 
+// Timestamp adds the current local time as UNIX timestamp to the event context with the "time" key.
+// To customize the key name, change zerolog.TimestampFieldName.
 func (e Event) Timestamp() Event {
 	if !e.enabled {
 		return e
@@ -205,6 +231,7 @@ func (e Event) Timestamp() Event {
 	return e.append(fTimestamp())
 }
 
+// Time adds the field key with t formated as string using zerolog.TimeFieldFormat.
 func (e Event) Time(key string, t time.Time) Event {
 	if !e.enabled {
 		return e
