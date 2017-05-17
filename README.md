@@ -2,7 +2,7 @@
 
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/zerolog) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/zerolog/master/LICENSE) [![Build Status](https://travis-ci.org/rs/zerolog.svg?branch=master)](https://travis-ci.org/rs/zerolog) [![Coverage](http://gocover.io/_badge/github.com/rs/zerolog)](http://gocover.io/github.com/rs/zerolog)
 
-The zerolog package provides a fast and simple logger dedicated to JSON output. It is inspired by uber's [zap](https://godoc.org/go.uber.org/zap) but with a mutch simpler to use API and smaller code base.
+The zerolog package provides a fast and simple logger dedicated to JSON output. It is inspired by uber's [zap](https://godoc.org/go.uber.org/zap) but with a simpler API and a smaller code base.
 
 ## Features
 
