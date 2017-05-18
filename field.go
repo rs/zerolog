@@ -134,5 +134,8 @@ func fTimestamp() field {
 
 func fTime(key string, t time.Time) field {
 	return field{key, quotedFieldMode, t.Format(TimeFieldFormat), nil}
+}
 
+func fRaw(key string, raw string) field {
+	return field{key, rawFieldMode, raw, nil}
 }

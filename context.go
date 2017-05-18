@@ -25,6 +25,12 @@ func (c Context) append(f field) Context {
 	}
 }
 
+// Dict adds the field key with the dict to the logger context.
+func (c Context) Dict(key string, dict Event) Context {
+	dict.buf.WriteByte('}')
+	return c.append(fRaw(key, dict.buf.String()))
+}
+
 // Str adds the field key with val as a string to the logger context.
 func (c Context) Str(key, val string) Context {
 	return c.append(fStr(key, val))

@@ -3,6 +3,8 @@ package zerolog
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"sync"
 	"time"
 )
@@ -99,6 +101,27 @@ func (e Event) Msgf(format string, v ...interface{}) (n int, err error) {
 		defer e.done(msg)
 	}
 	return e.write()
+}
+
+// Dict adds the field key with a dict to the event context.
+// Use zerolog.Dict() to create the dictionary.
+func (e Event) Dict(key string, dict Event) Event {
+	if !e.enabled {
+		return e
+	}
+	if e.buf.Len() > 1 {
+		e.buf.WriteByte(',')
+	}
+	io.Copy(e.buf, dict.buf)
+	e.buf.WriteByte('}')
+	return e
+}
+
+// Dict creates an Event to be used with the event.Dict method.
+// Call usual field methods like Str, Int etc to add fields to this
+// event and give it as argument the event.Dict method.
+func Dict() Event {
+	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
 }
 
 // Str adds the field key with val as a string to the event context.

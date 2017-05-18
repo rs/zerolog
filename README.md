@@ -96,9 +96,21 @@ if e := log.Debug(); e.Enabled() {
     e.Str("foo": value).Msg("some debug message")
 }
 
-// Output: {"level":"info","time":1494567715,"routed message"}
+// Output: {"level":"info","time":1494567715,"message":"routed message"}
 ```
 
+### Sub dictionary
+
+```go
+log.Info().
+    Str("foo", "bar").
+    Dict("dict", zerolog.Dict().
+        Str("bar", "baz").
+        Int("n", 1)
+    ).Msg("hello world")
+
+// Output: {"level":"info","time":1494567715,"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+```
 
 ### Customize automatic field names
 

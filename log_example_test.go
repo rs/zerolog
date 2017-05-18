@@ -99,3 +99,30 @@ func ExampleLogger_Log() {
 
 	// Output: {"foo":"bar","bar":"baz"}
 }
+
+func ExampleEvent_Dict() {
+	log := zerolog.New(os.Stdout)
+
+	log.Log().
+		Str("foo", "bar").
+		Dict("dict", zerolog.Dict().
+			Str("bar", "baz").
+			Int("n", 1),
+		).
+		Msg("hello world")
+
+	// Output: {"foo":"bar",{"bar":"baz","n":1},"message":"hello world"}
+}
+
+func ExampleContext_Dict() {
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Dict("dict", zerolog.Dict().
+			Str("bar", "baz").
+			Int("n", 1),
+		).Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+}

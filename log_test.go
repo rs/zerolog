@@ -87,7 +87,7 @@ func TestWith(t *testing.T) {
 		Uint8("uint8", 7).
 		Uint16("uint16", 8).
 		Uint32("uint32", 9).
-		Uint32("uint64", 10).
+		Uint64("uint64", 10).
 		Float32("float32", 11).
 		Float64("float64", 12).
 		Time("time", time.Time{}).
@@ -114,7 +114,7 @@ func TestFields(t *testing.T) {
 		Uint8("uint8", 7).
 		Uint16("uint16", 8).
 		Uint32("uint32", 9).
-		Uint32("uint64", 10).
+		Uint64("uint64", 10).
 		Float32("float32", 11).
 		Float64("float64", 12).
 		Time("time", time.Time{}).
@@ -140,7 +140,7 @@ func TestFieldsDisabled(t *testing.T) {
 		Uint8("uint8", 7).
 		Uint16("uint16", 8).
 		Uint32("uint32", 9).
-		Uint32("uint64", 10).
+		Uint64("uint64", 10).
 		Float32("float32", 11).
 		Float64("float64", 12).
 		Time("time", time.Time{}).
