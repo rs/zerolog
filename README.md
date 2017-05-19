@@ -16,7 +16,7 @@ All operations are allocation free (those numbers *include* JSON encoding):
 
 ```
 BenchmarkLogEmpty-8            50000000      22 ns/op       0 B/op      0 allocs/op
-BenchmarkDisabled-8           100000000      10 ns/op       0 B/op      0 allocs/op
+BenchmarkDisabled-8           100000000       9 ns/op       0 B/op      0 allocs/op
 BenchmarkInfo-8                10000000     210 ns/op       0 B/op      0 allocs/op
 BenchmarkContextFields-8       10000000     254 ns/op       0 B/op      0 allocs/op
 BenchmarkLogFields-8            5000000     377 ns/op       0 B/op      0 allocs/op

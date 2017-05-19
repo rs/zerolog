@@ -69,6 +69,7 @@ package zerolog
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"sync/atomic"
 )
@@ -123,6 +124,8 @@ const (
 	// Rarely samples log every 1000 events.
 	Rarely = 1000
 )
+
+var disabledEvent = newEvent(levelWriterAdapter{ioutil.Discard}, 0, false)
 
 // A Logger represents an active logging object that generates lines
 // of JSON output to an io.Writer. Each logging operation makes a single
@@ -248,11 +251,15 @@ func (l Logger) Log() Event {
 }
 
 func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) Event {
+	enabled := l.should(level)
+	if !enabled {
+		return disabledEvent
+	}
 	lvl := InfoLevel
 	if addLevelField {
 		lvl = level
 	}
-	e := newEvent(l.w, lvl, l.should(level))
+	e := newEvent(l.w, lvl, enabled)
 	if addLevelField {
 		e.Str(LevelFieldName, level.String())
 	}
