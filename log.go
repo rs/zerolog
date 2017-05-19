@@ -117,11 +117,11 @@ func (l Level) String() string {
 
 const (
 	// Often samples log every 10 events.
-	Often = int64(10)
+	Often = 10
 	// Sometimes samples log every 100 events.
-	Sometimes = int64(100)
+	Sometimes = 100
 	// Rarely samples log every 1000 events.
-	Rarely = int64(1000)
+	Rarely = 1000
 )
 
 // A Logger represents an active logging object that generates lines
