@@ -139,7 +139,13 @@ type Logger struct {
 	counter *uint32
 }
 
-// New creates a root logger with given output writer.
+// New creates a root logger with given output writer. If the output writer implements
+// the LevelWriter interface, the WriteLevel method will be called instead of the Write
+// one.
+//
+// Each logging operation makes a single call to the Writer's Write method. There is no
+// guaranty on access serialization to the Writer. If your Writer is not thread safe,
+// you may consider using sync wrapper.
 func New(w io.Writer) Logger {
 	if w == nil {
 		panic("w is nil")
