@@ -9,6 +9,8 @@ The zerolog package provides a fast and simple logger dedicated to JSON output. 
 * Level logging
 * Sampling
 * Contextual fields
+* `context.Context` integration
+* `net/http` helpers
 
 ## Performance
 
@@ -198,6 +200,47 @@ ctx := log.With("component", "module").Logger().FromContext(ctx)
 log.Ctx(ctx).Info().Msg("hello world")
 
 // Output: {"component":"module","level":"info","message":"hello world"}
+```
+
+### Integration with `net/http`
+
+The `github.com/rs/zerolog/hlog` package provides some helpers to integrate zerolog with `http.Handler`.
+
+In this example we use [alice](github.com/justinas/alice) to install logger for better readability.
+
+```go
+log := zerolog.New(os.Stdout).With().
+    Str("role", "my-service").
+    Str("host", host).
+    Logger()
+
+c := alice.New()
+
+// Install the logger handler with default output on the console
+c = c.Append(hlog.NewHandler(log))
+
+// Install some provided extra handler to set some request's context fields.
+// Thanks to those handler, all our logs will come with some pre-populated fields.
+c = c.Append(hlog.RemoteAddrHandler("ip"))
+c = c.Append(hlog.UserAgentHandler("user_agent"))
+c = c.Append(hlog.RefererHandler("referer"))
+c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
+
+// Here is your final handler
+h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    // Get the logger from the request's context. You can safely assume it
+    // will be always there: if the handler is removed, hlog.FromRequest
+    // will return a no-op logger.
+    hlog.FromRequest(r).Info().
+        Str("user", "current user").
+        Str("status", "ok").
+        Msg("Something happend")
+}))
+http.Handle("/", h)
+
+if err := http.ListenAndServe(":8080", nil); err != nil {
+    log.Fatal().Err(err).Msg("Startup failed")
+}
 ```
 
 ## Global Settings

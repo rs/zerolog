@@ -145,7 +145,7 @@ type Logger struct {
 // you may consider using sync wrapper.
 func New(w io.Writer) Logger {
 	if w == nil {
-		panic("w is nil")
+		w = ioutil.Discard
 	}
 	lw, ok := w.(LevelWriter)
 	if !ok {
