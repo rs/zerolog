@@ -114,7 +114,7 @@ func ExampleEvent_Dict() {
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
-func ExampleEvent_Object() {
+func ExampleEvent_Interface() {
 	log := zerolog.New(os.Stdout)
 
 	obj := struct {
@@ -125,7 +125,7 @@ func ExampleEvent_Object() {
 
 	log.Log().
 		Str("foo", "bar").
-		Object("obj", obj).
+		Interface("obj", obj).
 		Msg("hello world")
 
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
@@ -144,7 +144,7 @@ func ExampleContext_Dict() {
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
-func ExampleContext_Object() {
+func ExampleContext_Interface() {
 	obj := struct {
 		Name string `json:"name"`
 	}{
@@ -153,7 +153,7 @@ func ExampleContext_Object() {
 
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
-		Object("obj", obj).
+		Interface("obj", obj).
 		Logger()
 
 	log.Log().Msg("hello world")

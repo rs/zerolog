@@ -128,8 +128,8 @@ func (c Context) Time(key string, t time.Time) Context {
 	return c
 }
 
-// Object adds the field key with obj marshaled using reflection.
-func (c Context) Object(key string, obj interface{}) Context {
-	c.l.context = appendObject(c.l.context, key, obj)
+// Interface adds the field key with obj marshaled using reflection.
+func (c Context) Interface(key string, i interface{}) Context {
+	c.l.context = appendInterface(c.l.context, key, i)
 	return c
 }

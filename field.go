@@ -88,8 +88,8 @@ func appendTimestamp(dst []byte) []byte {
 	return appendTime(dst, TimestampFieldName, now())
 }
 
-func appendObject(dst []byte, key string, obj interface{}) []byte {
-	marshaled, err := json.Marshal(obj)
+func appendInterface(dst []byte, key string, i interface{}) []byte {
+	marshaled, err := json.Marshal(i)
 	if err != nil {
 		return appendString(dst, key, fmt.Sprintf("marshaling error: %v", err))
 	}
