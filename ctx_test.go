@@ -10,19 +10,13 @@ import (
 func TestCtx(t *testing.T) {
 	log := New(ioutil.Discard)
 	ctx := log.WithContext(context.Background())
-	log2, ok := FromContext(ctx)
-	if !ok {
-		t.Error("Expected ok=true from FromContext")
-	}
+	log2 := Ctx(ctx)
 	if !reflect.DeepEqual(log, log2) {
-		t.Error("FromContext did not return the expected logger")
+		t.Error("Ctx did not return the expected logger")
 	}
 
-	log2, ok = FromContext(context.Background())
-	if ok {
-		t.Error("Expected ok=false from FromContext")
-	}
-	if !reflect.DeepEqual(log2, Logger{}) {
-		t.Error("FromContext did not return the expected logger")
+	log2 = Ctx(context.Background())
+	if !reflect.DeepEqual(log2, disabledLogger) {
+		t.Error("Ctx did not return the expected logger")
 	}
 }

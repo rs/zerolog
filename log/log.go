@@ -2,6 +2,7 @@
 package log
 
 import (
+	"context"
 	"os"
 
 	"github.com/rs/zerolog"
@@ -75,4 +76,10 @@ func Panic() *zerolog.Event {
 // You must call Msg on the returned event in order to send the event.
 func Log() *zerolog.Event {
 	return Logger.Log()
+}
+
+// Ctx returns the Logger associated with the ctx. If no logger
+// is associated, a disabled logger is returned.
+func Ctx(ctx context.Context) zerolog.Logger {
+	return zerolog.Ctx(ctx)
 }

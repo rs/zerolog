@@ -1,6 +1,11 @@
 package zerolog
 
-import "context"
+import (
+	"context"
+	"io/ioutil"
+)
+
+var disabledLogger = New(ioutil.Discard).Level(Disabled)
 
 type ctxKey struct{}
 
@@ -9,8 +14,11 @@ func (l Logger) WithContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxKey{}, l)
 }
 
-// FromContext returns the Logger associated with the ctx.
-func FromContext(ctx context.Context) (l Logger, ok bool) {
-	l, ok = ctx.Value(ctxKey{}).(Logger)
-	return
+// Ctx returns the Logger associated with the ctx. If no logger
+// is associated, a disabled logger is returned.
+func Ctx(ctx context.Context) Logger {
+	if l, ok := ctx.Value(ctxKey{}).(Logger); ok {
+		return l
+	}
+	return disabledLogger
 }

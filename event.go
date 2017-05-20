@@ -89,7 +89,7 @@ func (e *Event) Msgf(format string, v ...interface{}) (n int, err error) {
 	return e.write()
 }
 
-// Dict adds the field key with a dict to the *Event context.
+// Dict adds the field key with a dict to the event context.
 // Use zerolog.Dict() to create the dictionary.
 func (e *Event) Dict(key string, dict *Event) *Event {
 	if !e.enabled {

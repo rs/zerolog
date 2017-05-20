@@ -190,6 +190,16 @@ sampled.Info().Msg("will be logged every 10 messages")
 // Output: {"time":1494567715,"sample":10,"message":"will be logged every 10 messages"}
 ```
 
+### Pass a sub-logger by context
+
+```go
+ctx := log.With("component", "module").Logger().FromContext(ctx)
+
+log.Ctx(ctx).Info().Msg("hello world")
+
+// Output: {"component":"module","level":"info","message":"hello world"}
+```
+
 ## Global Settings
 
 Some settings can be changed and will by applied to all loggers:
@@ -202,7 +212,7 @@ Some settings can be changed and will by applied to all loggers:
 * `zerolog.MessageFieldName`: Can be set to customize message field name.
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
 * `zerolog.SampleFieldName`: Can be set to customize the field name added when sampling is enabled.
-* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting.
+* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with an empty string, times are formated as UNIX timestamp.
 
 ## Field Types
 
@@ -216,7 +226,10 @@ Some settings can be changed and will by applied to all loggers:
 
 ### Advanced Fields
 
-* `Timestamp`: Insert UNIX timestamp field with `zerolog.TimestampFieldName` field name.
-* `Time`: Add a field with the time formated with the `zerolog.TimeFieldFormat`.
 * `Err`: Takes an `error` and render it as a string using the `zerolog.ErrorFieldName` field name.
+* `Timestamp`: Insert a timestamp field with `zerolog.TimestampFieldName` field name and formatted using `zerolog.TimeFieldFormat`.
+* `Time`: Adds a field with the time formated with the `zerolog.TimeFieldFormat`.
+* `Dur`: Adds a field with a `time.Duration` formatted as a `float`. For `int` value, use `DurInt`.
+* `Dict`: Adds a sub-key/value as a field of the event.
+* `Interface`: Uses reflection to marshal the type.
 
