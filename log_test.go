@@ -247,7 +247,7 @@ func TestContextTimestamp(t *testing.T) {
 	log := New(out).With().Timestamp().Str("foo", "bar").Logger()
 	log.Log().Msg("hello world")
 
-	if got, want := out.String(), `{"time":981173106,"foo":"bar","message":"hello world"}`+"\n"; got != want {
+	if got, want := out.String(), `{"time":"2001-02-03T04:05:06Z","foo":"bar","message":"hello world"}`+"\n"; got != want {
 		t.Errorf("invalid log output: got %q, want %q", got, want)
 	}
 }
@@ -263,7 +263,7 @@ func TestEventTimestamp(t *testing.T) {
 	log := New(out).With().Str("foo", "bar").Logger()
 	log.Log().Timestamp().Msg("hello world")
 
-	if got, want := out.String(), `{"foo":"bar","time":981173106,"message":"hello world"}`+"\n"; got != want {
+	if got, want := out.String(), `{"foo":"bar","time":"2001-02-03T04:05:06Z","message":"hello world"}`+"\n"; got != want {
 		t.Errorf("invalid log output: got %q, want %q", got, want)
 	}
 }

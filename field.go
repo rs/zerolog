@@ -78,11 +78,14 @@ func appendFloat64(dst []byte, key string, val float64) []byte {
 }
 
 func appendTime(dst []byte, key string, t time.Time) []byte {
+	if TimeFieldFormat == "" {
+		return appendInt64(dst, key, t.Unix())
+	}
 	return append(t.AppendFormat(append(appendKey(dst, key), '"'), TimeFieldFormat), '"')
 }
 
 func appendTimestamp(dst []byte) []byte {
-	return appendInt64(dst, TimestampFieldName, now().Unix())
+	return appendTime(dst, TimestampFieldName, now())
 }
 
 func appendObject(dst []byte, key string, obj interface{}) []byte {
