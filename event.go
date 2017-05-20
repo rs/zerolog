@@ -71,7 +71,7 @@ func (e *Event) Msg(msg string) (n int, err error) {
 	return e.write()
 }
 
-// Msgf sends the *Event with formated msg added as the message field if not empty.
+// Msgf sends the event with formated msg added as the message field if not empty.
 //
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
