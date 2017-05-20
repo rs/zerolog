@@ -45,7 +45,7 @@ log.Fatal().
 // Exit 1
 ```
 
-NOTE: Using `Msgf` generates an allocation even when the logger is disabled.
+NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
 
 ### Fields can be added to log messages
 
@@ -147,7 +147,7 @@ sampled.Info().Msg("will be logged every 10 messages")
 ### Pass a sub-logger by context
 
 ```go
-ctx := log.With("component", "module").Logger().FromContext(ctx)
+ctx := log.With("component", "module").Logger().WithContext(ctx)
 
 log.Ctx(ctx).Info().Msg("hello world")
 
@@ -162,6 +162,7 @@ In this example we use [alice](github.com/justinas/alice) to install logger for 
 
 ```go
 log := zerolog.New(os.Stdout).With().
+    Timestamp().
     Str("role", "my-service").
     Str("host", host).
     Logger()
@@ -187,6 +188,8 @@ h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         Str("user", "current user").
         Str("status", "ok").
         Msg("Something happend")
+
+    // Output: {"level":"info","time":"2001-02-03T04:05:06Z","role":"my-service","host":"local-hostname","req_id":"b4g0l5t6tfid6dtrapu0","user":"current user","status":"ok","message":"Something happend"}
 }))
 http.Handle("/", h)
 

@@ -3,22 +3,42 @@ package hlog_test
 import (
 	"net/http"
 	"os"
+	"time"
+
+	"net/http/httptest"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 )
 
 // fake alice to avoid dep
-type alice struct{}
+type middleware func(http.Handler) http.Handler
+type alice struct {
+	m []middleware
+}
 
-func (a alice) Append(interface{}) alice       { return a }
-func (alice) Then(h http.Handler) http.Handler { return h }
+func (a alice) Append(m middleware) alice {
+	a.m = append(a.m, m)
+	return a
+}
+func (a alice) Then(h http.Handler) http.Handler {
+	for i := range a.m {
+		h = a.m[len(a.m)-1-i](h)
+	}
+	return h
+}
+
+func init() {
+	zerolog.TimestampFunc = func() time.Time {
+		return time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC)
+	}
+}
 
 func Example_handler() {
-	host, _ := os.Hostname()
 	log := zerolog.New(os.Stdout).With().
+		Timestamp().
 		Str("role", "my-service").
-		Str("host", host).
+		Str("host", "local-hostname").
 		Logger()
 
 	c := alice{}
@@ -31,7 +51,7 @@ func Example_handler() {
 	c = c.Append(hlog.RemoteAddrHandler("ip"))
 	c = c.Append(hlog.UserAgentHandler("user_agent"))
 	c = c.Append(hlog.RefererHandler("referer"))
-	c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
+	//c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
 
 	// Here is your final handler
 	h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +65,7 @@ func Example_handler() {
 	}))
 	http.Handle("/", h)
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal().Err(err).Msg("Startup failed")
-	}
+	h.ServeHTTP(httptest.NewRecorder(), &http.Request{})
+
+	// Output: {"level":"info","time":"2001-02-03T04:05:06Z","role":"my-service","host":"local-hostname","user":"current user","status":"ok","message":"Something happend"}
 }

@@ -23,6 +23,9 @@ var (
 	// If set to an empty string, the time is formatted as an UNIX timestamp
 	// as integer.
 	TimeFieldFormat = time.RFC3339
+
+	// TimestampFunc defines the function called to generate a timestamp.
+	TimestampFunc = time.Now
 )
 
 var (

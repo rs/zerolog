@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-var now = time.Now
-
 func appendKey(dst []byte, key string) []byte {
 	if len(dst) > 1 {
 		dst = append(dst, ',')
@@ -85,7 +83,7 @@ func appendTime(dst []byte, key string, t time.Time) []byte {
 }
 
 func appendTimestamp(dst []byte) []byte {
-	return appendTime(dst, TimestampFieldName, now())
+	return appendTime(dst, TimestampFieldName, TimestampFunc())
 }
 
 func appendDuration(dst []byte, key string, d, unit time.Duration, float bool) []byte {
