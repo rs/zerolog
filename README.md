@@ -158,7 +158,7 @@ log.Ctx(ctx).Info().Msg("hello world")
 
 The `github.com/rs/zerolog/hlog` package provides some helpers to integrate zerolog with `http.Handler`.
 
-In this example we use [alice](github.com/justinas/alice) to install logger for better readability.
+In this example we use [alice](https://github.com/justinas/alice) to install logger for better readability.
 
 ```go
 log := zerolog.New(os.Stdout).With().
