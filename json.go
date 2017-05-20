@@ -1,42 +1,31 @@
 package zerolog
 
-import (
-	"bytes"
-	"unicode/utf8"
-)
+import "unicode/utf8"
 
 const hex = "0123456789abcdef"
 
-func writeJSONString(buf *bytes.Buffer, s string) {
-	buf.WriteByte('"')
+func appendJSONString(dst []byte, s string) []byte {
+	dst = append(dst, '"')
 	for i := 0; i < len(s); {
 		if b := s[i]; b < utf8.RuneSelf {
 			switch b {
 			case '"', '\\':
-				buf.WriteByte('\\')
-				buf.WriteByte(b)
+				dst = append(dst, '\\', b)
 			case '\b':
-				buf.WriteByte('\\')
-				buf.WriteByte('b')
+				dst = append(dst, '\\', 'b')
 			case '\f':
-				buf.WriteByte('\\')
-				buf.WriteByte('f')
+				dst = append(dst, '\\', 'f')
 			case '\n':
-				buf.WriteByte('\\')
-				buf.WriteByte('n')
+				dst = append(dst, '\\', 'n')
 			case '\r':
-				buf.WriteByte('\\')
-				buf.WriteByte('r')
+				dst = append(dst, '\\', 'r')
 			case '\t':
-				buf.WriteByte('\\')
-				buf.WriteByte('t')
+				dst = append(dst, '\\', 't')
 			default:
 				if b >= 0x20 {
-					buf.WriteByte(b)
+					dst = append(dst, b)
 				} else {
-					buf.WriteString(`\u00`)
-					buf.WriteByte(hex[b>>4])
-					buf.WriteByte(hex[b&0xF])
+					dst = append(dst, '\\', 'u', '0', '0', hex[b>>4], hex[b&0xF])
 				}
 			}
 			i++
@@ -44,12 +33,51 @@ func writeJSONString(buf *bytes.Buffer, s string) {
 		}
 		r, size := utf8.DecodeRuneInString(s[i:])
 		if r == utf8.RuneError && size == 1 {
-			buf.WriteString(`\ufffd`)
+			dst = append(dst, `\ufffd`...)
 			i++
 			continue
 		}
-		buf.WriteString(s[i : i+size])
+		dst = append(dst, s[i:i+size]...)
 		i += size
 	}
-	buf.WriteByte('"')
+	return append(dst, '"')
+}
+
+func appendJSONBytes(dst []byte, s []byte) []byte {
+	dst = append(dst, '"')
+	for i := 0; i < len(s); {
+		if b := s[i]; b < utf8.RuneSelf {
+			switch b {
+			case '"', '\\':
+				dst = append(dst, '\\', b)
+			case '\b':
+				dst = append(dst, '\\', 'b')
+			case '\f':
+				dst = append(dst, '\\', 'f')
+			case '\n':
+				dst = append(dst, '\\', 'n')
+			case '\r':
+				dst = append(dst, '\\', 'r')
+			case '\t':
+				dst = append(dst, '\\', 't')
+			default:
+				if b >= 0x20 {
+					dst = append(dst, b)
+				} else {
+					dst = append(dst, '\\', 'u', '0', '0', hex[b>>4], hex[b&0xF])
+				}
+			}
+			i++
+			continue
+		}
+		r, size := utf8.DecodeRune(s[i:])
+		if r == utf8.RuneError && size == 1 {
+			dst = append(dst, `\ufffd`...)
+			i++
+			continue
+		}
+		dst = append(dst, s[i:i+size]...)
+		i += size
+	}
+	return append(dst, '"')
 }

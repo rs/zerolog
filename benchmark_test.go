@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"testing"
+	"time"
 )
 
 var (
@@ -44,9 +45,9 @@ func BenchmarkInfo(b *testing.B) {
 func BenchmarkContextFields(b *testing.B) {
 	logger := New(ioutil.Discard).With().
 		Str("string", "four!").
-		Str("time", "now").     // XXX
-		Str("duration", "123"). //XXX
-		Str("another string", "done!").
+		Time("time", time.Time{}).
+		Int("int", 123).
+		Float32("float", -2.203230293249593).
 		Logger()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -63,9 +64,9 @@ func BenchmarkLogFields(b *testing.B) {
 		for pb.Next() {
 			logger.Info().
 				Str("string", "four!").
-				Str("time", "now").     // XXX
-				Str("duration", "123"). //XXX
-				Str("another string", "done!").
+				Time("time", time.Time{}).
+				Int("int", 123).
+				Float32("float", -2.203230293249593).
 				Msg(fakeMessage)
 		}
 	})

@@ -1,141 +1,94 @@
 package zerolog
 
 import (
-	"bytes"
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 )
 
 var now = time.Now
 
-type fieldMode uint8
-
-const (
-	zeroFieldMode fieldMode = iota
-	rawFieldMode
-	quotedFieldMode
-	precomputedFieldMode
-	timestampFieldMode
-)
-
-// field define a logger field.
-type field struct {
-	key  string
-	mode fieldMode
-	val  string
-	json []byte
-}
-
-func (f field) writeJSON(buf *bytes.Buffer) {
-	switch f.mode {
-	case zeroFieldMode:
-		return
-	case precomputedFieldMode:
-		buf.Write(f.json)
-		return
-	case timestampFieldMode:
-		writeJSONString(buf, TimestampFieldName)
-		buf.WriteByte(':')
-		buf.WriteString(strconv.FormatInt(now().Unix(), 10))
-		return
+func appendKey(dst []byte, key string) []byte {
+	if len(dst) > 1 {
+		dst = append(dst, ',')
 	}
-	writeJSONString(buf, f.key)
-	buf.WriteByte(':')
-	switch f.mode {
-	case quotedFieldMode:
-		writeJSONString(buf, f.val)
-	case rawFieldMode:
-		buf.WriteString(f.val)
-	default:
-		panic("unknown field mode")
+	dst = appendJSONString(dst, key)
+	return append(dst, ':')
+}
+
+func appendString(dst []byte, key, val string) []byte {
+	return appendJSONString(appendKey(dst, key), val)
+}
+
+func appendError(dst []byte, err error) []byte {
+	return appendJSONString(appendKey(dst, ErrorFieldName), err.Error())
+}
+
+func appendBool(dst []byte, key string, val bool) []byte {
+	return strconv.AppendBool(appendKey(dst, key), val)
+}
+
+func appendInt(dst []byte, key string, val int) []byte {
+	return strconv.AppendInt(appendKey(dst, key), int64(val), 10)
+}
+
+func appendInt8(dst []byte, key string, val int8) []byte {
+	return strconv.AppendInt(appendKey(dst, key), int64(val), 10)
+}
+
+func appendInt16(dst []byte, key string, val int16) []byte {
+	return strconv.AppendInt(appendKey(dst, key), int64(val), 10)
+}
+
+func appendInt32(dst []byte, key string, val int32) []byte {
+	return strconv.AppendInt(appendKey(dst, key), int64(val), 10)
+}
+
+func appendInt64(dst []byte, key string, val int64) []byte {
+	return strconv.AppendInt(appendKey(dst, key), int64(val), 10)
+}
+
+func appendUint(dst []byte, key string, val uint) []byte {
+	return strconv.AppendUint(appendKey(dst, key), uint64(val), 10)
+}
+
+func appendUint8(dst []byte, key string, val uint8) []byte {
+	return strconv.AppendUint(appendKey(dst, key), uint64(val), 10)
+}
+
+func appendUint16(dst []byte, key string, val uint16) []byte {
+	return strconv.AppendUint(appendKey(dst, key), uint64(val), 10)
+}
+
+func appendUint32(dst []byte, key string, val uint32) []byte {
+	return strconv.AppendUint(appendKey(dst, key), uint64(val), 10)
+}
+
+func appendUint64(dst []byte, key string, val uint64) []byte {
+	return strconv.AppendUint(appendKey(dst, key), uint64(val), 10)
+}
+
+func appendFloat32(dst []byte, key string, val float32) []byte {
+	return strconv.AppendFloat(appendKey(dst, key), float64(val), 'f', -1, 32)
+}
+
+func appendFloat64(dst []byte, key string, val float64) []byte {
+	return strconv.AppendFloat(appendKey(dst, key), float64(val), 'f', -1, 32)
+}
+
+func appendTime(dst []byte, key string, t time.Time) []byte {
+	return append(t.AppendFormat(append(appendKey(dst, key), '"'), TimeFieldFormat), '"')
+}
+
+func appendTimestamp(dst []byte) []byte {
+	return appendInt64(dst, TimestampFieldName, now().Unix())
+}
+
+func appendObject(dst []byte, key string, obj interface{}) []byte {
+	marshaled, err := json.Marshal(obj)
+	if err != nil {
+		return appendString(dst, key, fmt.Sprintf("marshaling error: %v", err))
 	}
-}
-
-func (f field) compileJSON() field {
-	switch f.mode {
-	case zeroFieldMode, precomputedFieldMode, timestampFieldMode:
-		return f
-	}
-	buf := &bytes.Buffer{}
-	f.writeJSON(buf)
-	cf := field{
-		mode: precomputedFieldMode,
-		json: buf.Bytes(),
-	}
-	return cf
-}
-
-func fStr(key, val string) field {
-	return field{key, quotedFieldMode, val, nil}
-}
-
-func fErr(err error) field {
-	return field{ErrorFieldName, quotedFieldMode, err.Error(), nil}
-}
-
-func fBool(key string, b bool) field {
-	if b {
-		return field{key, rawFieldMode, "true", nil}
-	}
-	return field{key, rawFieldMode, "false", nil}
-}
-
-func fInt(key string, i int) field {
-	return field{key, rawFieldMode, strconv.FormatInt(int64(i), 10), nil}
-}
-
-func fInt8(key string, i int8) field {
-	return field{key, rawFieldMode, strconv.FormatInt(int64(i), 10), nil}
-}
-
-func fInt16(key string, i int16) field {
-	return field{key, rawFieldMode, strconv.FormatInt(int64(i), 10), nil}
-}
-
-func fInt32(key string, i int32) field {
-	return field{key, rawFieldMode, strconv.FormatInt(int64(i), 10), nil}
-}
-
-func fInt64(key string, i int64) field {
-	return field{key, rawFieldMode, strconv.FormatInt(i, 10), nil}
-}
-
-func fUint(key string, i uint) field {
-	return field{key, rawFieldMode, strconv.FormatUint(uint64(i), 10), nil}
-}
-
-func fUint8(key string, i uint8) field {
-	return field{key, rawFieldMode, strconv.FormatUint(uint64(i), 10), nil}
-}
-
-func fUint16(key string, i uint16) field {
-	return field{key, rawFieldMode, strconv.FormatUint(uint64(i), 10), nil}
-}
-
-func fUint32(key string, i uint32) field {
-	return field{key, rawFieldMode, strconv.FormatUint(uint64(i), 10), nil}
-}
-
-func fUint64(key string, i uint64) field {
-	return field{key, rawFieldMode, strconv.FormatUint(i, 10), nil}
-}
-
-func fFloat32(key string, f float32) field {
-	return field{key, rawFieldMode, strconv.FormatFloat(float64(f), 'f', -1, 32), nil}
-}
-
-func fFloat64(key string, f float64) field {
-	return field{key, rawFieldMode, strconv.FormatFloat(f, 'f', -1, 64), nil}
-}
-
-func fTimestamp() field {
-	return field{mode: timestampFieldMode}
-}
-
-func fTime(key string, t time.Time) field {
-	return field{key, quotedFieldMode, t.Format(TimeFieldFormat), nil}
-}
-
-func fRaw(key string, raw string) field {
-	return field{key, rawFieldMode, raw, nil}
+	return append(appendKey(dst, key), marshaled...)
 }

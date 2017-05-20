@@ -74,10 +74,6 @@ import (
 	"sync/atomic"
 )
 
-type parentLogger interface {
-	addContextField(Event)
-}
-
 // Level defines log levels.
 type Level uint8
 
@@ -133,13 +129,11 @@ var disabledEvent = newEvent(levelWriterAdapter{ioutil.Discard}, 0, false)
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
-	root    bool
-	parent  parentLogger
 	w       LevelWriter
-	field   field
 	level   Level
 	sample  uint32
 	counter *uint32
+	context []byte
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -157,25 +151,30 @@ func New(w io.Writer) Logger {
 	if !ok {
 		lw = levelWriterAdapter{w}
 	}
-	return Logger{
-		root: true,
-		w:    lw,
-	}
+	return Logger{w: lw}
 }
 
 // With creates a child logger with the field added to its context.
 func (l Logger) With() Context {
+	context := l.context
+	l.context = make([]byte, 0, 500)
+	if context != nil {
+		l.context = append(l.context, context...)
+	} else {
+		// first byte of context is presence of timestamp or not
+		l.context = append(l.context, 0)
+	}
 	return Context{l}
 }
 
 // Level crestes a child logger with the minium accepted level set to level.
 func (l Logger) Level(lvl Level) Logger {
 	return Logger{
-		parent:  l,
 		w:       l.w,
 		level:   lvl,
 		sample:  l.sample,
 		counter: l.counter,
+		context: l.context,
 	}
 }
 
@@ -184,45 +183,45 @@ func (l Logger) Sample(every int) Logger {
 	if every == 0 {
 		// Create a child with no sampling.
 		return Logger{
-			parent: l,
-			w:      l.w,
-			level:  l.level,
+			w:       l.w,
+			level:   l.level,
+			context: l.context,
 		}
 	}
 	return Logger{
-		parent:  l,
 		w:       l.w,
 		level:   l.level,
 		sample:  uint32(every),
 		counter: new(uint32),
+		context: l.context,
 	}
 }
 
 // Debug starts a new message with debug level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Debug() Event {
+func (l Logger) Debug() *Event {
 	return l.newEvent(DebugLevel, true, nil)
 }
 
 // Info starts a new message with info level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Info() Event {
+func (l Logger) Info() *Event {
 	return l.newEvent(InfoLevel, true, nil)
 }
 
 // Warn starts a new message with warn level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Warn() Event {
+func (l Logger) Warn() *Event {
 	return l.newEvent(WarnLevel, true, nil)
 }
 
 // Error starts a new message with error level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Error() Event {
+func (l Logger) Error() *Event {
 	return l.newEvent(ErrorLevel, true, nil)
 }
 
@@ -230,7 +229,7 @@ func (l Logger) Error() Event {
 // is called by the Msg method.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Fatal() Event {
+func (l Logger) Fatal() *Event {
 	return l.newEvent(FatalLevel, true, func(msg string) { os.Exit(1) })
 }
 
@@ -238,7 +237,7 @@ func (l Logger) Fatal() Event {
 // to the panic function.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Panic() Event {
+func (l Logger) Panic() *Event {
 	return l.newEvent(PanicLevel, true, func(msg string) { panic(msg) })
 }
 
@@ -246,11 +245,11 @@ func (l Logger) Panic() Event {
 // will still disable events produced by this method.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Log() Event {
+func (l Logger) Log() *Event {
 	return l.newEvent(ErrorLevel, false, nil)
 }
 
-func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) Event {
+func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Event {
 	enabled := l.should(level)
 	if !enabled {
 		return disabledEvent
@@ -266,7 +265,17 @@ func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) Eve
 	if l.sample > 0 && SampleFieldName != "" {
 		e.Uint32(SampleFieldName, l.sample)
 	}
-	l.addContextField(e)
+	if l.context != nil && len(l.context) > 0 {
+		if l.context[0] > 0 { // ts flag
+			e.buf = appendTimestamp(e.buf)
+		}
+		if len(l.context) > 1 {
+			if len(e.buf) > 1 {
+				e.buf = append(e.buf, ',')
+			}
+			e.buf = append(e.buf, l.context[1:]...)
+		}
+	}
 	return e
 }
 
@@ -280,13 +289,4 @@ func (l Logger) should(lvl Level) bool {
 		return c%l.sample == 0
 	}
 	return true
-}
-
-func (l Logger) addContextField(e Event) {
-	if !l.root {
-		l.parent.addContextField(e)
-	}
-	if l.field.mode != zeroFieldMode {
-		e.append(l.field)
-	}
 }

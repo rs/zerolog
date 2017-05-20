@@ -15,11 +15,11 @@ The zerolog package provides a fast and simple logger dedicated to JSON output. 
 All operations are allocation free (those numbers *include* JSON encoding):
 
 ```
-BenchmarkLogEmpty-8            50000000      22 ns/op       0 B/op      0 allocs/op
-BenchmarkDisabled-8           100000000       9 ns/op       0 B/op      0 allocs/op
-BenchmarkInfo-8                10000000     210 ns/op       0 B/op      0 allocs/op
-BenchmarkContextFields-8       10000000     254 ns/op       0 B/op      0 allocs/op
-BenchmarkLogFields-8            5000000     377 ns/op       0 B/op      0 allocs/op
+BenchmarkLogEmpty-8            50000000      19.8 ns/op     0 B/op      0 allocs/op
+BenchmarkDisabled-8           100000000       4.73 ns/op    0 B/op      0 allocs/op
+BenchmarkInfo-8                10000000      85.1 ns/op     0 B/op      0 allocs/op
+BenchmarkContextFields-8       10000000      81.9 ns/op     0 B/op      0 allocs/op
+BenchmarkLogFields-8            5000000     247 ns/op       0 B/op      0 allocs/op
 ```
 
 ## Usage

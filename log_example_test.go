@@ -111,7 +111,7 @@ func ExampleEvent_Dict() {
 		).
 		Msg("hello world")
 
-	// Output: {"foo":"bar",{"bar":"baz","n":1},"message":"hello world"}
+	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
 func ExampleContext_Dict() {

@@ -1,83 +1,69 @@
 package zerolog
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"sync"
 	"time"
 )
 
-var pool = &sync.Pool{
+var eventPool = &sync.Pool{
 	New: func() interface{} {
-		return bytes.NewBuffer(make([]byte, 500))
+		return &Event{
+			buf: make([]byte, 0, 500),
+		}
 	},
 }
 
 // Event represents a log event. It is instancied by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf     *bytes.Buffer
+	buf     []byte
 	w       LevelWriter
 	level   Level
 	enabled bool
 	done    func(msg string)
 }
 
-func newEvent(w LevelWriter, level Level, enabled bool) Event {
+func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	if !enabled {
-		return Event{}
+		return &Event{}
 	}
-	buf := pool.Get().(*bytes.Buffer)
-	buf.Reset()
-	buf.WriteByte('{')
-	return Event{
-		buf:     buf,
-		w:       w,
-		level:   level,
-		enabled: true,
-	}
-}
-
-func (e Event) write() (n int, err error) {
-	if !e.enabled {
-		return 0, nil
-	}
-	e.buf.WriteByte('}')
-	e.buf.WriteByte('\n')
-	n, err = e.w.WriteLevel(e.level, e.buf.Bytes())
-	pool.Put(e.buf)
-	return
-}
-
-func (e Event) append(f field) Event {
-	if !e.enabled {
-		return e
-	}
-	if e.buf.Len() > 1 {
-		e.buf.WriteByte(',')
-	}
-	f.writeJSON(e.buf)
+	e := eventPool.Get().(*Event)
+	e.buf = e.buf[:1]
+	e.buf[0] = '{'
+	e.w = w
+	e.level = level
+	e.enabled = true
 	return e
 }
 
-// Enabled return false if the event is going to be filtered out by
+func (e *Event) write() (n int, err error) {
+	if !e.enabled {
+		return 0, nil
+	}
+	e.buf = append(e.buf, '}', '\n')
+	n, err = e.w.WriteLevel(e.level, e.buf)
+	eventPool.Put(e)
+	return
+}
+
+// Enabled return false if the *Event is going to be filtered out by
 // log level or sampling.
-func (e Event) Enabled() bool {
+func (e *Event) Enabled() bool {
 	return e.enabled
 }
 
-// Msg sends the event with msg added as the message field if not empty.
+// Msg sends the *Event with msg added as the message field if not empty.
 //
-// NOTICE: once this methid is called, the Event should be disposed.
+// NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
-func (e Event) Msg(msg string) (n int, err error) {
+func (e *Event) Msg(msg string) (n int, err error) {
 	if !e.enabled {
 		return 0, nil
 	}
 	if msg != "" {
-		e.append(fStr(MessageFieldName, msg))
+		e.buf = appendString(e.buf, MessageFieldName, msg)
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -85,17 +71,17 @@ func (e Event) Msg(msg string) (n int, err error) {
 	return e.write()
 }
 
-// Msgf sends the event with formated msg added as the message field if not empty.
+// Msgf sends the *Event with formated msg added as the message field if not empty.
 //
-// NOTICE: once this methid is called, the Event should be disposed.
+// NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
-func (e Event) Msgf(format string, v ...interface{}) (n int, err error) {
+func (e *Event) Msgf(format string, v ...interface{}) (n int, err error) {
 	if !e.enabled {
 		return 0, nil
 	}
 	msg := fmt.Sprintf(format, v...)
 	if msg != "" {
-		e.append(fStr(MessageFieldName, msg))
+		e.buf = appendString(e.buf, MessageFieldName, msg)
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -103,161 +89,175 @@ func (e Event) Msgf(format string, v ...interface{}) (n int, err error) {
 	return e.write()
 }
 
-// Dict adds the field key with a dict to the event context.
+// Dict adds the field key with a dict to the *Event context.
 // Use zerolog.Dict() to create the dictionary.
-func (e Event) Dict(key string, dict Event) Event {
+func (e *Event) Dict(key string, dict *Event) *Event {
 	if !e.enabled {
 		return e
 	}
-	if e.buf.Len() > 1 {
-		e.buf.WriteByte(',')
-	}
-	io.Copy(e.buf, dict.buf)
-	e.buf.WriteByte('}')
+	e.buf = append(append(appendKey(e.buf, key), dict.buf...), '}')
+	eventPool.Put(dict)
 	return e
 }
 
-// Dict creates an Event to be used with the event.Dict method.
+// Dict creates an Event to be used with the *Event.Dict method.
 // Call usual field methods like Str, Int etc to add fields to this
-// event and give it as argument the event.Dict method.
-func Dict() Event {
+// event and give it as argument the *Event.Dict method.
+func Dict() *Event {
 	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
 }
 
-// Str adds the field key with val as a string to the event context.
-func (e Event) Str(key, val string) Event {
+// Str adds the field key with val as a string to the *Event context.
+func (e *Event) Str(key, val string) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fStr(key, val))
+	e.buf = appendString(e.buf, key, val)
+	return e
 }
 
-// Err adds the field "error" with err as a string to the event context.
+// Err adds the field "error" with err as a string to the *Event context.
 // To customize the key name, change zerolog.ErrorFieldName.
-func (e Event) Err(err error) Event {
+func (e *Event) Err(err error) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fErr(err))
+	e.buf = appendError(e.buf, err)
+	return e
 }
 
-// Bool adds the field key with val as a Boolean to the event context.
-func (e Event) Bool(key string, b bool) Event {
+// Bool adds the field key with val as a Boolean to the *Event context.
+func (e *Event) Bool(key string, b bool) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fBool(key, b))
+	e.buf = appendBool(e.buf, key, b)
+	return e
 }
 
-// Int adds the field key with i as a int to the event context.
-func (e Event) Int(key string, i int) Event {
+// Int adds the field key with i as a int to the *Event context.
+func (e *Event) Int(key string, i int) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fInt(key, i))
+	e.buf = appendInt(e.buf, key, i)
+	return e
 }
 
-// Int8 adds the field key with i as a int8 to the event context.
-func (e Event) Int8(key string, i int8) Event {
+// Int8 adds the field key with i as a int8 to the *Event context.
+func (e *Event) Int8(key string, i int8) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fInt8(key, i))
+	e.buf = appendInt8(e.buf, key, i)
+	return e
 }
 
-// Int16 adds the field key with i as a int16 to the event context.
-func (e Event) Int16(key string, i int16) Event {
+// Int16 adds the field key with i as a int16 to the *Event context.
+func (e *Event) Int16(key string, i int16) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fInt16(key, i))
+	e.buf = appendInt16(e.buf, key, i)
+	return e
 }
 
-// Int32 adds the field key with i as a int32 to the event context.
-func (e Event) Int32(key string, i int32) Event {
+// Int32 adds the field key with i as a int32 to the *Event context.
+func (e *Event) Int32(key string, i int32) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fInt32(key, i))
+	e.buf = appendInt32(e.buf, key, i)
+	return e
 }
 
-// Int64 adds the field key with i as a int64 to the event context.
-func (e Event) Int64(key string, i int64) Event {
+// Int64 adds the field key with i as a int64 to the *Event context.
+func (e *Event) Int64(key string, i int64) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fInt64(key, i))
+	e.buf = appendInt64(e.buf, key, i)
+	return e
 }
 
-// Uint adds the field key with i as a uint to the event context.
-func (e Event) Uint(key string, i uint) Event {
+// Uint adds the field key with i as a uint to the *Event context.
+func (e *Event) Uint(key string, i uint) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fUint(key, i))
+	e.buf = appendUint(e.buf, key, i)
+	return e
 }
 
-// Uint8 adds the field key with i as a uint8 to the event context.
-func (e Event) Uint8(key string, i uint8) Event {
+// Uint8 adds the field key with i as a uint8 to the *Event context.
+func (e *Event) Uint8(key string, i uint8) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fUint8(key, i))
+	e.buf = appendUint8(e.buf, key, i)
+	return e
 }
 
-// Uint16 adds the field key with i as a uint16 to the event context.
-func (e Event) Uint16(key string, i uint16) Event {
+// Uint16 adds the field key with i as a uint16 to the *Event context.
+func (e *Event) Uint16(key string, i uint16) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fUint16(key, i))
+	e.buf = appendUint16(e.buf, key, i)
+	return e
 }
 
-// Uint32 adds the field key with i as a uint32 to the event context.
-func (e Event) Uint32(key string, i uint32) Event {
+// Uint32 adds the field key with i as a uint32 to the *Event context.
+func (e *Event) Uint32(key string, i uint32) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fUint32(key, i))
+	e.buf = appendUint32(e.buf, key, i)
+	return e
 }
 
-// Uint64 adds the field key with i as a uint64 to the event context.
-func (e Event) Uint64(key string, i uint64) Event {
+// Uint64 adds the field key with i as a uint64 to the *Event context.
+func (e *Event) Uint64(key string, i uint64) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fUint64(key, i))
+	e.buf = appendUint64(e.buf, key, i)
+	return e
 }
 
-// Float32 adds the field key with f as a float32 to the event context.
-func (e Event) Float32(key string, f float32) Event {
+// Float32 adds the field key with f as a float32 to the *Event context.
+func (e *Event) Float32(key string, f float32) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fFloat32(key, f))
+	e.buf = appendFloat32(e.buf, key, f)
+	return e
 }
 
-// Float64 adds the field key with f as a float64 to the event context.
-func (e Event) Float64(key string, f float64) Event {
+// Float64 adds the field key with f as a float64 to the *Event context.
+func (e *Event) Float64(key string, f float64) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fFloat64(key, f))
+	e.buf = appendFloat64(e.buf, key, f)
+	return e
 }
 
-// Timestamp adds the current local time as UNIX timestamp to the event context with the "time" key.
+// Timestamp adds the current local time as UNIX timestamp to the *Event context with the "time" key.
 // To customize the key name, change zerolog.TimestampFieldName.
-func (e Event) Timestamp() Event {
+func (e *Event) Timestamp() *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fTimestamp())
+	e.buf = appendTimestamp(e.buf)
+	return e
 }
 
 // Time adds the field key with t formated as string using zerolog.TimeFieldFormat.
-func (e Event) Time(key string, t time.Time) Event {
+func (e *Event) Time(key string, t time.Time) *Event {
 	if !e.enabled {
 		return e
 	}
-	return e.append(fTime(key, t))
+	e.buf = appendTime(e.buf, key, t)
+	return e
 }
