@@ -88,6 +88,13 @@ func appendTimestamp(dst []byte) []byte {
 	return appendTime(dst, TimestampFieldName, now())
 }
 
+func appendDuration(dst []byte, key string, d, unit time.Duration, float bool) []byte {
+	if float {
+		return appendFloat64(dst, key, float64(d)/float64(unit))
+	}
+	return appendInt64(dst, key, int64(d/unit))
+}
+
 func appendInterface(dst []byte, key string, i interface{}) []byte {
 	marshaled, err := json.Marshal(i)
 	if err != nil {

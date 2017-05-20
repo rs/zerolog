@@ -128,6 +128,18 @@ func (c Context) Time(key string, t time.Time) Context {
 	return c
 }
 
+// Dur adds the fields key with d divided by unit and stored as a float.
+func (c Context) Dur(key string, d, unit time.Duration) Context {
+	c.l.context = appendDuration(c.l.context, key, d, unit, true)
+	return c
+}
+
+// DurInt adds the fields key with d divided by unit and stored as a int.
+func (c Context) DurInt(key string, d, unit time.Duration) Context {
+	c.l.context = appendDuration(c.l.context, key, d, unit, true)
+	return c
+}
+
 // Interface adds the field key with obj marshaled using reflection.
 func (c Context) Interface(key string, i interface{}) Context {
 	c.l.context = appendInterface(c.l.context, key, i)

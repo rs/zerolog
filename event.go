@@ -262,6 +262,24 @@ func (e *Event) Time(key string, t time.Time) *Event {
 	return e
 }
 
+// Dur adds the fields key with d divided by unit and stored as a float.
+func (e *Event) Dur(key string, d, unit time.Duration) *Event {
+	if !e.enabled {
+		return e
+	}
+	e.buf = appendDuration(e.buf, key, d, unit, true)
+	return e
+}
+
+// DurInt adds the fields key with d divided by unit and stored as a int.
+func (e *Event) DurInt(key string, d, unit time.Duration) *Event {
+	if !e.enabled {
+		return e
+	}
+	e.buf = appendDuration(e.buf, key, d, unit, true)
+	return e
+}
+
 // Interface adds the field key with i marshaled using reflection.
 func (e *Event) Interface(key string, i interface{}) *Event {
 	if !e.enabled {

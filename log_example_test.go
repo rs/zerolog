@@ -3,6 +3,7 @@ package zerolog_test
 import (
 	"errors"
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -131,6 +132,19 @@ func ExampleEvent_Interface() {
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
 
+func ExampleEvent_Dur() {
+	d := time.Duration(10 * time.Millisecond)
+
+	log := zerolog.New(os.Stdout)
+
+	log.Log().
+		Str("foo", "bar").
+		Dur("dur", d, time.Second).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","dur":0.01,"message":"hello world"}
+}
+
 func ExampleContext_Dict() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
@@ -159,4 +173,17 @@ func ExampleContext_Interface() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
+}
+
+func ExampleContext_Dur() {
+	d := time.Duration(10 * time.Millisecond)
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Dur("dur", d, time.Second).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","dur":0.01,"message":"hello world"}
 }
