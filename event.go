@@ -261,3 +261,12 @@ func (e *Event) Time(key string, t time.Time) *Event {
 	e.buf = appendTime(e.buf, key, t)
 	return e
 }
+
+// Object adds the field key with obj marshaled using reflection.
+func (e *Event) Object(key string, obj interface{}) *Event {
+	if !e.enabled {
+		return e
+	}
+	e.buf = appendObject(e.buf, key, obj)
+	return e
+}

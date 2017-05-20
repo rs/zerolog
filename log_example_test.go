@@ -114,6 +114,23 @@ func ExampleEvent_Dict() {
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
+func ExampleEvent_Object() {
+	log := zerolog.New(os.Stdout)
+
+	obj := struct {
+		Name string `json:"name"`
+	}{
+		Name: "john",
+	}
+
+	log.Log().
+		Str("foo", "bar").
+		Object("obj", obj).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
+}
+
 func ExampleContext_Dict() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
@@ -125,4 +142,21 @@ func ExampleContext_Dict() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+}
+
+func ExampleContext_Object() {
+	obj := struct {
+		Name string `json:"name"`
+	}{
+		Name: "john",
+	}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Object("obj", obj).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
