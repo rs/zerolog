@@ -133,16 +133,16 @@ func ExampleEvent_Interface() {
 }
 
 func ExampleEvent_Dur() {
-	d := time.Duration(10 * time.Millisecond)
+	d := time.Duration(10 * time.Second)
 
 	log := zerolog.New(os.Stdout)
 
 	log.Log().
 		Str("foo", "bar").
-		Dur("dur", d, time.Second).
+		Dur("dur", d).
 		Msg("hello world")
 
-	// Output: {"foo":"bar","dur":0.01,"message":"hello world"}
+	// Output: {"foo":"bar","dur":10000,"message":"hello world"}
 }
 
 func ExampleContext_Dict() {
@@ -176,14 +176,14 @@ func ExampleContext_Interface() {
 }
 
 func ExampleContext_Dur() {
-	d := time.Duration(10 * time.Millisecond)
+	d := time.Duration(10 * time.Second)
 
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
-		Dur("dur", d, time.Second).
+		Dur("dur", d).
 		Logger()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","dur":0.01,"message":"hello world"}
+	// Output: {"foo":"bar","dur":10000,"message":"hello world"}
 }

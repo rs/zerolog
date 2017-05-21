@@ -26,6 +26,14 @@ var (
 
 	// TimestampFunc defines the function called to generate a timestamp.
 	TimestampFunc = time.Now
+
+	// DurationFieldUnit defines the unit for time.Duration type fields added
+	// using the Dur method.
+	DurationFieldUnit = time.Millisecond
+
+	// DurationFieldInteger renders Dur fields as integer instead of float if
+	// set to true.
+	DurationFieldInteger = false
 )
 
 var (

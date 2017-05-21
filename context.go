@@ -129,14 +129,8 @@ func (c Context) Time(key string, t time.Time) Context {
 }
 
 // Dur adds the fields key with d divided by unit and stored as a float.
-func (c Context) Dur(key string, d, unit time.Duration) Context {
-	c.l.context = appendDuration(c.l.context, key, d, unit, true)
-	return c
-}
-
-// DurInt adds the fields key with d divided by unit and stored as a int.
-func (c Context) DurInt(key string, d, unit time.Duration) Context {
-	c.l.context = appendDuration(c.l.context, key, d, unit, true)
+func (c Context) Dur(key string, d time.Duration) Context {
+	c.l.context = appendDuration(c.l.context, key, d)
 	return c
 }
 

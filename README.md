@@ -211,6 +211,10 @@ Some settings can be changed and will by applied to all loggers:
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
 * `zerolog.SampleFieldName`: Can be set to customize the field name added when sampling is enabled.
 * `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with an empty string, times are formated as UNIX timestamp.
+	// DurationFieldUnit defines the unit for time.Duration type fields added
+	// using the Dur method.
+* `DurationFieldUnit`: Sets the unit of the fields added by `Dur` (default: `time.Millisecond`).
+* `DurationFieldInteger`: If set to true, `Dur` fields are formatted as integers instead of floats.
 
 ## Field Types
 
@@ -227,7 +231,7 @@ Some settings can be changed and will by applied to all loggers:
 * `Err`: Takes an `error` and render it as a string using the `zerolog.ErrorFieldName` field name.
 * `Timestamp`: Insert a timestamp field with `zerolog.TimestampFieldName` field name and formatted using `zerolog.TimeFieldFormat`.
 * `Time`: Adds a field with the time formated with the `zerolog.TimeFieldFormat`.
-* `Dur`: Adds a field with a `time.Duration` formatted as a `float`. For `int` value, use `DurInt`.
+* `Dur`: Adds a field with a `time.Duration`.
 * `Dict`: Adds a sub-key/value as a field of the event.
 * `Interface`: Uses reflection to marshal the type.
 

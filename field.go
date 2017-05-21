@@ -86,11 +86,11 @@ func appendTimestamp(dst []byte) []byte {
 	return appendTime(dst, TimestampFieldName, TimestampFunc())
 }
 
-func appendDuration(dst []byte, key string, d, unit time.Duration, float bool) []byte {
-	if float {
-		return appendFloat64(dst, key, float64(d)/float64(unit))
+func appendDuration(dst []byte, key string, d time.Duration) []byte {
+	if DurationFieldInteger {
+		return appendInt64(dst, key, int64(d/DurationFieldUnit))
 	}
-	return appendInt64(dst, key, int64(d/unit))
+	return appendFloat64(dst, key, float64(d)/float64(DurationFieldUnit))
 }
 
 func appendInterface(dst []byte, key string, i interface{}) []byte {
