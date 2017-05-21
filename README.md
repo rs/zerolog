@@ -6,9 +6,9 @@ The zerolog package provides a fast and simple logger dedicated to JSON output.
 
 Zerolog's API is designed to provide both a great developer experience and stunning [performance](#performance). Its unique chaining API allows zerolog to write JSON log events by avoiding allocations and reflection.
 
-The uber's [zap](https://godoc.org/go.uber.org/zap) library pionieered this approach. Zerolog is taking this concept to the next level with simpler to use API and even better performance.
+The uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach. Zerolog is taking this concept to the next level with simpler to use API and even better performance.
 
-To keep the code base and the API simple, zerolog focues on JSON logging only.
+To keep the code base and the API simple, zerolog focuses on JSON logging only.
 
 
 ## Features
@@ -187,9 +187,9 @@ h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     hlog.FromRequest(r).Info().
         Str("user", "current user").
         Str("status", "ok").
-        Msg("Something happend")
+        Msg("Something happened")
 
-    // Output: {"level":"info","time":"2001-02-03T04:05:06Z","role":"my-service","host":"local-hostname","req_id":"b4g0l5t6tfid6dtrapu0","user":"current user","status":"ok","message":"Something happend"}
+    // Output: {"level":"info","time":"2001-02-03T04:05:06Z","role":"my-service","host":"local-hostname","req_id":"b4g0l5t6tfid6dtrapu0","user":"current user","status":"ok","message":"Something happened"}
 }))
 http.Handle("/", h)
 
@@ -203,7 +203,7 @@ if err := http.ListenAndServe(":8080", nil); err != nil {
 Some settings can be changed and will by applied to all loggers:
 
 * `log.Logger`: You can set this value to customize the global logger (the one used by package level methods).
-* `zerolog.SetGlobalLevel`: Can raise the mimimum level of all loggers. Set this to `zerolog.Disable` to disable logging altogether (quiet mode).
+* `zerolog.SetGlobalLevel`: Can raise the minimum level of all loggers. Set this to `zerolog.Disable` to disable logging altogether (quiet mode).
 * `zerolog.DisableSampling`: If argument is `true`, all sampled loggers will stop sampling and issue 100% of their log events.
 * `zerolog.TimestampFieldName`: Can be set to customize `Timestamp` field name.
 * `zerolog.LevelFieldName`: Can be set to customize level field name.
