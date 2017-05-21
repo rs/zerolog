@@ -150,6 +150,14 @@ func TestFieldsDisabled(t *testing.T) {
 	}
 }
 
+func TestMsgf(t *testing.T) {
+	out := &bytes.Buffer{}
+	New(out).Log().Msgf("one %s %.1f %d %v", "two", 3.4, 5, errors.New("six"))
+	if got, want := out.String(), `{"message":"one two 3.4 5 six"}`+"\n"; got != want {
+		t.Errorf("invalid log output: got %q, want %q", got, want)
+	}
+}
+
 func TestWithAndFieldsCombined(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out).With().Str("f1", "val").Str("f2", "val").Logger()
