@@ -176,7 +176,7 @@ c = c.Append(hlog.NewHandler(log))
 // Thanks to those handler, all our logs will come with some pre-populated fields.
 c = c.Append(hlog.RemoteAddrHandler("ip"))
 c = c.Append(hlog.UserAgentHandler("user_agent"))
-c = c.Append(hlog.ReferrerHandler("referrer"))
+c = c.Append(hlog.RefererHandler("referer"))
 c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
 
 // Here is your final handler
