@@ -154,6 +154,21 @@ log.Ctx(ctx).Info().Msg("hello world")
 // Output: {"component":"module","level":"info","message":"hello world"}
 ```
 
+### Set as standard logger output
+
+```go
+log := zerolog.New(os.Stdout).With().
+    Str("foo", "bar").
+    Logger()
+
+stdlog.SetFlags(0)
+stdlog.SetOutput(log)
+
+stdlog.Print("hello world")
+
+// Output: {"foo":"bar","message":"hello world"}
+```
+
 ### Integration with `net/http`
 
 The `github.com/rs/zerolog/hlog` package provides some helpers to integrate zerolog with `http.Handler`.

@@ -2,6 +2,7 @@ package zerolog_test
 
 import (
 	"errors"
+	stdlog "log"
 	"os"
 	"time"
 
@@ -88,6 +89,19 @@ func ExampleLogger_Error() {
 		Msg("error doing something")
 
 	// Output: {"level":"error","error":"some error","message":"error doing something"}
+}
+
+func ExampleLogger_Write() {
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Logger()
+
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(log)
+
+	stdlog.Print("hello world")
+
+	// Output: {"foo":"bar","message":"hello world"}
 }
 
 func ExampleLogger_Log() {

@@ -38,12 +38,12 @@ func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	return e
 }
 
-func (e *Event) write() (n int, err error) {
+func (e *Event) write() (err error) {
 	if !e.enabled {
-		return 0, nil
+		return nil
 	}
 	e.buf = append(e.buf, '}', '\n')
-	n, err = e.w.WriteLevel(e.level, e.buf)
+	_, err = e.w.WriteLevel(e.level, e.buf)
 	eventPool.Put(e)
 	return
 }
@@ -58,9 +58,9 @@ func (e *Event) Enabled() bool {
 //
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
-func (e *Event) Msg(msg string) (n int, err error) {
+func (e *Event) Msg(msg string) error {
 	if !e.enabled {
-		return 0, nil
+		return nil
 	}
 	if msg != "" {
 		e.buf = appendString(e.buf, MessageFieldName, msg)
@@ -75,9 +75,9 @@ func (e *Event) Msg(msg string) (n int, err error) {
 //
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
-func (e *Event) Msgf(format string, v ...interface{}) (n int, err error) {
+func (e *Event) Msgf(format string, v ...interface{}) error {
 	if !e.enabled {
-		return 0, nil
+		return nil
 	}
 	msg := fmt.Sprintf(format, v...)
 	if msg != "" {

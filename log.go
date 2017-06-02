@@ -249,6 +249,18 @@ func (l Logger) Log() *Event {
 	return l.newEvent(ErrorLevel, false, nil)
 }
 
+// Write implements the io.Writer interface. This is useful to set as a writer
+// for the standard library log.
+func (l Logger) Write(p []byte) (n int, err error) {
+	n = len(p)
+	if n > 0 && p[n-1] == '\n' {
+		// Trim CR added by stdlog.
+		p = p[0 : n-1]
+	}
+	err = l.Log().Msg(string(p))
+	return
+}
+
 func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Event {
 	enabled := l.should(level)
 	if !enabled {
