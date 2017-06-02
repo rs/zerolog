@@ -76,6 +76,7 @@ func TestWith(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out).With().
 		Str("foo", "bar").
+		AnErr("some_err", nil).
 		Err(errors.New("some error")).
 		Bool("bool", true).
 		Int("int", 1).
@@ -103,6 +104,7 @@ func TestFields(t *testing.T) {
 	log := New(out)
 	log.Log().
 		Str("foo", "bar").
+		AnErr("some_err", nil).
 		Err(errors.New("some error")).
 		Bool("bool", true).
 		Int("int", 1).
@@ -129,6 +131,7 @@ func TestFieldsDisabled(t *testing.T) {
 	log := New(out).Level(InfoLevel)
 	log.Debug().
 		Str("foo", "bar").
+		AnErr("some_err", nil).
 		Err(errors.New("some error")).
 		Bool("bool", true).
 		Int("int", 1).

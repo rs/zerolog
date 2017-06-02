@@ -19,8 +19,15 @@ func appendString(dst []byte, key, val string) []byte {
 	return appendJSONString(appendKey(dst, key), val)
 }
 
+func appendErrorKey(dst []byte, key string, err error) []byte {
+	if err == nil {
+		return dst
+	}
+	return appendJSONString(appendKey(dst, key), err.Error())
+}
+
 func appendError(dst []byte, err error) []byte {
-	return appendJSONString(appendKey(dst, ErrorFieldName), err.Error())
+	return appendErrorKey(dst, ErrorFieldName, err)
 }
 
 func appendBool(dst []byte, key string, val bool) []byte {

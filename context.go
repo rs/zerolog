@@ -26,6 +26,12 @@ func (c Context) Str(key, val string) Context {
 	return c
 }
 
+// AnErr adds the field key with err as a string to the logger context.
+func (c Context) AnErr(key string, err error) Context {
+	c.l.context = appendErrorKey(c.l.context, key, err)
+	return c
+}
+
 // Err adds the field "error" with err as a string to the logger context.
 // To customize the key name, change zerolog.ErrorFieldName.
 func (c Context) Err(err error) Context {
