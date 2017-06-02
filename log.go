@@ -154,6 +154,11 @@ func New(w io.Writer) Logger {
 	return Logger{w: lw}
 }
 
+// Nop returns a disabled logger for which all operation are no-op.
+func Nop() Logger {
+	return New(nil).Level(Disabled)
+}
+
 // With creates a child logger with the field added to its context.
 func (l Logger) With() Context {
 	context := l.context
