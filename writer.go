@@ -41,17 +41,15 @@ func SyncWriter(w io.Writer) io.Writer {
 // Write implements the io.Writer interface.
 func (s *syncWriter) Write(p []byte) (n int, err error) {
 	s.mu.Lock()
-	n, err = s.lw.Write(p)
-	s.mu.Unlock()
-	return
+	defer s.mu.Unlock()
+	return s.lw.Write(p)
 }
 
 // WriteLevel implements the LevelWriter interface.
 func (s *syncWriter) WriteLevel(l Level, p []byte) (n int, err error) {
 	s.mu.Lock()
-	n, err = s.lw.WriteLevel(l, p)
-	s.mu.Unlock()
-	return
+	defer s.mu.Unlock()
+	return s.lw.WriteLevel(l, p)
 }
 
 type multiLevelWriter struct {
