@@ -251,7 +251,9 @@ func (l Logger) Panic() *Event {
 //
 // You must call Msg on the returned event in order to send the event.
 func (l Logger) Log() *Event {
-	return l.newEvent(ErrorLevel, false, nil)
+	// We use panic level with addLevelField=false to make Log passthrough all
+	// levels except Disabled.
+	return l.newEvent(PanicLevel, false, nil)
 }
 
 // Write implements the io.Writer interface. This is useful to set as a writer
