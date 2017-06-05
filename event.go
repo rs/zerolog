@@ -15,7 +15,7 @@ var eventPool = &sync.Pool{
 	},
 }
 
-// Event represents a log event. It is instancied by one of the level method of
+// Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
 	buf     []byte
@@ -56,7 +56,7 @@ func (e *Event) Enabled() bool {
 
 // Msg sends the *Event with msg added as the message field if not empty.
 //
-// NOTICE: once this methid is called, the *Event should be disposed.
+// NOTICE: once this method is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
 func (e *Event) Msg(msg string) error {
 	if !e.enabled {

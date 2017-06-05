@@ -172,7 +172,7 @@ func (l Logger) With() Context {
 	return Context{l}
 }
 
-// Level crestes a child logger with the minium accepted level set to level.
+// Level creates a child logger with the minimum accepted level set to level.
 func (l Logger) Level(lvl Level) Logger {
 	return Logger{
 		w:       l.w,
