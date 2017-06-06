@@ -3,6 +3,7 @@ package zerolog
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 )
@@ -58,9 +59,9 @@ func (e *Event) Enabled() bool {
 //
 // NOTICE: once this method is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
-func (e *Event) Msg(msg string) error {
+func (e *Event) Msg(msg string) {
 	if !e.enabled {
-		return nil
+		return
 	}
 	if msg != "" {
 		e.buf = appendString(e.buf, MessageFieldName, msg)
@@ -68,16 +69,18 @@ func (e *Event) Msg(msg string) error {
 	if e.done != nil {
 		defer e.done(msg)
 	}
-	return e.write()
+	if err := e.write(); err != nil {
+		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
+	}
 }
 
 // Msgf sends the event with formated msg added as the message field if not empty.
 //
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
-func (e *Event) Msgf(format string, v ...interface{}) error {
+func (e *Event) Msgf(format string, v ...interface{}) {
 	if !e.enabled {
-		return nil
+		return
 	}
 	msg := fmt.Sprintf(format, v...)
 	if msg != "" {
@@ -86,7 +89,9 @@ func (e *Event) Msgf(format string, v ...interface{}) error {
 	if e.done != nil {
 		defer e.done(msg)
 	}
-	return e.write()
+	if err := e.write(); err != nil {
+		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
+	}
 }
 
 // Dict adds the field key with a dict to the event context.
