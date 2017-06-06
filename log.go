@@ -278,6 +278,7 @@ func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Ev
 		lvl = level
 	}
 	e := newEvent(l.w, lvl, enabled)
+	e.done = done
 	if addLevelField {
 		e.Str(LevelFieldName, level.String())
 	}
