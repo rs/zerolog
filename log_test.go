@@ -119,9 +119,11 @@ func TestFields(t *testing.T) {
 		Uint64("uint64", 10).
 		Float32("float32", 11).
 		Float64("float64", 12).
+		Dur("dur", 1*time.Second).
 		Time("time", time.Time{}).
+		TimeDiff("diff", time.Now(), time.Now().Add(-10*time.Second)).
 		Msg("")
-	if got, want := out.String(), `{"foo":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"time":"0001-01-01T00:00:00Z"}`+"\n"; got != want {
+	if got, want := out.String(), `{"foo":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
 		t.Errorf("invalid log output: got %q, want %q", got, want)
 	}
 }
@@ -146,7 +148,9 @@ func TestFieldsDisabled(t *testing.T) {
 		Uint64("uint64", 10).
 		Float32("float32", 11).
 		Float64("float64", 12).
+		Dur("dur", 1*time.Second).
 		Time("time", time.Time{}).
+		TimeDiff("diff", time.Now(), time.Now().Add(-10*time.Second)).
 		Msg("")
 	if got, want := out.String(), ""; got != want {
 		t.Errorf("invalid log output: got %q, want %q", got, want)

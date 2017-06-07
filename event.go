@@ -278,12 +278,27 @@ func (e *Event) Time(key string, t time.Time) *Event {
 	return e
 }
 
-// Dur adds the fields key with duration d stored as zerolog.DurationFieldUnit.
+// Dur adds the field key with duration d stored as zerolog.DurationFieldUnit.
 // If zerolog.DurationFieldInteger is true, durations are rendered as integer
 // instead of float.
 func (e *Event) Dur(key string, d time.Duration) *Event {
 	if !e.enabled {
 		return e
+	}
+	e.buf = appendDuration(e.buf, key, d)
+	return e
+}
+
+// TimeDiff adds the field key with positive duration between time t and start.
+// If time t is not greater than start, duration will be 0.
+// Duration format follows the same principle as Dur().
+func (e *Event) TimeDiff(key string, t time.Time, start time.Time) *Event {
+	if !e.enabled {
+		return e
+	}
+	var d time.Duration
+	if t.After(start) {
+		d = t.Sub(start)
 	}
 	e.buf = appendDuration(e.buf, key, d)
 	return e
