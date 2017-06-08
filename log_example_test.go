@@ -78,7 +78,7 @@ func ExampleLogger_Warn() {
 		Str("foo", "bar").
 		Msg("a warning message")
 
-	// Output: {"level":"warning","foo":"bar","message":"a warning message"}
+	// Output: {"level":"warn","foo":"bar","message":"a warning message"}
 }
 
 func ExampleLogger_Error() {

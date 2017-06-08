@@ -243,7 +243,7 @@ func TestLevelWriter(t *testing.T) {
 	}{
 		{DebugLevel, `{"level":"debug","message":"1"}` + "\n"},
 		{InfoLevel, `{"level":"info","message":"2"}` + "\n"},
-		{WarnLevel, `{"level":"warning","message":"3"}` + "\n"},
+		{WarnLevel, `{"level":"warn","message":"3"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"4"}` + "\n"},
 	}
 	if got := lw.ops; !reflect.DeepEqual(got, want) {

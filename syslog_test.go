@@ -49,7 +49,7 @@ func TestSyslogWriter(t *testing.T) {
 	want := []syslogEvent{
 		{"Debug", `{"level":"debug","message":"debug"}` + "\n"},
 		{"Info", `{"level":"info","message":"info"}` + "\n"},
-		{"Warning", `{"level":"warning","message":"warn"}` + "\n"},
+		{"Warning", `{"level":"warn","message":"warn"}` + "\n"},
 		{"Err", `{"level":"error","message":"error"}` + "\n"},
 	}
 	if got := sw.events; !reflect.DeepEqual(got, want) {
