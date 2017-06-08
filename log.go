@@ -279,22 +279,21 @@ func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Ev
 	}
 	e := newEvent(l.w, lvl, enabled)
 	e.done = done
+	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
+		// first byte of context is ts flag
+		e.buf = appendTimestamp(e.buf)
+	}
 	if addLevelField {
 		e.Str(LevelFieldName, level.String())
 	}
 	if l.sample > 0 && SampleFieldName != "" {
 		e.Uint32(SampleFieldName, l.sample)
 	}
-	if l.context != nil && len(l.context) > 0 {
-		if l.context[0] > 0 { // ts flag
-			e.buf = appendTimestamp(e.buf)
+	if l.context != nil && len(l.context) > 1 {
+		if len(e.buf) > 1 {
+			e.buf = append(e.buf, ',')
 		}
-		if len(l.context) > 1 {
-			if len(e.buf) > 1 {
-				e.buf = append(e.buf, ',')
-			}
-			e.buf = append(e.buf, l.context[1:]...)
-		}
+		e.buf = append(e.buf, l.context[1:]...)
 	}
 	return e
 }

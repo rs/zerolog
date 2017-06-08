@@ -67,5 +67,5 @@ func Example_handler() {
 
 	h.ServeHTTP(httptest.NewRecorder(), &http.Request{})
 
-	// Output: {"level":"info","time":"2001-02-03T04:05:06Z","role":"my-service","host":"local-hostname","user":"current user","status":"ok","message":"Something happend"}
+	// Output: {"time":"2001-02-03T04:05:06Z","level":"info","role":"my-service","host":"local-hostname","user":"current user","status":"ok","message":"Something happend"}
 }
