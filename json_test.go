@@ -40,6 +40,8 @@ func TestAppendJSONString(t *testing.T) {
 		{"\x1d", `"\u001d"`},
 		{"\x1e", `"\u001e"`},
 		{"\x1f", `"\u001f"`},
+		{"ascii", `"ascii"`},
+		{"emoji \u2764\ufe0f!", `"emoji ❤️!"`},
 	}
 
 	for _, tt := range encodeStringTests {
