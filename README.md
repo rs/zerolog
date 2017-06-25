@@ -255,11 +255,11 @@ Some settings can be changed and will by applied to all loggers:
 All operations are allocation free (those numbers *include* JSON encoding):
 
 ```
-BenchmarkLogEmpty-8        100000000	    19.1 ns/op	   0 B/op       0 allocs/op
-BenchmarkDisabled-8        500000000	     4.07 ns/op	   0 B/op       0 allocs/op
-BenchmarkInfo-8            30000000	    46.3 ns/op	   0 B/op       0 allocs/op
-BenchmarkContextFields-8   30000000	    47.1 ns/op	   0 B/op       0 allocs/op
-BenchmarkLogFields-8       10000000	   186 ns/op	   0 B/op       0 allocs/op
+BenchmarkLogEmpty-8        100000000    19.1 ns/op	   0 B/op       0 allocs/op
+BenchmarkDisabled-8        500000000     4.07 ns/op	   0 B/op       0 allocs/op
+BenchmarkInfo-8            30000000	    42.5 ns/op	   0 B/op       0 allocs/op
+BenchmarkContextFields-8   30000000	    44.9 ns/op	   0 B/op       0 allocs/op
+BenchmarkLogFields-8       10000000	   184 ns/op	   0 B/op       0 allocs/op
 ```
 
 Using Uber's zap [comparison benchmark](https://github.com/uber-go/zap#performance):
