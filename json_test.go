@@ -1,12 +1,15 @@
 package zerolog
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestAppendJSONString(t *testing.T) {
 	encodeStringTests := []struct {
 		in  string
 		out string
 	}{
+		{"", `""`},
 		{"\\", `"\\"`},
 		{"\x00", `"\u0000"`},
 		{"\x01", `"\u0001"`},
@@ -41,6 +44,10 @@ func TestAppendJSONString(t *testing.T) {
 		{"\x1e", `"\u001e"`},
 		{"\x1f", `"\u001f"`},
 		{"ascii", `"ascii"`},
+		{"\"a", `"\"a"`},
+		{"\x1fa", `"\u001fa"`},
+		{"foo\"bar\"baz", `"foo\"bar\"baz"`},
+		{"\x1ffoo\x1fbar\x1fbaz", `"\u001ffoo\u001fbar\u001fbaz"`},
 		{"emoji \u2764\ufe0f!", `"emoji ❤️!"`},
 	}
 
@@ -49,5 +56,25 @@ func TestAppendJSONString(t *testing.T) {
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendJSONString(%q) = %#q, want %#q", tt.in, got, want)
 		}
+	}
+}
+
+func BenchmarkAppendJSONString(b *testing.B) {
+	tests := map[string]string{
+		"NoEncoding":     `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+		"EncodingFirst":  `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+		"EncodingMiddle": `aaaaaaaaaaaaaaaaaaaaaaaaa"aaaaaaaaaaaaaaaaaaaaaaaa`,
+		"EncodingLast":   `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`,
+		"RuneFirst":      `❤️aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+		"RuneMiddle":     `aaaaaaaaaaaaaaaaaaaaaaaaa❤️aaaaaaaaaaaaaaaaaaaaaaaa`,
+		"RuneLast":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa❤️`,
+	}
+	for name, str := range tests {
+		b.Run(name, func(b *testing.B) {
+			buf := make([]byte, 0, 100)
+			for i := 0; i < b.N; i++ {
+				_ = appendJSONString(buf, str)
+			}
+		})
 	}
 }
