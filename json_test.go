@@ -43,6 +43,8 @@ func TestAppendJSONString(t *testing.T) {
 		{"\x1d", `"\u001d"`},
 		{"\x1e", `"\u001e"`},
 		{"\x1f", `"\u001f"`},
+		{"✭", `"✭"`},
+		{"foo\xc2\x7fbar", `"foo\ufffd\u007fbar"`}, // invalid sequence
 		{"ascii", `"ascii"`},
 		{"\"a", `"\"a"`},
 		{"\x1fa", `"\u001fa"`},
@@ -61,13 +63,13 @@ func TestAppendJSONString(t *testing.T) {
 
 func BenchmarkAppendJSONString(b *testing.B) {
 	tests := map[string]string{
-		"NoEncoding":     `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
-		"EncodingFirst":  `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
-		"EncodingMiddle": `aaaaaaaaaaaaaaaaaaaaaaaaa"aaaaaaaaaaaaaaaaaaaaaaaa`,
-		"EncodingLast":   `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`,
-		"RuneFirst":      `❤️aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
-		"RuneMiddle":     `aaaaaaaaaaaaaaaaaaaaaaaaa❤️aaaaaaaaaaaaaaaaaaaaaaaa`,
-		"RuneLast":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa❤️`,
+		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+		"EncodingFirst":    `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+		"EncodingMiddle":   `aaaaaaaaaaaaaaaaaaaaaaaaa"aaaaaaaaaaaaaaaaaaaaaaaa`,
+		"EncodingLast":     `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`,
+		"MultiBytesFirst":  `❤️aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+		"MultiBytesMiddle": `aaaaaaaaaaaaaaaaaaaaaaaaa❤️aaaaaaaaaaaaaaaaaaaaaaaa`,
+		"MultiBytesLast":   `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa❤️`,
 	}
 	for name, str := range tests {
 		b.Run(name, func(b *testing.B) {
