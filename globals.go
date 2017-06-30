@@ -63,5 +63,5 @@ func DisableSampling(v bool) {
 }
 
 func samplingDisabled() bool {
-	return atomic.LoadUint32(gLevel) == 1
+	return atomic.LoadUint32(disableSampling) == 1
 }
