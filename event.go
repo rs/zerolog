@@ -121,6 +121,15 @@ func (e *Event) Str(key, val string) *Event {
 	return e
 }
 
+// Bytes adds the field key with val as a []byte to the *Event context.
+func (e *Event) Bytes(key string, val []byte) *Event {
+	if !e.enabled {
+		return e
+	}
+	e.buf = appendBytes(e.buf, key, val)
+	return e
+}
+
 // AnErr adds the field key with err as a string to the *Event context.
 // If err is nil, no field is added.
 func (e *Event) AnErr(key string, err error) *Event {

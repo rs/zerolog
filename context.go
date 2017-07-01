@@ -26,6 +26,12 @@ func (c Context) Str(key, val string) Context {
 	return c
 }
 
+// Bytes adds the field key with val as a []byte to the logger context.
+func (c Context) Bytes(key string, val []byte) Context {
+	c.l.context = appendBytes(c.l.context, key, val)
+	return c
+}
+
 // AnErr adds the field key with err as a string to the logger context.
 func (c Context) AnErr(key string, err error) Context {
 	c.l.context = appendErrorKey(c.l.context, key, err)

@@ -19,6 +19,10 @@ func appendString(dst []byte, key, val string) []byte {
 	return appendJSONString(appendKey(dst, key), val)
 }
 
+func appendBytes(dst []byte, key string, val []byte) []byte {
+	return appendJSONBytes(appendKey(dst, key), val)
+}
+
 func appendErrorKey(dst []byte, key string, err error) []byte {
 	if err == nil {
 		return dst
