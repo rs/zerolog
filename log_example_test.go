@@ -91,6 +91,15 @@ func ExampleLogger_Error() {
 	// Output: {"level":"error","error":"some error","message":"error doing something"}
 }
 
+func ExampleLogger_WithLevel() {
+	log := zerolog.New(os.Stdout)
+
+	log.WithLevel(zerolog.InfoLevel).
+		Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
 func ExampleLogger_Write() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").

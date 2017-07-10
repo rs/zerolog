@@ -12,6 +12,12 @@ func (c Context) Logger() Logger {
 	return c.l
 }
 
+// Fields is a helper function to use a map to set fields using type assertion.
+func (c Context) Fields(fields map[string]interface{}) Context {
+	c.l.context = appendFields(c.l.context, fields)
+	return c
+}
+
 // Dict adds the field key with the dict to the logger context.
 func (c Context) Dict(key string, dict *Event) Context {
 	dict.buf = append(dict.buf, '}')

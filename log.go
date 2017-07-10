@@ -71,6 +71,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"sync/atomic"
 )
 
@@ -244,6 +245,30 @@ func (l Logger) Fatal() *Event {
 // You must call Msg on the returned event in order to send the event.
 func (l Logger) Panic() *Event {
 	return l.newEvent(PanicLevel, true, func(msg string) { panic(msg) })
+}
+
+// WithLevel starts a new message with level.
+//
+// You must call Msg on the returned event in order to send the event.
+func (l Logger) WithLevel(level Level) *Event {
+	switch level {
+	case DebugLevel:
+		return l.Debug()
+	case InfoLevel:
+		return l.Info()
+	case WarnLevel:
+		return l.Warn()
+	case ErrorLevel:
+		return l.Error()
+	case FatalLevel:
+		return l.Fatal()
+	case PanicLevel:
+		return l.Panic()
+	case Disabled:
+		return disabledEvent
+	default:
+		panic("zerolog: WithLevel(): invalid level: " + strconv.Itoa(int(level)))
+	}
 }
 
 // Log starts a new message with no level. Setting GlobalLevel to Disabled

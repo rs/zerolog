@@ -3,9 +3,63 @@ package zerolog
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 )
+
+func appendFields(dst []byte, fields map[string]interface{}) []byte {
+	keys := make([]string, 0, len(fields))
+	for key, _ := range fields {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		switch val := fields[key].(type) {
+		case string:
+			dst = appendString(dst, key, val)
+		case []byte:
+			dst = appendBytes(dst, key, val)
+		case error:
+			dst = appendErrorKey(dst, key, val)
+		case bool:
+			dst = appendBool(dst, key, val)
+		case int:
+			dst = appendInt(dst, key, val)
+		case int8:
+			dst = appendInt8(dst, key, val)
+		case int16:
+			dst = appendInt16(dst, key, val)
+		case int32:
+			dst = appendInt32(dst, key, val)
+		case int64:
+			dst = appendInt64(dst, key, val)
+		case uint:
+			dst = appendUint(dst, key, val)
+		case uint8:
+			dst = appendUint8(dst, key, val)
+		case uint16:
+			dst = appendUint16(dst, key, val)
+		case uint32:
+			dst = appendUint32(dst, key, val)
+		case uint64:
+			dst = appendUint64(dst, key, val)
+		case float32:
+			dst = appendFloat32(dst, key, val)
+		case float64:
+			dst = appendFloat64(dst, key, val)
+		case time.Time:
+			dst = appendTime(dst, key, val)
+		case time.Duration:
+			dst = appendDuration(dst, key, val)
+		case nil:
+			dst = append(appendKey(dst, key), "null"...)
+		default:
+			dst = appendInterface(dst, key, val)
+		}
+	}
+	return dst
+}
 
 func appendKey(dst []byte, key string) []byte {
 	if len(dst) > 1 {

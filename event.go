@@ -94,6 +94,15 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	}
 }
 
+// Fields is a helper function to use a map to set fields using type assertion.
+func (e *Event) Fields(fields map[string]interface{}) *Event {
+	if !e.enabled {
+		return e
+	}
+	e.buf = appendFields(e.buf, fields)
+	return e
+}
+
 // Dict adds the field key with a dict to the event context.
 // Use zerolog.Dict() to create the dictionary.
 func (e *Event) Dict(key string, dict *Event) *Event {
