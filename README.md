@@ -189,6 +189,15 @@ c = c.Append(hlog.NewHandler(log))
 
 // Install some provided extra handler to set some request's context fields.
 // Thanks to those handler, all our logs will come with some pre-populated fields.
+c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+    hlog.FromRequest(r).Info().
+        Str("method", r.Method).
+        Str("url", r.URL.String()).
+        Int("status", status).
+        Int("size", size).
+        Dur("duration", duration).
+        Msg("")
+}))
 c = c.Append(hlog.RemoteAddrHandler("ip"))
 c = c.Append(hlog.UserAgentHandler("user_agent"))
 c = c.Append(hlog.RefererHandler("referer"))

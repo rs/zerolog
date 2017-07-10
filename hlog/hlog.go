@@ -5,10 +5,12 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/zenazn/goji/web/mutil"
 )
 
 // FromRequest gets the logger in the request's context.
@@ -149,6 +151,18 @@ func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.
 				w.Header().Set(headerName, id.String())
 			}
 			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// AccessHandler returns a handler that call f after each request.
+func AccessHandler(f func(r *http.Request, status, size int, duration time.Duration)) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			lw := mutil.WrapWriter(w)
+			next.ServeHTTP(lw, r)
+			f(r, lw.Status(), lw.BytesWritten(), time.Since(start))
 		})
 	}
 }
