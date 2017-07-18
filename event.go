@@ -81,7 +81,9 @@ func (e *Event) Error(msg string) (err error) {
 	}
 
 	e.Msg(msg)
-	return err
+
+	// Rely on the side-effects from Msg() to wrap e.err
+	return e.err
 }
 
 // Errorf sends the *Event with msg added as the message field if not empty.  If
@@ -103,7 +105,9 @@ func (e *Event) Errorf(format string, v ...interface{}) (err error) {
 	}
 
 	e.Msg(msg)
-	return err
+
+	// Rely on the side-effects from Msg() to wrap e.err
+	return e.err
 }
 
 // Msg sends the *Event with msg added as the message field if not empty.
