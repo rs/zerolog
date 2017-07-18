@@ -12,6 +12,16 @@ var (
 	fakeMessage = "Test logging, but use a somewhat realistic message length."
 )
 
+func BenchmarkErrorEmpty(b *testing.B) {
+	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Log().Error("")
+		}
+	})
+}
+
 func BenchmarkLogEmpty(b *testing.B) {
 	logger := New(ioutil.Discard)
 	b.ResetTimer()
@@ -22,7 +32,17 @@ func BenchmarkLogEmpty(b *testing.B) {
 	})
 }
 
-func BenchmarkDisabled(b *testing.B) {
+func BenchmarkErrorDisabled(b *testing.B) {
+	logger := New(ioutil.Discard).Level(Disabled)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().Error(fakeMessage)
+		}
+	})
+}
+
+func BenchmarkLogDisabled(b *testing.B) {
 	logger := New(ioutil.Discard).Level(Disabled)
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -32,7 +52,17 @@ func BenchmarkDisabled(b *testing.B) {
 	})
 }
 
-func BenchmarkInfo(b *testing.B) {
+func BenchmarkErrorInfo(b *testing.B) {
+	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().Error(fakeMessage)
+		}
+	})
+}
+
+func BenchmarkLogInfo(b *testing.B) {
 	logger := New(ioutil.Discard)
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -42,17 +72,65 @@ func BenchmarkInfo(b *testing.B) {
 	})
 }
 
-func BenchmarkContextFields(b *testing.B) {
+func BenchmarkErrorContextFields(b *testing.B) {
 	logger := New(ioutil.Discard).With().
 		Str("string", "four!").
 		Time("time", time.Time{}).
 		Int("int", 123).
+		Err(errors.New("test message")).
+		Float32("float", -2.203230293249593).
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().Error(fakeMessage)
+		}
+	})
+}
+
+func BenchmarkErrorContextFields_WithStackTrace(b *testing.B) {
+	logger := New(ioutil.Discard).With().
+		Str("string", "four!").
+		Time("time", time.Time{}).
+		Int("int", 123).
+		Err(errors.New("test message")).
+		Float32("float", -2.203230293249593).
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().StackTrace().Error(fakeMessage)
+		}
+	})
+}
+
+func BenchmarkLogContextFields(b *testing.B) {
+	logger := New(ioutil.Discard).With().
+		Str("string", "four!").
+		Time("time", time.Time{}).
+		Int("int", 123).
+		Err(errors.New("test message")).
 		Float32("float", -2.203230293249593).
 		Logger()
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			logger.Info().Msg(fakeMessage)
+		}
+	})
+}
+
+func BenchmarkErrorFields(b *testing.B) {
+	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().
+				Str("string", "four!").
+				Time("time", time.Time{}).
+				Int("int", 123).
+				Float32("float", -2.203230293249593).
+				Error(fakeMessage)
 		}
 	})
 }

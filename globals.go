@@ -16,6 +16,18 @@ var (
 	// ErrorFieldName is the field name used for error fields.
 	ErrorFieldName = "error"
 
+	// StackFieldName is the field name used for stack trace fields.
+	StackFieldName = "stack"
+
+	// StackSourceFileName is the field name used for the source file.
+	StackSourceFileName = "file"
+
+	// StackSourceLineName is the field name used for the line number.
+	StackSourceLineName = "line"
+
+	// StackSourceFunctionName is the field name used for the function name.
+	StackSourceFunctionName = "func"
+
 	// SampleFieldName is the name of the field used to report sampling.
 	SampleFieldName = "sample"
 

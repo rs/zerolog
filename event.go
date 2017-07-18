@@ -1,11 +1,14 @@
 package zerolog
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sync"
 	"time"
+
+	pkgErrors "github.com/pkg/errors"
 )
 
 var eventPool = &sync.Pool{
@@ -19,11 +22,14 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf     []byte
-	w       LevelWriter
-	level   Level
-	enabled bool
-	done    func(msg string)
+	buf        []byte
+	errKey     string
+	err        error
+	w          LevelWriter
+	level      Level
+	enabled    bool
+	stackTrace bool
+	done       func(msg string)
 }
 
 func newEvent(w LevelWriter, level Level, enabled bool) *Event {
@@ -33,9 +39,12 @@ func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:1]
 	e.buf[0] = '{'
+	e.err = nil
+	e.errKey = ""
 	e.w = w
 	e.level = level
 	e.enabled = true
+	e.stackTrace = false
 	return e
 }
 
@@ -55,16 +64,84 @@ func (e *Event) Enabled() bool {
 	return e.enabled
 }
 
+// Error sends the *Event with msg added as the message field if not empty.  If
+// the current error is not wrapped, automatically wrap the error using
+// github.com/pkg/errors.Wrap
+//
+// NOTICE: once this method is called, the *Event should be disposed.  Calling
+// Error or Msg twice can have unexpected result.
+func (e *Event) Error(msg string) (err error) {
+	if !e.enabled {
+		return
+	}
+
+	// If an error hasn't been created, create one now
+	if e.err == nil {
+		e.err = errors.New(msg)
+	}
+
+	e.Msg(msg)
+	return err
+}
+
+// Errorf sends the *Event with msg added as the message field if not empty.  If
+// the current error is not wrapped, automatically wrap the error using
+// github.com/pkg/errors.Wrap
+//
+// NOTICE: once this method is called, the *Event should be disposed.  Calling
+// Error or Msg twice can have unexpected result.
+func (e *Event) Errorf(format string, v ...interface{}) (err error) {
+	if !e.enabled {
+		return
+	}
+
+	msg := fmt.Sprintf(format, v...)
+
+	// If an error hasn't been created, create one now
+	if e.err == nil {
+		e.err = errors.New(msg)
+	}
+
+	e.Msg(msg)
+	return err
+}
+
 // Msg sends the *Event with msg added as the message field if not empty.
 //
-// NOTICE: once this method is called, the *Event should be disposed.
-// Calling Msg twice can have unexpected result.
+// NOTICE: once this method is called, the *Event should be disposed.  Calling
+// Error or Msg twice can have unexpected result.
 func (e *Event) Msg(msg string) {
 	if !e.enabled {
 		return
 	}
 	if msg != "" {
 		e.buf = appendString(e.buf, MessageFieldName, msg)
+	}
+	if e.err != nil {
+		if e.errKey == "" {
+			e.errKey = ErrorFieldName
+		}
+
+		type causer interface {
+			Cause() error
+		}
+		if cause, ok := e.err.(causer); ok {
+			err := cause.(error)
+			e.buf = appendJSONString(appendKey(e.buf, e.errKey), err.Error())
+		} else if !ok && e.stackTrace {
+			e.err = pkgErrors.WithStack(e.err)
+		} else {
+			e.buf = appendJSONString(appendKey(e.buf, e.errKey), e.err.Error())
+		}
+
+		if e.stackTrace {
+			type withStackTracer interface {
+				StackTrace() pkgErrors.StackTrace
+			}
+			if stack, ok := e.err.(withStackTracer); ok {
+				e.buf = appendJSONStack(appendKey(e.buf, StackFieldName), stack.StackTrace())
+			}
+		}
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -74,7 +151,7 @@ func (e *Event) Msg(msg string) {
 	}
 }
 
-// Msgf sends the event with formated msg added as the message field if not empty.
+// Msgf sends the *Event with formated msg added as the message field if not empty.
 //
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
@@ -85,6 +162,32 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	msg := fmt.Sprintf(format, v...)
 	if msg != "" {
 		e.buf = appendString(e.buf, MessageFieldName, msg)
+	}
+	if e.err != nil {
+		if e.errKey == "" {
+			e.errKey = ErrorFieldName
+		}
+
+		type causer interface {
+			Cause() error
+		}
+		if cause, ok := e.err.(causer); ok {
+			err := cause.(error)
+			e.buf = appendJSONString(appendKey(e.buf, e.errKey), err.Error())
+		} else if !ok && e.stackTrace {
+			e.err = pkgErrors.WithStack(e.err)
+		} else {
+			e.buf = appendJSONString(appendKey(e.buf, e.errKey), e.err.Error())
+		}
+
+		if e.stackTrace {
+			type withStackTracer interface {
+				StackTrace() pkgErrors.StackTrace
+			}
+			if stack, ok := e.err.(withStackTracer); ok {
+				e.buf = appendJSONStack(appendKey(e.buf, StackFieldName), stack.StackTrace())
+			}
+		}
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -121,6 +224,16 @@ func Dict() *Event {
 	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
 }
 
+// StackTrace enables the dumping of a wrapped error's stacktrace if an error is
+// not nil.
+func (e *Event) StackTrace() *Event {
+	if !e.enabled {
+		return e
+	}
+	e.stackTrace = true
+	return e
+}
+
 // Str adds the field key with val as a string to the *Event context.
 func (e *Event) Str(key, val string) *Event {
 	if !e.enabled {
@@ -139,13 +252,17 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 	return e
 }
 
-// AnErr adds the field key with err as a string to the *Event context.
-// If err is nil, no field is added.
+// AnErr adds the field key with err as a string to the *Event context.  If err
+// is nil, no field is added.  If an error has already been set, the existing
+// error is not overwritten.
 func (e *Event) AnErr(key string, err error) *Event {
 	if !e.enabled {
 		return e
 	}
-	e.buf = appendErrorKey(e.buf, key, err)
+	if e.err == nil {
+		e.errKey = key
+		e.err = err
+	}
 	return e
 }
 
@@ -156,7 +273,10 @@ func (e *Event) Err(err error) *Event {
 	if !e.enabled {
 		return e
 	}
-	e.buf = appendError(e.buf, err)
+	if e.err == nil {
+		e.err = err
+		e.errKey = ""
+	}
 	return e
 }
 

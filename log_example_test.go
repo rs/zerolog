@@ -1,11 +1,12 @@
 package zerolog_test
 
 import (
-	"errors"
+	stdErrors "errors"
 	stdlog "log"
 	"os"
 	"time"
 
+	errors "github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
@@ -81,14 +82,58 @@ func ExampleLogger_Warn() {
 	// Output: {"level":"warn","foo":"bar","message":"a warning message"}
 }
 
+func f1() error {
+	return errors.Wrap(stdErrors.New("my nested error"), "f1")
+}
+
 func ExampleLogger_Error() {
 	log := zerolog.New(os.Stdout)
 
 	log.Error().
-		Err(errors.New("some error")).
-		Msg("error doing something")
+		Err(stdErrors.New("my standard error")).
+		Msg("error doing something standard")
 
-	// Output: {"level":"error","error":"some error","message":"error doing something"}
+	log.Error().
+		Err(stdErrors.New("my standard error want stack")).
+		StackTrace().
+		Msg("error doing something standard want stack")
+
+	log.Error().
+		Error("error doing something error-ish (no stack)")
+
+	log.Error().
+		StackTrace().
+		Error("error doing something error-ish (want stack)")
+
+	log.Error().
+		Err(errors.New("my wrapped error")).
+		Msg("error doing something wrapped (no stack)")
+
+	log.Error().
+		Err(errors.New("my wrapped error")).
+		StackTrace().
+		Msg("error doing something wrapped (with stack)")
+
+	log.Error().
+		Err(f1()).
+		Msg("error doing something nested and wrapped (no stack)")
+
+	log.Error().
+		Err(f1()).
+		StackTrace().
+		Msg("error doing something nested and wrapped (with stack)")
+
+	// NOTE(seanc@): This test output is known to be brittle due to line-numbers
+	// and source filenames.
+
+	// Output: {"level":"error","message":"error doing something standard","error":"my standard error"}
+	// {"level":"error","message":"error doing something standard want stack","stack":[{"file":"event.go","line":"132","func":"(*Event).Msg"},{"file":"log_example_test.go","line":"99","func":"ExampleLogger_Error"},{"file":"example.go","line":"122","func":"runExample"},{"file":"example.go","line":"46","func":"runExamples"},{"file":"testing.go","line":"823","func":"(*M).Run"},{"file":"_testmain.go","line":"140","func":"main"},{"file":"proc.go","line":"185","func":"main"},{"file":"asm_amd64.s","line":"2197","func":"goexit"}]}
+	// {"level":"error","message":"error doing something error-ish (no stack)","error":"error doing something error-ish (no stack)"}
+	// {"level":"error","message":"error doing something error-ish (want stack)","stack":[{"file":"event.go","line":"132","func":"(*Event).Msg"},{"file":"event.go","line":"83","func":"(*Event).Error"},{"file":"log_example_test.go","line":"106","func":"ExampleLogger_Error"},{"file":"example.go","line":"122","func":"runExample"},{"file":"example.go","line":"46","func":"runExamples"},{"file":"testing.go","line":"823","func":"(*M).Run"},{"file":"_testmain.go","line":"140","func":"main"},{"file":"proc.go","line":"185","func":"main"},{"file":"asm_amd64.s","line":"2197","func":"goexit"}]}
+	// {"level":"error","message":"error doing something wrapped (no stack)","error":"my wrapped error"}
+	// {"level":"error","message":"error doing something wrapped (with stack)","stack":[{"file":"event.go","line":"132","func":"(*Event).Msg"},{"file":"log_example_test.go","line":"115","func":"ExampleLogger_Error"},{"file":"example.go","line":"122","func":"runExample"},{"file":"example.go","line":"46","func":"runExamples"},{"file":"testing.go","line":"823","func":"(*M).Run"},{"file":"_testmain.go","line":"140","func":"main"},{"file":"proc.go","line":"185","func":"main"},{"file":"asm_amd64.s","line":"2197","func":"goexit"}]}
+	// {"level":"error","message":"error doing something nested and wrapped (no stack)","error":"f1: my nested error"}
+	// {"level":"error","message":"error doing something nested and wrapped (with stack)","error":"f1: my nested error","stack":[{"file":"log_example_test.go","line":"86","func":"f1"},{"file":"log_example_test.go","line":"123","func":"ExampleLogger_Error"},{"file":"example.go","line":"122","func":"runExample"},{"file":"example.go","line":"46","func":"runExamples"},{"file":"testing.go","line":"823","func":"(*M).Run"},{"file":"_testmain.go","line":"140","func":"main"},{"file":"proc.go","line":"185","func":"main"},{"file":"asm_amd64.s","line":"2197","func":"goexit"}]}
 }
 
 func ExampleLogger_WithLevel() {

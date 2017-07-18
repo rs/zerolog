@@ -106,7 +106,6 @@ func TestFieldsMap(t *testing.T) {
 		"nil":     nil,
 		"string":  "foo",
 		"bytes":   []byte("bar"),
-		"error":   errors.New("some error"),
 		"bool":    true,
 		"int":     int(1),
 		"int8":    int8(2),
@@ -122,8 +121,8 @@ func TestFieldsMap(t *testing.T) {
 		"float64": float64(12),
 		"dur":     1 * time.Second,
 		"time":    time.Time{},
-	}).Msg("")
-	if got, want := out.String(), `{"bool":true,"bytes":"bar","dur":1000,"error":"some error","float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"nil":null,"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7}`+"\n"; got != want {
+	}).Err(errors.New("some error")).Msg("")
+	if got, want := out.String(), `{"bool":true,"bytes":"bar","dur":1000,"float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"nil":null,"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7,"error":"some error"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -154,7 +153,7 @@ func TestFields(t *testing.T) {
 		Time("time", time.Time{}).
 		TimeDiff("diff", now, now.Add(-10*time.Second)).
 		Msg("")
-	if got, want := out.String(), `{"string":"foo","bytes":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
+	if got, want := out.String(), `{"string":"foo","bytes":"bar","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000,"error":"some error"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }

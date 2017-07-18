@@ -1,16 +1,19 @@
 package zerolog
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
 	"time"
+
+	pkgErrors "github.com/pkg/errors"
 )
 
 func appendFields(dst []byte, fields map[string]interface{}) []byte {
 	keys := make([]string, 0, len(fields))
-	for key, _ := range fields {
+	for key := range fields {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
@@ -82,6 +85,40 @@ func appendErrorKey(dst []byte, key string, err error) []byte {
 		return dst
 	}
 	return appendJSONString(appendKey(dst, key), err.Error())
+}
+
+func appendJSONStack(dst []byte, stackTrace pkgErrors.StackTrace) []byte {
+	// Even though this is a "slow path" operation, make this as performant as
+	// possible given the interface defined by github.com/pkg/errors.
+	buf := &bytes.Buffer{}
+	buf.Grow(500)
+	dst = append(dst, '[')
+	for i, frame := range stackTrace {
+		dst = append(dst, '{')
+
+		dst = appendJSONString(dst, StackSourceFileName)
+		dst = append(dst, ':')
+		fmt.Fprintf(buf, "%s", frame)
+		dst = appendJSONBytes(dst, buf.Bytes())
+		buf.Reset()
+
+		dst = appendKey(dst, StackSourceLineName)
+		fmt.Fprintf(buf, "%d", frame)
+		dst = appendJSONBytes(dst, buf.Bytes())
+		buf.Reset()
+
+		dst = appendKey(dst, StackSourceFunctionName)
+		fmt.Fprintf(buf, "%n", frame)
+		dst = appendJSONBytes(dst, buf.Bytes())
+		buf.Reset()
+
+		dst = append(dst, '}')
+		if i < len(stackTrace)-1 {
+			dst = append(dst, ',')
+		}
+	}
+	dst = append(dst, ']')
+	return dst
 }
 
 func appendError(dst []byte, err error) []byte {
