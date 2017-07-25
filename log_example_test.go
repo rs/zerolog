@@ -168,6 +168,22 @@ func ExampleEvent_Dur() {
 	// Output: {"foo":"bar","dur":10000,"message":"hello world"}
 }
 
+func ExampleEvent_Durs() {
+	d := []time.Duration{
+		time.Duration(10 * time.Second),
+		time.Duration(20 * time.Second),
+	}
+
+	log := zerolog.New(os.Stdout)
+
+	log.Log().
+		Str("foo", "bar").
+		Durs("durs", d).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+}
+
 func ExampleContext_Dict() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
@@ -209,4 +225,20 @@ func ExampleContext_Dur() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","dur":10000,"message":"hello world"}
+}
+
+func ExampleContext_Durs() {
+	d := []time.Duration{
+		time.Duration(10 * time.Second),
+		time.Duration(20 * time.Second),
+	}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Durs("durs", d).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
 }
