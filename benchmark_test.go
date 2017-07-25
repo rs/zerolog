@@ -71,3 +71,38 @@ func BenchmarkLogFields(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkLogFieldType(b *testing.B) {
+	types := map[string]func(e *Event) *Event{
+		"Int": func(e *Event) *Event {
+			return e.Int("int", 1)
+		},
+		"Float32": func(e *Event) *Event {
+			return e.Float32("float", 1)
+		},
+		"Str": func(e *Event) *Event {
+			return e.Str("str", "foo")
+		},
+		"Err": func(e *Event) *Event {
+			return e.Err(errExample)
+		},
+		"Time": func(e *Event) *Event {
+			return e.Time("time", time.Time{})
+		},
+		"Dur": func(e *Event) *Event {
+			return e.Dur("dur", 1*time.Millisecond)
+		},
+	}
+	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	for name := range types {
+		f := types[name]
+		b.Run(name, func(b *testing.B) {
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					f(logger.Info()).Msg("")
+				}
+			})
+		})
+	}
+}

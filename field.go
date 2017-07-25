@@ -3,6 +3,7 @@ package zerolog
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"time"
@@ -157,6 +158,9 @@ func appendErrorsKey(dst []byte, key string, errs []error) []byte {
 }
 
 func appendError(dst []byte, err error) []byte {
+	if err == nil {
+		return dst
+	}
 	return appendErrorKey(dst, ErrorFieldName, err)
 }
 
@@ -369,8 +373,23 @@ func appendUints64(dst []byte, key string, vals []uint64) []byte {
 	return dst
 }
 
+func appendFloat(dst []byte, val float64, bitSize int) []byte {
+	// JSON does not permit NaN or Infinity. A typical JSON encoder would fail
+	// with an error, but a logging library wants the data to get thru so we
+	// make a tradeoff and store those types as string.
+	switch {
+	case math.IsNaN(val):
+		return append(dst, `"NaN"`...)
+	case math.IsInf(val, 1):
+		return append(dst, `"+Inf"`...)
+	case math.IsInf(val, -1):
+		return append(dst, `"-Inf"`...)
+	}
+	return strconv.AppendFloat(dst, val, 'f', -1, bitSize)
+}
+
 func appendFloat32(dst []byte, key string, val float32) []byte {
-	return strconv.AppendFloat(appendKey(dst, key), float64(val), 'f', -1, 32)
+	return appendFloat(appendKey(dst, key), float64(val), 32)
 }
 
 func appendFloats32(dst []byte, key string, vals []float32) []byte {
@@ -378,10 +397,10 @@ func appendFloats32(dst []byte, key string, vals []float32) []byte {
 		return append(appendKey(dst, key), '[', ']')
 	}
 	dst = append(appendKey(dst, key), '[')
-	dst = strconv.AppendFloat(dst, float64(vals[0]), 'f', -1, 32)
+	dst = appendFloat(dst, float64(vals[0]), 32)
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
-			dst = strconv.AppendFloat(append(dst, ','), float64(val), 'f', -1, 32)
+			dst = appendFloat(append(dst, ','), float64(val), 32)
 		}
 	}
 	dst = append(dst, ']')
@@ -389,7 +408,7 @@ func appendFloats32(dst []byte, key string, vals []float32) []byte {
 }
 
 func appendFloat64(dst []byte, key string, val float64) []byte {
-	return strconv.AppendFloat(appendKey(dst, key), val, 'f', -1, 32)
+	return appendFloat(appendKey(dst, key), val, 64)
 }
 
 func appendFloats64(dst []byte, key string, vals []float64) []byte {
@@ -397,10 +416,10 @@ func appendFloats64(dst []byte, key string, vals []float64) []byte {
 		return append(appendKey(dst, key), '[', ']')
 	}
 	dst = append(appendKey(dst, key), '[')
-	dst = strconv.AppendFloat(dst, vals[0], 'f', -1, 32)
+	dst = appendFloat(dst, vals[0], 32)
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
-			dst = strconv.AppendFloat(append(dst, ','), val, 'f', -1, 32)
+			dst = appendFloat(append(dst, ','), val, 64)
 		}
 	}
 	dst = append(dst, ']')
