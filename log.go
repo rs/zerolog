@@ -73,6 +73,8 @@ import (
 	"os"
 	"strconv"
 	"sync/atomic"
+
+	"github.com/rs/zerolog/internal/json"
 )
 
 // Level defines log levels.
@@ -306,7 +308,7 @@ func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Ev
 	e.done = done
 	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
 		// first byte of context is ts flag
-		e.buf = appendTimestamp(e.buf)
+		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 	}
 	if addLevelField {
 		e.Str(LevelFieldName, level.String())

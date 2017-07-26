@@ -1,10 +1,25 @@
-package zerolog
+package json
 
 import "unicode/utf8"
 
 const hex = "0123456789abcdef"
 
-// appendJSONString encodes the input string to json and appends
+func AppendStrings(dst []byte, vals []string) []byte {
+	if len(vals) == 0 {
+		return append(dst, '[', ']')
+	}
+	dst = append(dst, '[')
+	dst = AppendString(dst, vals[0])
+	if len(vals) > 1 {
+		for _, val := range vals[1:] {
+			dst = AppendString(append(dst, ','), val)
+		}
+	}
+	dst = append(dst, ']')
+	return dst
+}
+
+// AppendString encodes the input string to json and appends
 // the encoded string to the input byte slice.
 //
 // The operation loops though each byte in the string looking
@@ -13,7 +28,7 @@ const hex = "0123456789abcdef"
 // entirety to the byte slice.
 // If we encounter a byte that does need encoding, switch up
 // the operation and perform a byte-by-byte read-encode-append.
-func appendJSONString(dst []byte, s string) []byte {
+func AppendString(dst []byte, s string) []byte {
 	// Start with a double quote.
 	dst = append(dst, '"')
 	// Loop through each character in the string.
@@ -24,7 +39,7 @@ func appendJSONString(dst []byte, s string) []byte {
 		if s[i] < 0x20 || s[i] > 0x7e || s[i] == '\\' || s[i] == '"' {
 			// We encountered a character that needs to be encoded. Switch
 			// to complex version of the algorithm.
-			dst = appendJSONStringComplex(dst, s, i)
+			dst = appendStringComplex(dst, s, i)
 			return append(dst, '"')
 		}
 	}
@@ -35,10 +50,10 @@ func appendJSONString(dst []byte, s string) []byte {
 	return append(dst, '"')
 }
 
-// appendJSONStringComplex is used by appendJSONString to take over an in
+// appendStringComplex is used by appendString to take over an in
 // progress JSON string encoding that encountered a character that needs
 // to be encoded.
-func appendJSONStringComplex(dst []byte, s string, i int) []byte {
+func appendStringComplex(dst []byte, s string, i int) []byte {
 	start := 0
 	for i < len(s) {
 		b := s[i]
@@ -95,12 +110,12 @@ func appendJSONStringComplex(dst []byte, s string, i int) []byte {
 	return dst
 }
 
-// appendJSONBytes is a mirror of appendJSONString with []byte arg
-func appendJSONBytes(dst, s []byte) []byte {
+// AppendBytes is a mirror of appendString with []byte arg
+func AppendBytes(dst, s []byte) []byte {
 	dst = append(dst, '"')
 	for i := 0; i < len(s); i++ {
 		if s[i] < 0x20 || s[i] > 0x7e || s[i] == '\\' || s[i] == '"' {
-			dst = appendJSONBytesComplex(dst, s, i)
+			dst = appendBytesComplex(dst, s, i)
 			return append(dst, '"')
 		}
 	}
@@ -108,9 +123,9 @@ func appendJSONBytes(dst, s []byte) []byte {
 	return append(dst, '"')
 }
 
-// appendJSONBytesComplex is a mirror of the appendJSONStringComplex
+// appendBytesComplex is a mirror of the appendStringComplex
 // with []byte arg
-func appendJSONBytesComplex(dst, s []byte, i int) []byte {
+func appendBytesComplex(dst, s []byte, i int) []byte {
 	start := 0
 	for i < len(s) {
 		b := s[i]

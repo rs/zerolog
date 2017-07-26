@@ -102,7 +102,34 @@ func BenchmarkLogFieldType(b *testing.B) {
 		time.Unix(8, 0),
 		time.Unix(9, 0),
 	}
-	o := obj{"a", "a", 0}
+	interfaces := []struct {
+		Pub  string
+		Tag  string `json:"tag"`
+		priv int
+	}{
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+	}
+	objects := []obj{
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+	}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
 	types := map[string]func(e *Event) *Event{
 		"Bool": func(e *Event) *Event {
@@ -148,10 +175,19 @@ func BenchmarkLogFieldType(b *testing.B) {
 			return e.Durs("k", durations)
 		},
 		"Interface": func(e *Event) *Event {
-			return e.Interface("k", o)
+			return e.Interface("k", interfaces[0])
+		},
+		"Interfaces": func(e *Event) *Event {
+			return e.Interface("k", interfaces)
+		},
+		"Interface(Object)": func(e *Event) *Event {
+			return e.Interface("k", objects[0])
+		},
+		"Interface(Objects)": func(e *Event) *Event {
+			return e.Interface("k", objects)
 		},
 		"Object": func(e *Event) *Event {
-			return e.Object("k", o)
+			return e.Object("k", objects[0])
 		},
 	}
 	logger := New(ioutil.Discard)

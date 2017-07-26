@@ -1,4 +1,4 @@
-package zerolog
+package json
 
 import (
 	"testing"
@@ -53,20 +53,20 @@ var encodeStringTests = []struct {
 	{"emoji \u2764\ufe0f!", `"emoji ❤️!"`},
 }
 
-func TestAppendJSONString(t *testing.T) {
+func TestappendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		b := appendJSONString([]byte{}, tt.in)
+		b := AppendString([]byte{}, tt.in)
 		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendJSONString(%q) = %#q, want %#q", tt.in, got, want)
+			t.Errorf("appendString(%q) = %#q, want %#q", tt.in, got, want)
 		}
 	}
 }
 
-func TestAppendJSONBytes(t *testing.T) {
+func TestappendBytes(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		b := appendJSONBytes([]byte{}, []byte(tt.in))
+		b := AppendBytes([]byte{}, []byte(tt.in))
 		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendJSONBytes(%q) = %#q, want %#q", tt.in, got, want)
+			t.Errorf("appendBytes(%q) = %#q, want %#q", tt.in, got, want)
 		}
 	}
 }
@@ -80,8 +80,8 @@ func TestStringBytes(t *testing.T) {
 	}
 	s := string(r) + "\xff\xff\xffhello" // some invalid UTF-8 too
 
-	enc := string(appendJSONString([]byte{}, s))
-	encBytes := string(appendJSONBytes([]byte{}, []byte(s)))
+	enc := string(AppendString([]byte{}, s))
+	encBytes := string(AppendBytes([]byte{}, []byte(s)))
 
 	if enc != encBytes {
 		i := 0
@@ -108,7 +108,7 @@ func TestStringBytes(t *testing.T) {
 	}
 }
 
-func BenchmarkAppendJSONString(b *testing.B) {
+func BenchmarkappendString(b *testing.B) {
 	tests := map[string]string{
 		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 		"EncodingFirst":    `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
@@ -122,13 +122,13 @@ func BenchmarkAppendJSONString(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			buf := make([]byte, 0, 100)
 			for i := 0; i < b.N; i++ {
-				_ = appendJSONString(buf, str)
+				_ = AppendString(buf, str)
 			}
 		})
 	}
 }
 
-func BenchmarkAppendJSONBytes(b *testing.B) {
+func BenchmarkappendBytes(b *testing.B) {
 	tests := map[string]string{
 		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 		"EncodingFirst":    `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
@@ -143,7 +143,7 @@ func BenchmarkAppendJSONBytes(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			buf := make([]byte, 0, 100)
 			for i := 0; i < b.N; i++ {
-				_ = appendJSONBytes(buf, byt)
+				_ = AppendBytes(buf, byt)
 			}
 		})
 	}
