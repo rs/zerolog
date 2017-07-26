@@ -73,24 +73,75 @@ func BenchmarkLogFields(b *testing.B) {
 }
 
 func BenchmarkLogFieldType(b *testing.B) {
+	type obj struct {
+		Pub  string
+		Tag  string `json:"tag"`
+		priv int
+	}
+	bools := []bool{true, false, true, false, true, false, true, false, true, false}
+	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	floats := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	strings := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+	durations := []time.Duration{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	times := []time.Time{
+		time.Unix(0, 0),
+		time.Unix(1, 0),
+		time.Unix(2, 0),
+		time.Unix(3, 0),
+		time.Unix(4, 0),
+		time.Unix(5, 0),
+		time.Unix(6, 0),
+		time.Unix(7, 0),
+		time.Unix(8, 0),
+		time.Unix(9, 0),
+	}
+	o := obj{"a", "a", 0}
+	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
 	types := map[string]func(e *Event) *Event{
-		"Int": func(e *Event) *Event {
-			return e.Int("int", 1)
+		"Bool": func(e *Event) *Event {
+			return e.Bool("k", bools[0])
 		},
-		"Float32": func(e *Event) *Event {
-			return e.Float32("float", 1)
+		"Bools": func(e *Event) *Event {
+			return e.Bools("k", bools)
+		},
+		"Int": func(e *Event) *Event {
+			return e.Int("k", ints[0])
+		},
+		"Ints": func(e *Event) *Event {
+			return e.Ints("k", ints)
+		},
+		"Float": func(e *Event) *Event {
+			return e.Float64("k", floats[0])
+		},
+		"Floats": func(e *Event) *Event {
+			return e.Floats64("k", floats)
 		},
 		"Str": func(e *Event) *Event {
-			return e.Str("str", "foo")
+			return e.Str("k", strings[0])
+		},
+		"Strs": func(e *Event) *Event {
+			return e.Strs("k", strings)
 		},
 		"Err": func(e *Event) *Event {
-			return e.Err(errExample)
+			return e.Err(errs[0])
+		},
+		"Errs": func(e *Event) *Event {
+			return e.Errs("k", errs)
 		},
 		"Time": func(e *Event) *Event {
-			return e.Time("time", time.Time{})
+			return e.Time("k", times[0])
+		},
+		"Times": func(e *Event) *Event {
+			return e.Times("k", times)
 		},
 		"Dur": func(e *Event) *Event {
-			return e.Dur("dur", 1*time.Millisecond)
+			return e.Dur("k", durations[0])
+		},
+		"Durs": func(e *Event) *Event {
+			return e.Durs("k", durations)
+		},
+		"Interface": func(e *Event) *Event {
+			return e.Interface("k", o)
 		},
 	}
 	logger := New(ioutil.Discard)
