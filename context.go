@@ -1,6 +1,9 @@
 package zerolog
 
-import "time"
+import (
+	"io/ioutil"
+	"time"
+)
 
 // Context configures a new sub-logger with contextual fields.
 type Context struct {
@@ -23,6 +26,16 @@ func (c Context) Dict(key string, dict *Event) Context {
 	dict.buf = append(dict.buf, '}')
 	c.l.context = append(appendKey(c.l.context, key), dict.buf...)
 	eventPool.Put(dict)
+	return c
+}
+
+// Object marshals an object that implement the LogObjectMarshaler interface.
+func (c Context) Object(key string, obj LogObjectMarshaler) Context {
+	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
+	e.Object(key, obj)
+	e.buf[0] = ',' // A new event starts as an object, we want to embed it.
+	c.l.context = append(c.l.context, e.buf...)
+	eventPool.Put(e)
 	return c
 }
 

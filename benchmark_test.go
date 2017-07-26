@@ -72,12 +72,19 @@ func BenchmarkLogFields(b *testing.B) {
 	})
 }
 
+type obj struct {
+	Pub  string
+	Tag  string `json:"tag"`
+	priv int
+}
+
+func (o obj) MarshalZerologObject(e *Event) {
+	e.Str("Pub", o.Pub).
+		Str("Tag", o.Tag).
+		Int("priv", o.priv)
+}
+
 func BenchmarkLogFieldType(b *testing.B) {
-	type obj struct {
-		Pub  string
-		Tag  string `json:"tag"`
-		priv int
-	}
 	bools := []bool{true, false, true, false, true, false, true, false, true, false}
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	floats := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -142,6 +149,9 @@ func BenchmarkLogFieldType(b *testing.B) {
 		},
 		"Interface": func(e *Event) *Event {
 			return e.Interface("k", o)
+		},
+		"Object": func(e *Event) *Event {
+			return e.Object("k", o)
 		},
 	}
 	logger := New(ioutil.Discard)

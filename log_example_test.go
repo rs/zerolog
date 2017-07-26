@@ -138,6 +138,31 @@ func ExampleEvent_Dict() {
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
+type User struct {
+	Name    string
+	Age     int
+	Created time.Time
+}
+
+func (u User) MarshalZerologObject(e *zerolog.Event) {
+	e.Str("name", u.Name).
+		Int("age", u.Age).
+		Time("created", u.Created)
+}
+
+func ExampleEvent_Object() {
+	log := zerolog.New(os.Stdout)
+
+	u := User{"John", 35, time.Time{}}
+
+	log.Log().
+		Str("foo", "bar").
+		Object("user", u).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
+}
+
 func ExampleEvent_Interface() {
 	log := zerolog.New(os.Stdout)
 
@@ -195,6 +220,19 @@ func ExampleContext_Dict() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+}
+
+func ExampleContext_Object() {
+	u := User{"John", 35, time.Time{}}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Object("user", u).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
 
 func ExampleContext_Interface() {

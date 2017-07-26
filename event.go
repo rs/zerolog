@@ -26,6 +26,10 @@ type Event struct {
 	done    func(msg string)
 }
 
+type LogObjectMarshaler interface {
+	MarshalZerologObject(e *Event)
+}
+
 func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	if !enabled {
 		return &Event{}
@@ -119,6 +123,23 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 // event and give it as argument the *Event.Dict method.
 func Dict() *Event {
 	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
+}
+
+// Object marshals an object that implement the LogObjectMarshaler interface.
+func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
+	e.buf = appendKey(e.buf, key)
+	pos := len(e.buf)
+	obj.MarshalZerologObject(e)
+	if pos < len(e.buf) {
+		// As MarshalZerologObject will use event API, the first field will be
+		// preceded by a coma. If at least one field has been added (buf grew),
+		// we replace this coma by the opening bracket.
+		e.buf[pos] = '{'
+	} else {
+		e.buf = append(e.buf, '{')
+	}
+	e.buf = append(e.buf, '}')
+	return e
 }
 
 // Str adds the field key with val as a string to the *Event context.
