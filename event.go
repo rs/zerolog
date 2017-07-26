@@ -28,8 +28,16 @@ type Event struct {
 	done    func(msg string)
 }
 
+// LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
+// to be implemented by types used with Event/Context's Object methods.
 type LogObjectMarshaler interface {
 	MarshalZerologObject(e *Event)
+}
+
+// LogArrayMarshaler provides a strongly-typed and encoding-agnostic interface
+// to be implemented by types used with Event/Context's Array methods.
+type LogArrayMarshaler interface {
+	MarshalZerologArray(a *Array)
 }
 
 func newEvent(w LevelWriter, level Level, enabled bool) *Event {
@@ -127,6 +135,25 @@ func Dict() *Event {
 	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
 }
 
+// Array adds the field key with an array to the event context.
+// Use zerolog.Arr() to create the array or pass a type that
+// implement the LogArrayMarshaler interface.
+func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
+	if !e.enabled {
+		return e
+	}
+	e.buf = json.AppendKey(e.buf, key)
+	var a *Array
+	if aa, ok := arr.(*Array); ok {
+		a = aa
+	} else {
+		a = Arr()
+		arr.MarshalZerologArray(a)
+	}
+	e.buf = a.write(e.buf)
+	return e
+}
+
 func (e *Event) appendObject(obj LogObjectMarshaler) {
 	pos := len(e.buf)
 	obj.MarshalZerologObject(e)
@@ -143,6 +170,9 @@ func (e *Event) appendObject(obj LogObjectMarshaler) {
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
+	if !e.enabled {
+		return e
+	}
 	e.buf = json.AppendKey(e.buf, key)
 	e.appendObject(obj)
 	return e
@@ -166,7 +196,7 @@ func (e *Event) Strs(key string, vals []string) *Event {
 	return e
 }
 
-// Bytes adds the field key with val as a []byte to the *Event context.
+// Bytes adds the field key with val as a string to the *Event context.
 func (e *Event) Bytes(key string, val []byte) *Event {
 	if !e.enabled {
 		return e

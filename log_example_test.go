@@ -150,9 +150,49 @@ func (u User) MarshalZerologObject(e *zerolog.Event) {
 		Time("created", u.Created)
 }
 
+type Users []User
+
+func (uu Users) MarshalZerologArray(a *zerolog.Array) {
+	for _, u := range uu {
+		a.Object(u)
+	}
+}
+
+func ExampleEvent_Array() {
+	log := zerolog.New(os.Stdout)
+
+	log.Log().
+		Str("foo", "bar").
+		Array("array", zerolog.Arr().
+			Str("baz").
+			Int(1),
+		).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","array":["baz",1],"message":"hello world"}
+}
+
+func ExampleEvent_Array_object() {
+	log := zerolog.New(os.Stdout)
+
+	// Users implements zerolog.LogArrayMarshaler
+	u := Users{
+		User{"John", 35, time.Time{}},
+		User{"Bob", 55, time.Time{}},
+	}
+
+	log.Log().
+		Str("foo", "bar").
+		Array("users", u).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+}
+
 func ExampleEvent_Object() {
 	log := zerolog.New(os.Stdout)
 
+	// User implements zerolog.LogObjectMarshaler
 	u := User{"John", 35, time.Time{}}
 
 	log.Log().
@@ -222,7 +262,38 @@ func ExampleContext_Dict() {
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
+func ExampleContext_Array() {
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Array("array", zerolog.Arr().
+			Str("baz").
+			Int(1),
+		).Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","array":["baz",1],"message":"hello world"}
+}
+
+func ExampleContext_Array_object() {
+	// Users implements zerolog.LogArrayMarshaler
+	u := Users{
+		User{"John", 35, time.Time{}},
+		User{"Bob", 55, time.Time{}},
+	}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Array("users", u).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+}
+
 func ExampleContext_Object() {
+	// User implements zerolog.LogObjectMarshaler
 	u := User{"John", 35, time.Time{}}
 
 	log := zerolog.New(os.Stdout).With().

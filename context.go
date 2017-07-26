@@ -31,6 +31,26 @@ func (c Context) Dict(key string, dict *Event) Context {
 	return c
 }
 
+// Array adds the field key with an array to the event context.
+// Use zerolog.Arr() to create the array or pass a type that
+// implement the LogArrayMarshaler interface.
+func (c Context) Array(key string, arr LogArrayMarshaler) Context {
+	c.l.context = json.AppendKey(c.l.context, key)
+	if arr, ok := arr.(*Array); ok {
+		c.l.context = arr.write(c.l.context)
+		return c
+	}
+	var a *Array
+	if aa, ok := arr.(*Array); ok {
+		a = aa
+	} else {
+		a = Arr()
+		arr.MarshalZerologArray(a)
+	}
+	c.l.context = a.write(c.l.context)
+	return c
+}
+
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
