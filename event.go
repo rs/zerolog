@@ -159,7 +159,7 @@ func (e *Event) appendObject(obj LogObjectMarshaler) {
 	obj.MarshalZerologObject(e)
 	if pos < len(e.buf) {
 		// As MarshalZerologObject will use event API, the first field will be
-		// preceded by a coma. If at least one field has been added (buf grew),
+		// preceded by a comma. If at least one field has been added (buf grew),
 		// we replace this coma by the opening bracket.
 		e.buf[pos] = '{'
 	} else {
@@ -197,6 +197,9 @@ func (e *Event) Strs(key string, vals []string) *Event {
 }
 
 // Bytes adds the field key with val as a string to the *Event context.
+//
+// Runes outside of normal ASCII ranges will be hex-encoded in the resulting
+// JSON.
 func (e *Event) Bytes(key string, val []byte) *Event {
 	if !e.enabled {
 		return e
