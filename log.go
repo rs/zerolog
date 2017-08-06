@@ -162,6 +162,15 @@ func Nop() Logger {
 	return New(nil).Level(Disabled)
 }
 
+// Output duplicates the current logger and sets w as its output.
+func (l Logger) Output(w io.Writer) Logger {
+	l2 := New(w)
+	l2.level = l.level
+	l2.sample = l.sample
+	copy(l2.context, l.context)
+	return l2
+}
+
 // With creates a child logger with the field added to its context.
 func (l Logger) With() Context {
 	context := l.context

@@ -3,6 +3,7 @@ package log
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/rs/zerolog"
@@ -10,6 +11,11 @@ import (
 
 // Logger is the global logger.
 var Logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
+
+// Output duplicates the global logger and sets w as its output.
+func Output(w io.Writer) zerolog.Logger {
+	return Logger.Output(w)
+}
 
 // With creates a child logger with the field added to its context.
 func With() zerolog.Context {

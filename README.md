@@ -8,16 +8,18 @@ Zerolog's API is designed to provide both a great developer experience and stunn
 
 The uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach. Zerolog is taking this concept to the next level with simpler to use API and even better performance.
 
-To keep the code base and the API simple, zerolog focuses on JSON logging only. As [suggested on reddit](https://www.reddit.com/r/golang/comments/6c9k7n/zerolog_is_now_faster_than_zap/), you may use tools like [humanlog](https://github.com/aybabtme/humanlog) to pretty print JSON on the console during development.
-
+To keep the code base and the API simple, zerolog focuses on JSON logging only. Pretty logging on the console is made possible using the provided `zerolog.ConsoleWriter`.
 
 ## Features
 
+* Blazing fast
+* Low to zero allocation
 * Level logging
 * Sampling
 * Contextual fields
 * `context.Context` integration
 * `net/http` helpers
+* Pretty logging for development
 
 ## Usage
 
@@ -94,6 +96,18 @@ if e := log.Debug(); e.Enabled() {
 }
 
 // Output: {"level":"info","time":1494567715,"message":"routed message"}
+```
+
+### Pretty logging
+
+```go
+if isConsole {
+    log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+}
+
+log.Info().Str("foo", "bar").Msg("Hello world")
+
+// Output: 1494567715 |INFO| Hello world foo=bar
 ```
 
 ### Sub dictionary
