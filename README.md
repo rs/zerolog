@@ -10,6 +10,8 @@ The uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this appro
 
 To keep the code base and the API simple, zerolog focuses on JSON logging only. Pretty logging on the console is made possible using the provided `zerolog.ConsoleWriter`.
 
+![](pretty.png)
+
 ## Features
 
 * Blazing fast

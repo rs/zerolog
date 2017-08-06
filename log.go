@@ -167,6 +167,7 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
 	l2.sample = l.sample
+	l2.context = make([]byte, len(l.context))
 	copy(l2.context, l.context)
 	return l2
 }

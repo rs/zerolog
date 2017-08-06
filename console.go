@@ -95,7 +95,7 @@ func colorize(s interface{}, color int, enabled bool) string {
 func levelColor(level string) int {
 	switch level {
 	case "debug":
-		return cGray
+		return cMagenta
 	case "info":
 		return cGreen
 	case "warn":
@@ -109,7 +109,7 @@ func levelColor(level string) int {
 
 func needsQuote(s string) bool {
 	for i := range s {
-		if s[i] < 0x20 || s[i] > 0x7e || s[i] == '\\' || s[i] == '"' {
+		if s[i] < 0x20 || s[i] > 0x7e || s[i] == ' ' || s[i] == '\\' || s[i] == '"' {
 			return true
 		}
 	}
