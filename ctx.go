@@ -9,7 +9,15 @@ var disabledLogger = New(ioutil.Discard).Level(Disabled)
 
 type ctxKey struct{}
 
-// WithContext returns a copy of ctx with l associated.
+// WithContext returns a copy of ctx with l associated. If an instance of Logger
+// is already in the context, the pointer to this logger is updated with l.
+//
+// For instance, to add a field to an existing logger in the context, use this
+// notation:
+//
+//     ctx := r.Context()
+//     l := zerolog.Ctx(ctx)
+//     ctx = l.With().Str("foo", "bar").WithContext(ctx)
 func (l Logger) WithContext(ctx context.Context) context.Context {
 	if lp, ok := ctx.Value(ctxKey{}).(*Logger); ok {
 		// Update existing pointer.
