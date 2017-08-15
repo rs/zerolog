@@ -308,6 +308,48 @@ func TestLevel(t *testing.T) {
 	})
 }
 
+func TestLevelUnmarshalText(t *testing.T) {
+	t.Run("Parses every log level correctly from string", func(t *testing.T) {
+		lvl := Level(234)
+		for _, level := range []Level{
+			DebugLevel,
+			InfoLevel,
+			WarnLevel,
+			ErrorLevel,
+			FatalLevel,
+			PanicLevel,
+		} {
+			if err := (&lvl).UnmarshalText([]byte(level.String())); err != nil {
+				t.Error(err)
+			}
+			if got, want := lvl, level; !reflect.DeepEqual(got, want) {
+				t.Errorf("invalid parse log level:\ngot:\n%v\nwant:\n%v", got, want)
+			}
+		}
+	})
+
+	t.Run("Parses empty string to 'disabled' log level", func(t *testing.T) {
+		lvl := Level(234)
+		(&lvl).UnmarshalText([]byte(Disabled.String()))
+		if got, want := lvl, Disabled; !reflect.DeepEqual(got, want) {
+			t.Errorf("invalid parse log level:\ngot:\n%v\nwant:\n%v", got, want)
+		}
+	})
+
+	t.Run("Returns error in other cases", func(t *testing.T) {
+		lvl := WarnLevel
+		err := (&lvl).UnmarshalText([]byte("951"))
+		if got, want := err.Error(), "log: value '951' cannot be parsed as log level"; got != want {
+			t.Errorf("invalid error output:\ngot:  %v\nwant: %v", got, want)
+		}
+		t.Run("Does not mutate value", func(t *testing.T) {
+			if got, want := lvl, WarnLevel; !reflect.DeepEqual(got, want) {
+				t.Errorf("invalid parse log level:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+	})
+}
+
 func TestSampling(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out).Sample(2)
