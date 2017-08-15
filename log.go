@@ -74,6 +74,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"fmt"
 	"github.com/rs/zerolog/internal/json"
 )
 
@@ -113,6 +114,33 @@ func (l Level) String() string {
 		return "panic"
 	}
 	return ""
+}
+
+// UnmarshalText parses log level from its string representation.
+//
+// Empty string means "disabled" log level.
+//
+// Implements encoding.TextUnmarshaler interface.
+func (l *Level) UnmarshalText(value []byte) error {
+	switch val := string(value); val {
+	case DebugLevel.String():
+		*l = DebugLevel
+	case InfoLevel.String():
+		*l = InfoLevel
+	case WarnLevel.String():
+		*l = WarnLevel
+	case ErrorLevel.String():
+		*l = ErrorLevel
+	case FatalLevel.String():
+		*l = FatalLevel
+	case PanicLevel.String():
+		*l = PanicLevel
+	case Disabled.String():
+		*l = Disabled
+	default:
+		return fmt.Errorf("log: value '%s' cannot be parsed as log level", val)
+	}
+	return nil
 }
 
 const (
