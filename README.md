@@ -268,7 +268,6 @@ Some settings can be changed and will by applied to all loggers:
 * `zerolog.LevelFieldName`: Can be set to customize level field name.
 * `zerolog.MessageFieldName`: Can be set to customize message field name.
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
-* `zerolog.SampleFieldName`: Can be set to customize the field name added when sampling is enabled.
 * `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with an empty string, times are formated as UNIX timestamp.
 	// DurationFieldUnit defines the unit for time.Duration type fields added
 	// using the Dur method.
