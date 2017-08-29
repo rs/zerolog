@@ -27,9 +27,9 @@ func Level(level zerolog.Level) zerolog.Logger {
 	return Logger.Level(level)
 }
 
-// Sample returns a logger that only let one message out of every to pass thru.
-func Sample(every int) zerolog.Logger {
-	return Logger.Sample(every)
+// Sample returns a logger with the s sampler.
+func Sample(s zerolog.Sampler) zerolog.Logger {
+	return Logger.Sample(s)
 }
 
 // Debug starts a new message with debug level.

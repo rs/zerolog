@@ -310,12 +310,12 @@ func TestLevel(t *testing.T) {
 
 func TestSampling(t *testing.T) {
 	out := &bytes.Buffer{}
-	log := New(out).Sample(2)
+	log := New(out).Sample(&BasicSampler{N: 2})
 	log.Log().Int("i", 1).Msg("")
 	log.Log().Int("i", 2).Msg("")
 	log.Log().Int("i", 3).Msg("")
 	log.Log().Int("i", 4).Msg("")
-	if got, want := out.String(), "{\"sample\":2,\"i\":2}\n{\"sample\":2,\"i\":4}\n"; got != want {
+	if got, want := out.String(), "{\"i\":2}\n{\"i\":4}\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }

@@ -38,15 +38,15 @@ func ExampleLogger_Level() {
 }
 
 func ExampleLogger_Sample() {
-	log := zerolog.New(os.Stdout).Sample(2)
+	log := zerolog.New(os.Stdout).Sample(&zerolog.BasicSampler{N: 2})
 
 	log.Info().Msg("message 1")
 	log.Info().Msg("message 2")
 	log.Info().Msg("message 3")
 	log.Info().Msg("message 4")
 
-	// Output: {"level":"info","sample":2,"message":"message 2"}
-	// {"level":"info","sample":2,"message":"message 4"}
+	// Output: {"level":"info","message":"message 2"}
+	// {"level":"info","message":"message 4"}
 }
 
 func ExampleLogger_Debug() {
