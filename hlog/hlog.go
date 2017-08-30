@@ -15,7 +15,7 @@ import (
 
 // FromRequest gets the logger in the request's context.
 // This is a shortcut for log.Ctx(r.Context())
-func FromRequest(r *http.Request) zerolog.Logger {
+func FromRequest(r *http.Request) *zerolog.Logger {
 	return log.Ctx(r.Context())
 }
 
@@ -23,7 +23,10 @@ func FromRequest(r *http.Request) zerolog.Logger {
 func NewHandler(log zerolog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r = r.WithContext(log.WithContext(r.Context()))
+			// Create a copy of the logger (including internal context slice)
+			// to prevent data race when using UpdateContext.
+			l := log.With().Logger()
+			r = r.WithContext(l.WithContext(r.Context()))
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -35,8 +38,9 @@ func URLHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := zerolog.Ctx(r.Context())
-			log = log.With().Str(fieldKey, r.URL.String()).Logger()
-			r = r.WithContext(log.WithContext(r.Context()))
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, r.URL.String())
+			})
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -48,8 +52,9 @@ func MethodHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := zerolog.Ctx(r.Context())
-			log = log.With().Str(fieldKey, r.Method).Logger()
-			r = r.WithContext(log.WithContext(r.Context()))
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, r.Method)
+			})
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -61,8 +66,9 @@ func RequestHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := zerolog.Ctx(r.Context())
-			log = log.With().Str(fieldKey, r.Method+" "+r.URL.String()).Logger()
-			r = r.WithContext(log.WithContext(r.Context()))
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, r.Method+" "+r.URL.String())
+			})
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -75,8 +81,9 @@ func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 				log := zerolog.Ctx(r.Context())
-				log = log.With().Str(fieldKey, host).Logger()
-				r = r.WithContext(log.WithContext(r.Context()))
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, host)
+				})
 			}
 			next.ServeHTTP(w, r)
 		})
@@ -90,8 +97,9 @@ func UserAgentHandler(fieldKey string) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if ua := r.Header.Get("User-Agent"); ua != "" {
 				log := zerolog.Ctx(r.Context())
-				log = log.With().Str(fieldKey, ua).Logger()
-				r = r.WithContext(log.WithContext(r.Context()))
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, ua)
+				})
 			}
 			next.ServeHTTP(w, r)
 		})
@@ -105,8 +113,9 @@ func RefererHandler(fieldKey string) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if ref := r.Header.Get("Referer"); ref != "" {
 				log := zerolog.Ctx(r.Context())
-				log = log.With().Str(fieldKey, ref).Logger()
-				r = r.WithContext(log.WithContext(r.Context()))
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, ref)
+				})
 			}
 			next.ServeHTTP(w, r)
 		})
@@ -136,16 +145,18 @@ func IDFromRequest(r *http.Request) (id xid.ID, ok bool) {
 func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
 			id, ok := IDFromRequest(r)
 			if !ok {
 				id = xid.New()
-				ctx := context.WithValue(r.Context(), idKey{}, id)
+				ctx = context.WithValue(ctx, idKey{}, id)
 				r = r.WithContext(ctx)
 			}
 			if fieldKey != "" {
-				log := zerolog.Ctx(r.Context())
-				log = log.With().Str(fieldKey, id.String()).Logger()
-				r = r.WithContext(log.WithContext(r.Context()))
+				log := zerolog.Ctx(ctx)
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, id.String())
+				})
 			}
 			if headerName != "" {
 				w.Header().Set(headerName, id.String())

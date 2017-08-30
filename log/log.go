@@ -86,6 +86,6 @@ func Log() *zerolog.Event {
 
 // Ctx returns the Logger associated with the ctx. If no logger
 // is associated, a disabled logger is returned.
-func Ctx(ctx context.Context) zerolog.Logger {
+func Ctx(ctx context.Context) *zerolog.Logger {
 	return zerolog.Ctx(ctx)
 }

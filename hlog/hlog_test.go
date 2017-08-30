@@ -5,6 +5,7 @@ package hlog
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
@@ -23,7 +24,7 @@ func TestNewHandler(t *testing.T) {
 	lh := NewHandler(log)
 	h := lh(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
-		if !reflect.DeepEqual(l, log) {
+		if !reflect.DeepEqual(*l, log) {
 			t.Fail()
 		}
 	}))
@@ -38,12 +39,12 @@ func TestURLHandler(t *testing.T) {
 	h := URLHandler("url")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := `{"url":"/path?foo=bar"}`+"\n", out.String(); want != got {
-			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
-		}
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
+	if want, got := `{"url":"/path?foo=bar"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
 }
 
 func TestMethodHandler(t *testing.T) {
@@ -54,12 +55,12 @@ func TestMethodHandler(t *testing.T) {
 	h := MethodHandler("method")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := `{"method":"POST"}`+"\n", out.String(); want != got {
-			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
-		}
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
+	if want, got := `{"method":"POST"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
 }
 
 func TestRequestHandler(t *testing.T) {
@@ -71,12 +72,12 @@ func TestRequestHandler(t *testing.T) {
 	h := RequestHandler("request")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := `{"request":"POST /path?foo=bar"}`+"\n", out.String(); want != got {
-			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
-		}
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
+	if want, got := `{"request":"POST /path?foo=bar"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
 }
 
 func TestRemoteAddrHandler(t *testing.T) {
@@ -87,12 +88,12 @@ func TestRemoteAddrHandler(t *testing.T) {
 	h := RemoteAddrHandler("ip")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := `{"ip":"1.2.3.4"}`+"\n", out.String(); want != got {
-			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
-		}
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
+	if want, got := `{"ip":"1.2.3.4"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
 }
 
 func TestRemoteAddrHandlerIPv6(t *testing.T) {
@@ -103,12 +104,12 @@ func TestRemoteAddrHandlerIPv6(t *testing.T) {
 	h := RemoteAddrHandler("ip")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := `{"ip":"2001:db8:a0b:12f0::1"}`+"\n", out.String(); want != got {
-			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
-		}
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
+	if want, got := `{"ip":"2001:db8:a0b:12f0::1"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
 }
 
 func TestUserAgentHandler(t *testing.T) {
@@ -121,12 +122,12 @@ func TestUserAgentHandler(t *testing.T) {
 	h := UserAgentHandler("ua")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := `{"ua":"some user agent string"}`+"\n", out.String(); want != got {
-			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
-		}
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
+	if want, got := `{"ua":"some user agent string"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
 }
 
 func TestRefererHandler(t *testing.T) {
@@ -139,12 +140,12 @@ func TestRefererHandler(t *testing.T) {
 	h := RefererHandler("referer")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := `{"referer":"http://foo.com/bar"}`+"\n", out.String(); want != got {
-			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
-		}
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
+	if want, got := `{"referer":"http://foo.com/bar"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
 }
 
 func TestRequestIDHandler(t *testing.T) {
@@ -170,4 +171,67 @@ func TestRequestIDHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(httptest.NewRecorder(), r)
+}
+
+func TestCombinedHandlers(t *testing.T) {
+	out := &bytes.Buffer{}
+	r := &http.Request{
+		Method: "POST",
+		URL:    &url.URL{Path: "/path", RawQuery: "foo=bar"},
+	}
+	h := MethodHandler("method")(RequestHandler("request")(URLHandler("url")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := FromRequest(r)
+		l.Log().Msg("")
+	}))))
+	h = NewHandler(zerolog.New(out))(h)
+	h.ServeHTTP(nil, r)
+	if want, got := `{"method":"POST","request":"POST /path?foo=bar","url":"/path?foo=bar"}`+"\n", out.String(); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
+}
+
+func BenchmarkHandlers(b *testing.B) {
+	r := &http.Request{
+		Method: "POST",
+		URL:    &url.URL{Path: "/path", RawQuery: "foo=bar"},
+	}
+	h1 := URLHandler("url")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := FromRequest(r)
+		l.Log().Msg("")
+	}))
+	h2 := MethodHandler("method")(RequestHandler("request")(h1))
+	handlers := map[string]http.Handler{
+		"Single":           NewHandler(zerolog.New(ioutil.Discard))(h1),
+		"Combined":         NewHandler(zerolog.New(ioutil.Discard))(h2),
+		"SingleDisabled":   NewHandler(zerolog.New(ioutil.Discard).Level(zerolog.Disabled))(h1),
+		"CombinedDisabled": NewHandler(zerolog.New(ioutil.Discard).Level(zerolog.Disabled))(h2),
+	}
+	for name := range handlers {
+		h := handlers[name]
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				h.ServeHTTP(nil, r)
+			}
+		})
+	}
+}
+
+func BenchmarkDataRace(b *testing.B) {
+	log := zerolog.New(nil).With().
+		Str("foo", "bar").
+		Logger()
+	lh := NewHandler(log)
+	h := lh(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := FromRequest(r)
+		l.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str("bar", "baz")
+		})
+		l.Log().Msg("")
+	}))
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			h.ServeHTTP(nil, &http.Request{})
+		}
+	})
 }

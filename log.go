@@ -174,6 +174,20 @@ func (l Logger) With() Context {
 	return Context{l}
 }
 
+// UpdateContext updates the internal logger's context.
+//
+// Use this method with caution. If unsure, prefer the With method.
+func (l *Logger) UpdateContext(update func(c Context) Context) {
+	if l == disabledLogger {
+		return
+	}
+	if cap(l.context) == 0 {
+		l.context = make([]byte, 1, 500) // first byte is timestamp flag
+	}
+	c := update(Context{*l})
+	l.context = c.l.context
+}
+
 // Level creates a child logger with the minimum accepted level set to level.
 func (l Logger) Level(lvl Level) Logger {
 	return Logger{
