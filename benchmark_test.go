@@ -57,6 +57,18 @@ func BenchmarkContextFields(b *testing.B) {
 	})
 }
 
+func BenchmarkContextAppend(b *testing.B) {
+	logger := New(ioutil.Discard).With().
+		Str("foo", "bar").
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.With().Str("bar", "baz")
+		}
+	})
+}
+
 func BenchmarkLogFields(b *testing.B) {
 	logger := New(ioutil.Discard)
 	b.ResetTimer()
