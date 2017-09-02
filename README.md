@@ -8,7 +8,7 @@ Zerolog's API is designed to provide both a great developer experience and stunn
 
 The uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach. Zerolog is taking this concept to the next level with simpler to use API and even better performance.
 
-To keep the code base and the API simple, zerolog focuses on JSON logging only. Pretty logging on the console is made possible using the provided `zerolog.ConsoleWriter`.
+To keep the code base and the API simple, zerolog focuses on JSON logging only. Pretty logging on the console is made possible using the provided (but slower) `zerolog.ConsoleWriter`.
 
 ![](pretty.png)
 
@@ -293,7 +293,7 @@ Some settings can be changed and will by applied to all loggers:
 * `Dict`: Adds a sub-key/value as a field of the event.
 * `Interface`: Uses reflection to marshal the type.
 
-## Performance
+## Benchmarks
 
 All operations are allocation free (those numbers *include* JSON encoding):
 
@@ -305,7 +305,12 @@ BenchmarkContextFields-8   30000000	    44.9 ns/op	   0 B/op       0 allocs/op
 BenchmarkLogFields-8       10000000	   184 ns/op	   0 B/op       0 allocs/op
 ```
 
-Using Uber's zap [comparison benchmark](https://github.com/uber-go/zap#performance):
+There are a few Go logging benchmarks and comparisons that include zerolog.
+
+- [imkira/go-loggers-bench](https://github.com/imkira/go-loggers-bench)
+- [uber-common/zap](https://github.com/uber-go/zap#performance)
+
+Using Uber's zap comparison benchmark:
 
 Log a message and 10 fields:
 
