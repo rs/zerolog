@@ -49,6 +49,22 @@ func ExampleLogger_Sample() {
 	// {"level":"info","message":"message 4"}
 }
 
+func ExampleLogger_Print() {
+	log := zerolog.New(os.Stdout)
+
+	log.Print("hello world")
+
+	// Output: {"level":"debug","message":"hello world"}
+}
+
+func ExampleLogger_Printf() {
+	log := zerolog.New(os.Stdout)
+
+	log.Printf("hello %s", "world")
+
+	// Output: {"level":"debug","message":"hello world"}
+}
+
 func ExampleLogger_Debug() {
 	log := zerolog.New(os.Stdout)
 

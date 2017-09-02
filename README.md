@@ -8,7 +8,7 @@ Zerolog's API is designed to provide both a great developer experience and stunn
 
 The uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach. Zerolog is taking this concept to the next level with simpler to use API and even better performance.
 
-To keep the code base and the API simple, zerolog focuses on JSON logging only. Pretty logging on the console is made possible using the provided (but slower) `zerolog.ConsoleWriter`.
+To keep the code base and the API simple, zerolog focuses on JSON logging only. Pretty logging on the console is made possible using the provided (but inefficient) `zerolog.ConsoleWriter`.
 
 ![](pretty.png)
 
@@ -30,6 +30,13 @@ import "github.com/rs/zerolog/log"
 ```
 
 ### A global logger can be use for simple logging
+
+```go
+log.Print("hello world")
+
+// Output: {"level":"debug","time":1494567715,"message":"hello world"}
+```
+
 
 ```go
 log.Info().Msg("hello world")

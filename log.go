@@ -68,6 +68,7 @@
 package zerolog
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -287,6 +288,22 @@ func (l Logger) Log() *Event {
 	// We use panic level with addLevelField=false to make Log passthrough all
 	// levels except Disabled.
 	return l.newEvent(PanicLevel, false, nil)
+}
+
+// Print sends a log event using debug level and no extra field.
+// Arguments are handled in the manner of fmt.Print.
+func (l Logger) Print(v ...interface{}) {
+	if e := l.Debug(); e.Enabled() {
+		e.Msg(fmt.Sprint(v...))
+	}
+}
+
+// Printf sends a log event using debug level and no extra field.
+// Arguments are handled in the manner of fmt.Printf.
+func (l Logger) Printf(format string, v ...interface{}) {
+	if e := l.Debug(); e.Enabled() {
+		e.Msg(fmt.Sprintf(format, v...))
+	}
 }
 
 // Write implements the io.Writer interface. This is useful to set as a writer
