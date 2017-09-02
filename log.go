@@ -62,7 +62,7 @@
 //
 // Sample logs:
 //
-//     sampled := log.Sample(10)
+//     sampled := log.Sample(&zerolog.BasicSampler{N: 10})
 //     sampled.Info().Msg("will be logged every 10 messages")
 //
 package zerolog
