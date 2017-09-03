@@ -157,7 +157,7 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
 	l2.sampler = l.sampler
-	l2.context = make([]byte, len(l.context))
+	l2.context = make([]byte, len(l.context), cap(l.context))
 	copy(l2.context, l.context)
 	return l2
 }
@@ -191,25 +191,14 @@ func (l *Logger) UpdateContext(update func(c Context) Context) {
 
 // Level creates a child logger with the minimum accepted level set to level.
 func (l Logger) Level(lvl Level) Logger {
-	return Logger{
-		w:       l.w,
-		level:   lvl,
-		sampler: l.sampler,
-		context: l.context,
-	}
+	l.level = lvl
+	return l
 }
 
 // Sample returns a logger with the s sampler.
 func (l Logger) Sample(s Sampler) Logger {
-	if l.sampler == s {
-		return l
-	}
-	return Logger{
-		w:       l.w,
-		level:   l.level,
-		sampler: s,
-		context: l.context,
-	}
+	l.sampler = s
+	return l
 }
 
 // Debug starts a new message with debug level.
