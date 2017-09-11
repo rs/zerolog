@@ -31,10 +31,8 @@ func (s RandomSampler) Sample(lvl Level) bool {
 	if s <= 0 {
 		return false
 	}
-	if s > 0 {
-		if rand.Intn(int(s)) != 0 {
-			return false
-		}
+	if rand.Intn(int(s)) != 0 {
+		return false
 	}
 	return true
 }
