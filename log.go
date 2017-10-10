@@ -323,7 +323,16 @@ func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Ev
 		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 	}
 	if addLevelField {
-		e.Str(LevelFieldName, level.String())
+		switch {
+		case LogLevelFlags&LogLevelNumeric != LogLevelNumeric:
+			e.Str(LevelFieldName, level.String())
+		case /*LogLevelFlags&LogLevelNumeric == LogLevelNumeric &&*/ LogLevelFlags&LogLevelBunyan != LogLevelBunyan:
+			e.Uint8(LevelFieldName, uint8(level))
+		case /*LogLevelFlags&LogLevelNumeric == LogLevelNumeric &&*/ LogLevelFlags&LogLevelBunyan == LogLevelBunyan:
+			// Map from zerolog error levels to Bunyan logging levels.
+			// https://www.npmjs.com/package/bunyan#levels
+			e.Uint8(LevelFieldName, uint8(level+2)*10)
+		}
 	}
 	if l.context != nil && len(l.context) > 1 {
 		if len(e.buf) > 1 {
