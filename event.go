@@ -21,11 +21,10 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf     []byte
-	w       LevelWriter
-	level   Level
-	enabled bool
-	done    func(msg string)
+	buf   []byte
+	w     LevelWriter
+	level Level
+	done  func(msg string)
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -49,12 +48,11 @@ func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	e.buf[0] = '{'
 	e.w = w
 	e.level = level
-	e.enabled = true
 	return e
 }
 
 func (e *Event) write() (err error) {
-	if !e.enabled {
+	if e == nil {
 		return nil
 	}
 	e.buf = append(e.buf, '}', '\n')
@@ -66,7 +64,7 @@ func (e *Event) write() (err error) {
 // Enabled return false if the *Event is going to be filtered out by
 // log level or sampling.
 func (e *Event) Enabled() bool {
-	return e.enabled
+	return e != nil
 }
 
 // Msg sends the *Event with msg added as the message field if not empty.
@@ -74,7 +72,7 @@ func (e *Event) Enabled() bool {
 // NOTICE: once this method is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
 func (e *Event) Msg(msg string) {
-	if !e.enabled {
+	if e == nil {
 		return
 	}
 	if msg != "" {
@@ -93,7 +91,7 @@ func (e *Event) Msg(msg string) {
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
 func (e *Event) Msgf(format string, v ...interface{}) {
-	if !e.enabled {
+	if e == nil {
 		return
 	}
 	msg := fmt.Sprintf(format, v...)
@@ -110,7 +108,7 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 
 // Fields is a helper function to use a map to set fields using type assertion.
 func (e *Event) Fields(fields map[string]interface{}) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = appendFields(e.buf, fields)
@@ -120,7 +118,7 @@ func (e *Event) Fields(fields map[string]interface{}) *Event {
 // Dict adds the field key with a dict to the event context.
 // Use zerolog.Dict() to create the dictionary.
 func (e *Event) Dict(key string, dict *Event) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = append(append(json.AppendKey(e.buf, key), dict.buf...), '}')
@@ -139,7 +137,7 @@ func Dict() *Event {
 // Use zerolog.Arr() to create the array or pass a type that
 // implement the LogArrayMarshaler interface.
 func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendKey(e.buf, key)
@@ -170,7 +168,7 @@ func (e *Event) appendObject(obj LogObjectMarshaler) {
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendKey(e.buf, key)
@@ -180,7 +178,7 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 
 // Str adds the field key with val as a string to the *Event context.
 func (e *Event) Str(key, val string) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendString(json.AppendKey(e.buf, key), val)
@@ -189,7 +187,7 @@ func (e *Event) Str(key, val string) *Event {
 
 // Strs adds the field key with vals as a []string to the *Event context.
 func (e *Event) Strs(key string, vals []string) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendStrings(json.AppendKey(e.buf, key), vals)
@@ -201,7 +199,7 @@ func (e *Event) Strs(key string, vals []string) *Event {
 // Runes outside of normal ASCII ranges will be hex-encoded in the resulting
 // JSON.
 func (e *Event) Bytes(key string, val []byte) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendBytes(json.AppendKey(e.buf, key), val)
@@ -211,7 +209,7 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 // AnErr adds the field key with err as a string to the *Event context.
 // If err is nil, no field is added.
 func (e *Event) AnErr(key string, err error) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	if err != nil {
@@ -223,7 +221,7 @@ func (e *Event) AnErr(key string, err error) *Event {
 // Errs adds the field key with errs as an array of strings to the *Event context.
 // If err is nil, no field is added.
 func (e *Event) Errs(key string, errs []error) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendErrors(json.AppendKey(e.buf, key), errs)
@@ -234,7 +232,7 @@ func (e *Event) Errs(key string, errs []error) *Event {
 // If err is nil, no field is added.
 // To customize the key name, change zerolog.ErrorFieldName.
 func (e *Event) Err(err error) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	if err != nil {
@@ -245,7 +243,7 @@ func (e *Event) Err(err error) *Event {
 
 // Bool adds the field key with val as a bool to the *Event context.
 func (e *Event) Bool(key string, b bool) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendBool(json.AppendKey(e.buf, key), b)
@@ -254,7 +252,7 @@ func (e *Event) Bool(key string, b bool) *Event {
 
 // Bools adds the field key with val as a []bool to the *Event context.
 func (e *Event) Bools(key string, b []bool) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendBools(json.AppendKey(e.buf, key), b)
@@ -263,7 +261,7 @@ func (e *Event) Bools(key string, b []bool) *Event {
 
 // Int adds the field key with i as a int to the *Event context.
 func (e *Event) Int(key string, i int) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInt(json.AppendKey(e.buf, key), i)
@@ -272,7 +270,7 @@ func (e *Event) Int(key string, i int) *Event {
 
 // Ints adds the field key with i as a []int to the *Event context.
 func (e *Event) Ints(key string, i []int) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInts(json.AppendKey(e.buf, key), i)
@@ -281,7 +279,7 @@ func (e *Event) Ints(key string, i []int) *Event {
 
 // Int8 adds the field key with i as a int8 to the *Event context.
 func (e *Event) Int8(key string, i int8) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInt8(json.AppendKey(e.buf, key), i)
@@ -290,7 +288,7 @@ func (e *Event) Int8(key string, i int8) *Event {
 
 // Ints8 adds the field key with i as a []int8 to the *Event context.
 func (e *Event) Ints8(key string, i []int8) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInts8(json.AppendKey(e.buf, key), i)
@@ -299,7 +297,7 @@ func (e *Event) Ints8(key string, i []int8) *Event {
 
 // Int16 adds the field key with i as a int16 to the *Event context.
 func (e *Event) Int16(key string, i int16) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInt16(json.AppendKey(e.buf, key), i)
@@ -308,7 +306,7 @@ func (e *Event) Int16(key string, i int16) *Event {
 
 // Ints16 adds the field key with i as a []int16 to the *Event context.
 func (e *Event) Ints16(key string, i []int16) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInts16(json.AppendKey(e.buf, key), i)
@@ -317,7 +315,7 @@ func (e *Event) Ints16(key string, i []int16) *Event {
 
 // Int32 adds the field key with i as a int32 to the *Event context.
 func (e *Event) Int32(key string, i int32) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInt32(json.AppendKey(e.buf, key), i)
@@ -326,7 +324,7 @@ func (e *Event) Int32(key string, i int32) *Event {
 
 // Ints32 adds the field key with i as a []int32 to the *Event context.
 func (e *Event) Ints32(key string, i []int32) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInts32(json.AppendKey(e.buf, key), i)
@@ -335,7 +333,7 @@ func (e *Event) Ints32(key string, i []int32) *Event {
 
 // Int64 adds the field key with i as a int64 to the *Event context.
 func (e *Event) Int64(key string, i int64) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInt64(json.AppendKey(e.buf, key), i)
@@ -344,7 +342,7 @@ func (e *Event) Int64(key string, i int64) *Event {
 
 // Ints64 adds the field key with i as a []int64 to the *Event context.
 func (e *Event) Ints64(key string, i []int64) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendInts64(json.AppendKey(e.buf, key), i)
@@ -353,7 +351,7 @@ func (e *Event) Ints64(key string, i []int64) *Event {
 
 // Uint adds the field key with i as a uint to the *Event context.
 func (e *Event) Uint(key string, i uint) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUint(json.AppendKey(e.buf, key), i)
@@ -362,7 +360,7 @@ func (e *Event) Uint(key string, i uint) *Event {
 
 // Uints adds the field key with i as a []int to the *Event context.
 func (e *Event) Uints(key string, i []uint) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUints(json.AppendKey(e.buf, key), i)
@@ -371,7 +369,7 @@ func (e *Event) Uints(key string, i []uint) *Event {
 
 // Uint8 adds the field key with i as a uint8 to the *Event context.
 func (e *Event) Uint8(key string, i uint8) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUint8(json.AppendKey(e.buf, key), i)
@@ -380,7 +378,7 @@ func (e *Event) Uint8(key string, i uint8) *Event {
 
 // Uints8 adds the field key with i as a []int8 to the *Event context.
 func (e *Event) Uints8(key string, i []uint8) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUints8(json.AppendKey(e.buf, key), i)
@@ -389,7 +387,7 @@ func (e *Event) Uints8(key string, i []uint8) *Event {
 
 // Uint16 adds the field key with i as a uint16 to the *Event context.
 func (e *Event) Uint16(key string, i uint16) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUint16(json.AppendKey(e.buf, key), i)
@@ -398,7 +396,7 @@ func (e *Event) Uint16(key string, i uint16) *Event {
 
 // Uints16 adds the field key with i as a []int16 to the *Event context.
 func (e *Event) Uints16(key string, i []uint16) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUints16(json.AppendKey(e.buf, key), i)
@@ -407,7 +405,7 @@ func (e *Event) Uints16(key string, i []uint16) *Event {
 
 // Uint32 adds the field key with i as a uint32 to the *Event context.
 func (e *Event) Uint32(key string, i uint32) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUint32(json.AppendKey(e.buf, key), i)
@@ -416,7 +414,7 @@ func (e *Event) Uint32(key string, i uint32) *Event {
 
 // Uints32 adds the field key with i as a []int32 to the *Event context.
 func (e *Event) Uints32(key string, i []uint32) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUints32(json.AppendKey(e.buf, key), i)
@@ -425,7 +423,7 @@ func (e *Event) Uints32(key string, i []uint32) *Event {
 
 // Uint64 adds the field key with i as a uint64 to the *Event context.
 func (e *Event) Uint64(key string, i uint64) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUint64(json.AppendKey(e.buf, key), i)
@@ -434,7 +432,7 @@ func (e *Event) Uint64(key string, i uint64) *Event {
 
 // Uints64 adds the field key with i as a []int64 to the *Event context.
 func (e *Event) Uints64(key string, i []uint64) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendUints64(json.AppendKey(e.buf, key), i)
@@ -443,7 +441,7 @@ func (e *Event) Uints64(key string, i []uint64) *Event {
 
 // Float32 adds the field key with f as a float32 to the *Event context.
 func (e *Event) Float32(key string, f float32) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendFloat32(json.AppendKey(e.buf, key), f)
@@ -452,7 +450,7 @@ func (e *Event) Float32(key string, f float32) *Event {
 
 // Floats32 adds the field key with f as a []float32 to the *Event context.
 func (e *Event) Floats32(key string, f []float32) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendFloats32(json.AppendKey(e.buf, key), f)
@@ -461,7 +459,7 @@ func (e *Event) Floats32(key string, f []float32) *Event {
 
 // Float64 adds the field key with f as a float64 to the *Event context.
 func (e *Event) Float64(key string, f float64) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendFloat64(json.AppendKey(e.buf, key), f)
@@ -470,7 +468,7 @@ func (e *Event) Float64(key string, f float64) *Event {
 
 // Floats64 adds the field key with f as a []float64 to the *Event context.
 func (e *Event) Floats64(key string, f []float64) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendFloats64(json.AppendKey(e.buf, key), f)
@@ -480,7 +478,7 @@ func (e *Event) Floats64(key string, f []float64) *Event {
 // Timestamp adds the current local time as UNIX timestamp to the *Event context with the "time" key.
 // To customize the key name, change zerolog.TimestampFieldName.
 func (e *Event) Timestamp() *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
@@ -489,7 +487,7 @@ func (e *Event) Timestamp() *Event {
 
 // Time adds the field key with t formated as string using zerolog.TimeFieldFormat.
 func (e *Event) Time(key string, t time.Time) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendTime(json.AppendKey(e.buf, key), t, TimeFieldFormat)
@@ -498,7 +496,7 @@ func (e *Event) Time(key string, t time.Time) *Event {
 
 // Times adds the field key with t formated as string using zerolog.TimeFieldFormat.
 func (e *Event) Times(key string, t []time.Time) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendTimes(json.AppendKey(e.buf, key), t, TimeFieldFormat)
@@ -509,7 +507,7 @@ func (e *Event) Times(key string, t []time.Time) *Event {
 // If zerolog.DurationFieldInteger is true, durations are rendered as integer
 // instead of float.
 func (e *Event) Dur(key string, d time.Duration) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendDuration(json.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
@@ -520,7 +518,7 @@ func (e *Event) Dur(key string, d time.Duration) *Event {
 // If zerolog.DurationFieldInteger is true, durations are rendered as integer
 // instead of float.
 func (e *Event) Durs(key string, d []time.Duration) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	e.buf = json.AppendDurations(json.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
@@ -531,7 +529,7 @@ func (e *Event) Durs(key string, d []time.Duration) *Event {
 // If time t is not greater than start, duration will be 0.
 // Duration format follows the same principle as Dur().
 func (e *Event) TimeDiff(key string, t time.Time, start time.Time) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	var d time.Duration
@@ -544,7 +542,7 @@ func (e *Event) TimeDiff(key string, t time.Time, start time.Time) *Event {
 
 // Interface adds the field key with i marshaled using reflection.
 func (e *Event) Interface(key string, i interface{}) *Event {
-	if !e.enabled {
+	if e == nil {
 		return e
 	}
 	if obj, ok := i.(LogObjectMarshaler); ok {
