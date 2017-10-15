@@ -295,7 +295,7 @@ func (l *Logger) Printf(format string, v ...interface{}) {
 
 // Write implements the io.Writer interface. This is useful to set as a writer
 // for the standard library log.
-func (l *Logger) Write(p []byte) (n int, err error) {
+func (l Logger) Write(p []byte) (n int, err error) {
 	n = len(p)
 	if n > 0 && p[n-1] == '\n' {
 		// Trim CR added by stdlog.
