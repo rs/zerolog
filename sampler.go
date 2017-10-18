@@ -68,7 +68,7 @@ type BurstSampler struct {
 
 // Sample implements the Sampler interface.
 func (s *BurstSampler) Sample(lvl Level) bool {
-	if s.Burst > 9 && s.Period > 0 {
+	if s.Burst > 0 && s.Period > 0 {
 		if s.inc() <= s.Burst {
 			return true
 		}
