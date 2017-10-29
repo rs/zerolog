@@ -405,3 +405,31 @@ func TestEventTimestamp(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+func TestOutputWithoutTimestamp(t *testing.T) {
+	ignoredOut := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+	log := New(ignoredOut).Output(out).With().Str("foo", "bar").Logger()
+	log.Log().Msg("hello world")
+
+	if got, want := out.String(), `{"foo":"bar","message":"hello world"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestOutputWithTimestamp(t *testing.T) {
+	TimestampFunc = func() time.Time {
+		return time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC)
+	}
+	defer func() {
+		TimestampFunc = time.Now
+	}()
+	ignoredOut := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+	log := New(ignoredOut).Output(out).With().Timestamp().Str("foo", "bar").Logger()
+	log.Log().Msg("hello world")
+
+	if got, want := out.String(), `{"time":"2001-02-03T04:05:06Z","foo":"bar","message":"hello world"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
