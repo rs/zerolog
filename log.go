@@ -158,7 +158,6 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2.level = l.level
 	l2.sampler = l.sampler
 	if l.context != nil {
-		fmt.Println("Copying over the context:", l.context)
 		l2.context = make([]byte, len(l.context), cap(l.context))
 		copy(l2.context, l.context)
 	}
