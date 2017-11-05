@@ -273,7 +273,8 @@ func TestFieldsDisabled(t *testing.T) {
 
 func TestMsgf(t *testing.T) {
 	out := &bytes.Buffer{}
-	New(out).Log().Msgf("one %s %.1f %d %v", "two", 3.4, 5, errors.New("six"))
+	log := New(out)
+	log.Log().Msgf("one %s %.1f %d %v", "two", 3.4, 5, errors.New("six"))
 	if got, want := out.String(), `{"message":"one two 3.4 5 six"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}

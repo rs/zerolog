@@ -115,8 +115,6 @@ func (l Level) String() string {
 	return ""
 }
 
-var disabledEvent = newEvent(levelWriterAdapter{ioutil.Discard}, 0, false)
-
 // A Logger represents an active logging object that generates lines
 // of JSON output to an io.Writer. Each logging operation makes a single
 // call to the Writer's Write method. There is no guaranty on access
@@ -204,28 +202,28 @@ func (l Logger) Sample(s Sampler) Logger {
 // Debug starts a new message with debug level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Debug() *Event {
+func (l *Logger) Debug() *Event {
 	return l.newEvent(DebugLevel, true, nil)
 }
 
 // Info starts a new message with info level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Info() *Event {
+func (l *Logger) Info() *Event {
 	return l.newEvent(InfoLevel, true, nil)
 }
 
 // Warn starts a new message with warn level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Warn() *Event {
+func (l *Logger) Warn() *Event {
 	return l.newEvent(WarnLevel, true, nil)
 }
 
 // Error starts a new message with error level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Error() *Event {
+func (l *Logger) Error() *Event {
 	return l.newEvent(ErrorLevel, true, nil)
 }
 
@@ -233,7 +231,7 @@ func (l Logger) Error() *Event {
 // is called by the Msg method.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Fatal() *Event {
+func (l *Logger) Fatal() *Event {
 	return l.newEvent(FatalLevel, true, func(msg string) { os.Exit(1) })
 }
 
@@ -241,14 +239,14 @@ func (l Logger) Fatal() *Event {
 // to the panic function.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Panic() *Event {
+func (l *Logger) Panic() *Event {
 	return l.newEvent(PanicLevel, true, func(msg string) { panic(msg) })
 }
 
 // WithLevel starts a new message with level.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) WithLevel(level Level) *Event {
+func (l *Logger) WithLevel(level Level) *Event {
 	switch level {
 	case DebugLevel:
 		return l.Debug()
@@ -263,7 +261,7 @@ func (l Logger) WithLevel(level Level) *Event {
 	case PanicLevel:
 		return l.Panic()
 	case Disabled:
-		return disabledEvent
+		return nil
 	default:
 		panic("zerolog: WithLevel(): invalid level: " + strconv.Itoa(int(level)))
 	}
@@ -273,7 +271,7 @@ func (l Logger) WithLevel(level Level) *Event {
 // will still disable events produced by this method.
 //
 // You must call Msg on the returned event in order to send the event.
-func (l Logger) Log() *Event {
+func (l *Logger) Log() *Event {
 	// We use panic level with addLevelField=false to make Log passthrough all
 	// levels except Disabled.
 	return l.newEvent(PanicLevel, false, nil)
@@ -281,7 +279,7 @@ func (l Logger) Log() *Event {
 
 // Print sends a log event using debug level and no extra field.
 // Arguments are handled in the manner of fmt.Print.
-func (l Logger) Print(v ...interface{}) {
+func (l *Logger) Print(v ...interface{}) {
 	if e := l.Debug(); e.Enabled() {
 		e.Msg(fmt.Sprint(v...))
 	}
@@ -289,7 +287,7 @@ func (l Logger) Print(v ...interface{}) {
 
 // Printf sends a log event using debug level and no extra field.
 // Arguments are handled in the manner of fmt.Printf.
-func (l Logger) Printf(format string, v ...interface{}) {
+func (l *Logger) Printf(format string, v ...interface{}) {
 	if e := l.Debug(); e.Enabled() {
 		e.Msg(fmt.Sprintf(format, v...))
 	}
@@ -307,10 +305,10 @@ func (l Logger) Write(p []byte) (n int, err error) {
 	return
 }
 
-func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Event {
+func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *Event {
 	enabled := l.should(level)
 	if !enabled {
-		return disabledEvent
+		return nil
 	}
 	lvl := InfoLevel
 	if addLevelField {
@@ -335,7 +333,7 @@ func (l Logger) newEvent(level Level, addLevelField bool, done func(string)) *Ev
 }
 
 // should returns true if the log event should be logged.
-func (l Logger) should(lvl Level) bool {
+func (l *Logger) should(lvl Level) bool {
 	if lvl < l.level || lvl < globalLevel() {
 		return false
 	}
