@@ -155,8 +155,10 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
 	l2.sampler = l.sampler
-	l2.context = make([]byte, len(l.context), cap(l.context))
-	copy(l2.context, l.context)
+	if l.context != nil {
+		l2.context = make([]byte, len(l.context), cap(l.context))
+		copy(l2.context, l.context)
+	}
 	return l2
 }
 
