@@ -346,6 +346,7 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 	}
 	e := newEvent(l.w, lvl, true)
 	e.done = done
+	e.hasLevel = addLevelField
 	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
 		// first byte of context is ts flag
 		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
@@ -360,20 +361,8 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 		e.buf = append(e.buf, l.context[1:]...)
 	}
 	if len(l.hooks) > 0 {
-		e.hr = make([]hookRunner, len(l.hooks), cap(l.hooks))
-		h := l.hooks[0]
-		e.hr[0] = hookRunner(func(e *Event, level Level, msg string) {
-			h.Run(e, level, addLevelField, msg)
-		})
-
-		if len(l.hooks) > 1 {
-			for i, hook := range l.hooks[1:] {
-				h := hook
-				e.hr[i+1] = hookRunner(func(e *Event, level Level, msg string) {
-					h.Run(e, level, addLevelField, msg)
-				})
-			}
-		}
+		e.h = make([]Hook, len(l.hooks), cap(l.hooks))
+		copy(e.h, l.hooks)
 	}
 	return e
 }
