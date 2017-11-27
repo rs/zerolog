@@ -22,6 +22,7 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 * `context.Context` integration
 * `net/http` helpers
 * Pretty logging for development
+* Numeric log levels
 
 ## Usage
 
@@ -280,6 +281,10 @@ Some settings can be changed and will by applied to all loggers:
 	// using the Dur method.
 * `DurationFieldUnit`: Sets the unit of the fields added by `Dur` (default: `time.Millisecond`).
 * `DurationFieldInteger`: If set to true, `Dur` fields are formatted as integers instead of floats.
+* `LogLevelFlags`: If the `LogLevelNumeric` bit is set to true, the log level
+  field is emitted as a decimal integer.  Additionally, if the `LogLevelBunyan`
+  bit is set use [Bunyan](https://www.npmjs.com/package/bunyan#levels)'s numeric
+  log level values.
 
 ## Field Types
 
