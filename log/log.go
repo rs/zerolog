@@ -32,6 +32,11 @@ func Sample(s zerolog.Sampler) zerolog.Logger {
 	return Logger.Sample(s)
 }
 
+// Hook returns a logger with the h Hook.
+func Hook(h zerolog.Hook) zerolog.Logger {
+	return Logger.Hook(h)
+}
+
 // Debug starts a new message with debug level.
 //
 // You must call Msg on the returned event in order to send the event.
