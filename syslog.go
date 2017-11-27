@@ -44,6 +44,8 @@ func (sw syslogWriter) WriteLevel(level Level, p []byte) (n int, err error) {
 		err = sw.w.Emerg(string(p))
 	case PanicLevel:
 		err = sw.w.Crit(string(p))
+	case NoLevel:
+		err = sw.w.Info(string(p))
 	default:
 		panic("invalid level")
 	}

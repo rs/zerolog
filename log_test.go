@@ -299,6 +299,42 @@ func TestLevel(t *testing.T) {
 		}
 	})
 
+	t.Run("NoLevel/Disabled", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(Disabled)
+		log.Log().Msg("test")
+		if got, want := out.String(), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("NoLevel/Info", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(InfoLevel)
+		log.Log().Msg("test")
+		if got, want := out.String(), `{"message":"test"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("NoLevel/Panic", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(PanicLevel)
+		log.Log().Msg("test")
+		if got, want := out.String(), `{"message":"test"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("NoLevel/WithLevel", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(InfoLevel)
+		log.WithLevel(NoLevel).Msg("test")
+		if got, want := out.String(), `{"message":"test"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
 	t.Run("Info", func(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Level(InfoLevel)
@@ -352,10 +388,12 @@ func TestLevelWriter(t *testing.T) {
 	log.Info().Msg("2")
 	log.Warn().Msg("3")
 	log.Error().Msg("4")
+	log.Log().Msg("nolevel-1")
 	log.WithLevel(DebugLevel).Msg("5")
 	log.WithLevel(InfoLevel).Msg("6")
 	log.WithLevel(WarnLevel).Msg("7")
 	log.WithLevel(ErrorLevel).Msg("8")
+	log.WithLevel(NoLevel).Msg("nolevel-2")
 
 	want := []struct {
 		l Level
@@ -365,10 +403,12 @@ func TestLevelWriter(t *testing.T) {
 		{InfoLevel, `{"level":"info","message":"2"}` + "\n"},
 		{WarnLevel, `{"level":"warn","message":"3"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"4"}` + "\n"},
+		{NoLevel, `{"message":"nolevel-1"}` + "\n"},
 		{DebugLevel, `{"level":"debug","message":"5"}` + "\n"},
 		{InfoLevel, `{"level":"info","message":"6"}` + "\n"},
 		{WarnLevel, `{"level":"warn","message":"7"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"8"}` + "\n"},
+		{NoLevel, `{"message":"nolevel-2"}` + "\n"},
 	}
 	if got := lw.ops; !reflect.DeepEqual(got, want) {
 		t.Errorf("invalid ops:\ngot:\n%v\nwant:\n%v", got, want)

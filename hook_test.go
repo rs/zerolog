@@ -8,9 +8,9 @@ import (
 
 type LevelNameHook struct{}
 
-func (h LevelNameHook) Run(e *Event, level Level, hasLevel bool, msg string) {
+func (h LevelNameHook) Run(e *Event, level Level, msg string) {
 	levelName := level.String()
-	if !hasLevel {
+	if level == NoLevel {
 		levelName = "nolevel"
 	}
 	e.Str("level_name", levelName)
@@ -18,14 +18,15 @@ func (h LevelNameHook) Run(e *Event, level Level, hasLevel bool, msg string) {
 
 type SimpleHook struct{}
 
-func (h SimpleHook) Run(e *Event, level Level, hasLevel bool, msg string) {
-	e.Bool("has_level", hasLevel)
+func (h SimpleHook) Run(e *Event, level Level, msg string) {
+	e.Bool("has_level", level != NoLevel)
 	e.Str("test", "logged")
 }
 
 type CopyHook struct{}
 
-func (h CopyHook) Run(e *Event, level Level, hasLevel bool, msg string) {
+func (h CopyHook) Run(e *Event, level Level, msg string) {
+	hasLevel := level != NoLevel
 	e.Bool("copy_has_level", hasLevel)
 	if hasLevel {
 		e.Str("copy_level", level.String())
@@ -35,7 +36,7 @@ func (h CopyHook) Run(e *Event, level Level, hasLevel bool, msg string) {
 
 type NopHook struct{}
 
-func (h NopHook) Run(e *Event, level Level, hasLevel bool, msg string) {
+func (h NopHook) Run(e *Event, level Level, msg string) {
 }
 
 var (

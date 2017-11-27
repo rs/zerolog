@@ -191,8 +191,8 @@ sampled.Debug().Msg("hello world")
 ```go
 type SeverityHook struct{}
 
-func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, hasLevel bool, msg string) {
-    if hasLevel {
+func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+    if level != zerolog.NoLevel {
         e.Str("severity", level.String())
     }
 }

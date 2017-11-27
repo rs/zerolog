@@ -21,12 +21,11 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf      []byte
-	w        LevelWriter
-	level    Level
-	done     func(msg string)
-	h        []Hook
-	hasLevel bool
+	buf   []byte
+	w     LevelWriter
+	level Level
+	done  func(msg string)
+	h     []Hook
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -79,10 +78,10 @@ func (e *Event) Msg(msg string) {
 		return
 	}
 	if len(e.h) > 0 {
-		e.h[0].Run(e, e.level, e.hasLevel, msg)
+		e.h[0].Run(e, e.level, msg)
 		if len(e.h) > 1 {
 			for _, hook := range e.h[1:] {
-				hook.Run(e, e.level, e.hasLevel, msg)
+				hook.Run(e, e.level, msg)
 			}
 		}
 	}
@@ -107,10 +106,10 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	}
 	msg := fmt.Sprintf(format, v...)
 	if len(e.h) > 0 {
-		e.h[0].Run(e, e.level, e.hasLevel, msg)
+		e.h[0].Run(e, e.level, msg)
 		if len(e.h) > 1 {
 			for _, hook := range e.h[1:] {
-				hook.Run(e, e.level, e.hasLevel, msg)
+				hook.Run(e, e.level, msg)
 			}
 		}
 	}

@@ -51,8 +51,8 @@ func ExampleLogger_Sample() {
 
 type LevelNameHook struct{}
 
-func (h LevelNameHook) Run(e *zerolog.Event, l zerolog.Level, hasLevel bool, msg string) {
-	if hasLevel {
+func (h LevelNameHook) Run(e *zerolog.Event, l zerolog.Level, msg string) {
+	if l != zerolog.NoLevel {
 		e.Str("level_name", l.String())
 	} else {
 		e.Str("level_name", "NoLevel")
@@ -61,7 +61,7 @@ func (h LevelNameHook) Run(e *zerolog.Event, l zerolog.Level, hasLevel bool, msg
 
 type MessageHook string
 
-func (h MessageHook) Run(e *zerolog.Event, l zerolog.Level, hasLevel bool, msg string) {
+func (h MessageHook) Run(e *zerolog.Event, l zerolog.Level, msg string) {
 	e.Str("the_message", msg)
 }
 
