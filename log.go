@@ -361,8 +361,7 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 		e.buf = append(e.buf, l.context[1:]...)
 	}
 	if len(l.hooks) > 0 {
-		e.h = make([]Hook, len(l.hooks), cap(l.hooks))
-		copy(e.h, l.hooks)
+		e.h = append(e.h, l.hooks...)
 	}
 	return e
 }
