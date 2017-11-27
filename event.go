@@ -18,7 +18,7 @@ var eventPool = &sync.Pool{
 	},
 }
 
-type hookRunner func(e *Event, msg string)
+type hookRunner func(e *Event, level Level, msg string)
 
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
@@ -80,10 +80,10 @@ func (e *Event) Msg(msg string) {
 		return
 	}
 	if len(e.hr) > 0 {
-		e.hr[0](e, msg)
+		e.hr[0](e, e.level, msg)
 		if len(e.hr) > 1 {
 			for _, hook := range e.hr[1:] {
-				hook(e, msg)
+				hook(e, e.level, msg)
 			}
 		}
 	}
@@ -108,10 +108,10 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	}
 	msg := fmt.Sprintf(format, v...)
 	if len(e.hr) > 0 {
-		e.hr[0](e, msg)
+		e.hr[0](e, e.level, msg)
 		if len(e.hr) > 1 {
 			for _, hook := range e.hr[1:] {
-				hook(e, msg)
+				hook(e, e.level, msg)
 			}
 		}
 	}

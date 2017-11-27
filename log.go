@@ -362,15 +362,15 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 	if len(l.hooks) > 0 {
 		e.hr = make([]hookRunner, len(l.hooks), cap(l.hooks))
 		h := l.hooks[0]
-		e.hr[0] = hookRunner(func(e *Event, msg string) {
-			h.Run(e, lvl, addLevelField, msg)
+		e.hr[0] = hookRunner(func(e *Event, level Level, msg string) {
+			h.Run(e, level, addLevelField, msg)
 		})
 
 		if len(l.hooks) > 1 {
 			for i, hook := range l.hooks[1:] {
 				h := hook
-				e.hr[i+1] = hookRunner(func(e *Event, msg string) {
-					h.Run(e, lvl, addLevelField, msg)
+				e.hr[i+1] = hookRunner(func(e *Event, level Level, msg string) {
+					h.Run(e, level, addLevelField, msg)
 				})
 			}
 		}
