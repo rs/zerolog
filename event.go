@@ -18,6 +18,8 @@ var eventPool = &sync.Pool{
 	},
 }
 
+type hookRunner func(e *Event, level Level, msg string)
+
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
@@ -25,6 +27,7 @@ type Event struct {
 	w     LevelWriter
 	level Level
 	done  func(msg string)
+	hr    []hookRunner
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -45,6 +48,7 @@ func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	}
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:1]
+	e.hr = e.hr[:0]
 	e.buf[0] = '{'
 	e.w = w
 	e.level = level
@@ -75,6 +79,14 @@ func (e *Event) Msg(msg string) {
 	if e == nil {
 		return
 	}
+	if len(e.hr) > 0 {
+		e.hr[0](e, e.level, msg)
+		if len(e.hr) > 1 {
+			for _, hook := range e.hr[1:] {
+				hook(e, e.level, msg)
+			}
+		}
+	}
 	if msg != "" {
 		e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
 	}
@@ -95,6 +107,14 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 		return
 	}
 	msg := fmt.Sprintf(format, v...)
+	if len(e.hr) > 0 {
+		e.hr[0](e, e.level, msg)
+		if len(e.hr) > 1 {
+			for _, hook := range e.hr[1:] {
+				hook(e, e.level, msg)
+			}
+		}
+	}
 	if msg != "" {
 		e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
 	}

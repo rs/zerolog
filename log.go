@@ -65,6 +65,23 @@
 //     sampled := log.Sample(&zerolog.BasicSampler{N: 10})
 //     sampled.Info().Msg("will be logged every 10 messages")
 //
+// Log with contextual hooks:
+//
+//     // Create the hook:
+//     type SeverityHook struct{}
+//
+//     func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, hasLevel bool, msg string) {
+//          if hasLevel {
+//              e.Str("severity", level.String())
+//          }
+//     }
+//
+//     // And use it:
+//     var h SeverityHook
+//     log := zerolog.New(os.Stdout).Hook(h)
+//     log.Warn().Msg("")
+//     // Output: {"level":"warn","severity":"warn"}
+//
 package zerolog
 
 import (
@@ -125,6 +142,7 @@ type Logger struct {
 	level   Level
 	sampler Sampler
 	context []byte
+	hooks   []Hook
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -155,6 +173,10 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
 	l2.sampler = l.sampler
+	if len(l.hooks) > 0 {
+		l2.hooks = make([]Hook, len(l.hooks), cap(l.hooks))
+		copy(l2.hooks, l.hooks)
+	}
 	if l.context != nil {
 		l2.context = make([]byte, len(l.context), cap(l.context))
 		copy(l2.context, l.context)
@@ -198,6 +220,12 @@ func (l Logger) Level(lvl Level) Logger {
 // Sample returns a logger with the s sampler.
 func (l Logger) Sample(s Sampler) Logger {
 	l.sampler = s
+	return l
+}
+
+// Hook returns a logger with the h Hook.
+func (l Logger) Hook(h Hook) Logger {
+	l.hooks = append(l.hooks, h)
 	return l
 }
 
@@ -330,6 +358,22 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 			e.buf = append(e.buf, ',')
 		}
 		e.buf = append(e.buf, l.context[1:]...)
+	}
+	if len(l.hooks) > 0 {
+		e.hr = make([]hookRunner, len(l.hooks), cap(l.hooks))
+		h := l.hooks[0]
+		e.hr[0] = hookRunner(func(e *Event, level Level, msg string) {
+			h.Run(e, level, addLevelField, msg)
+		})
+
+		if len(l.hooks) > 1 {
+			for i, hook := range l.hooks[1:] {
+				h := hook
+				e.hr[i+1] = hookRunner(func(e *Event, level Level, msg string) {
+					h.Run(e, level, addLevelField, msg)
+				})
+			}
+		}
 	}
 	return e
 }
