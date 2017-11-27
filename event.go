@@ -18,8 +18,6 @@ var eventPool = &sync.Pool{
 	},
 }
 
-type hookRunner func(e *Event, level Level, msg string)
-
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
