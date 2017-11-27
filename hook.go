@@ -16,7 +16,7 @@ type LevelHook struct {
 // Run implements the Hook interface.
 func (h LevelHook) Run(e *Event, level Level, hasLevel bool, message string) {
 	if hasLevel {
-		switch e.level {
+		switch level {
 		case DebugLevel:
 			if h.DebugHook != nil {
 				h.DebugHook.Run(e, level, hasLevel, message)
