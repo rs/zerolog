@@ -23,6 +23,16 @@ func (h SimpleHook) Run(e *Event, level Level, hasLevel bool, msg string) {
 	e.Str("test", "logged")
 }
 
+type CopyHook struct{}
+
+func (h CopyHook) Run(e *Event, level Level, hasLevel bool, msg string) {
+	e.Bool("copy_has_level", hasLevel)
+	if hasLevel {
+		e.Str("copy_level", level.String())
+	}
+	e.Str("copy_msg", msg)
+}
+
 type NopHook struct{}
 
 func (h NopHook) Run(e *Event, level Level, hasLevel bool, msg string) {
@@ -31,6 +41,7 @@ func (h NopHook) Run(e *Event, level Level, hasLevel bool, msg string) {
 var (
 	levelNameHook LevelNameHook
 	simpleHook    SimpleHook
+	copyHook      CopyHook
 	nopHook       NopHook
 )
 
@@ -64,6 +75,22 @@ func TestHook(t *testing.T) {
 		log := New(out).Hook(levelNameHook)
 		log.Error().Msg("")
 		if got, want := out.String(), `{"level":"error","level_name":"error"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("Copy/1", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Hook(copyHook)
+		log.Log().Msg("")
+		if got, want := out.String(), `{"copy_has_level":false,"copy_msg":""}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("Copy/2", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Hook(copyHook)
+		log.Info().Msg("a message")
+		if got, want := out.String(), `{"level":"info","copy_has_level":true,"copy_level":"info","copy_msg":"a message","message":"a message"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
