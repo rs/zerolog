@@ -178,8 +178,7 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2.level = l.level
 	l2.sampler = l.sampler
 	if len(l.hooks) > 0 {
-		l2.hooks = make([]Hook, len(l.hooks), cap(l.hooks))
-		copy(l2.hooks, l.hooks)
+		l2.hooks = append(l2.hooks, l.hooks...)
 	}
 	if l.context != nil {
 		l2.context = make([]byte, len(l.context), cap(l.context))
