@@ -101,27 +101,7 @@ func (e *Event) Msg(msg string) {
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
 func (e *Event) Msgf(format string, v ...interface{}) {
-	if e == nil {
-		return
-	}
-	msg := fmt.Sprintf(format, v...)
-	if len(e.h) > 0 {
-		e.h[0].Run(e, e.level, msg)
-		if len(e.h) > 1 {
-			for _, hook := range e.h[1:] {
-				hook.Run(e, e.level, msg)
-			}
-		}
-	}
-	if msg != "" {
-		e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
-	}
-	if e.done != nil {
-		defer e.done(msg)
-	}
-	if err := e.write(); err != nil {
-		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
-	}
+	e.Msg(fmt.Sprintf(format, v...))
 }
 
 // Fields is a helper function to use a map to set fields using type assertion.
