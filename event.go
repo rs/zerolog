@@ -101,6 +101,9 @@ func (e *Event) Msg(msg string) {
 // NOTICE: once this methid is called, the *Event should be disposed.
 // Calling Msg twice can have unexpected result.
 func (e *Event) Msgf(format string, v ...interface{}) {
+	if e == nil {
+		return
+	}
 	e.Msg(fmt.Sprintf(format, v...))
 }
 
