@@ -25,6 +25,7 @@ type Event struct {
 	w     LevelWriter
 	level Level
 	done  func(msg string)
+	h     []Hook
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -45,6 +46,7 @@ func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	}
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:1]
+	e.h = e.h[:0]
 	e.buf[0] = '{'
 	e.w = w
 	e.level = level
@@ -75,6 +77,14 @@ func (e *Event) Msg(msg string) {
 	if e == nil {
 		return
 	}
+	if len(e.h) > 0 {
+		e.h[0].Run(e, e.level, msg)
+		if len(e.h) > 1 {
+			for _, hook := range e.h[1:] {
+				hook.Run(e, e.level, msg)
+			}
+		}
+	}
 	if msg != "" {
 		e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
 	}
@@ -94,16 +104,7 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	if e == nil {
 		return
 	}
-	msg := fmt.Sprintf(format, v...)
-	if msg != "" {
-		e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
-	}
-	if e.done != nil {
-		defer e.done(msg)
-	}
-	if err := e.write(); err != nil {
-		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
-	}
+	e.Msg(fmt.Sprintf(format, v...))
 }
 
 // Fields is a helper function to use a map to set fields using type assertion.

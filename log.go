@@ -65,6 +65,23 @@
 //     sampled := log.Sample(&zerolog.BasicSampler{N: 10})
 //     sampled.Info().Msg("will be logged every 10 messages")
 //
+// Log with contextual hooks:
+//
+//     // Create the hook:
+//     type SeverityHook struct{}
+//
+//     func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+//          if level != zerolog.NoLevel {
+//              e.Str("severity", level.String())
+//          }
+//     }
+//
+//     // And use it:
+//     var h SeverityHook
+//     log := zerolog.New(os.Stdout).Hook(h)
+//     log.Warn().Msg("")
+//     // Output: {"level":"warn","severity":"warn"}
+//
 package zerolog
 
 import (
@@ -93,6 +110,8 @@ const (
 	FatalLevel
 	// PanicLevel defines panic log level.
 	PanicLevel
+	// NoLevel defines an absent log level.
+	NoLevel
 	// Disabled disables the logger.
 	Disabled
 )
@@ -111,6 +130,8 @@ func (l Level) String() string {
 		return "fatal"
 	case PanicLevel:
 		return "panic"
+	case NoLevel:
+		return ""
 	}
 	return ""
 }
@@ -125,6 +146,7 @@ type Logger struct {
 	level   Level
 	sampler Sampler
 	context []byte
+	hooks   []Hook
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -155,6 +177,9 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
 	l2.sampler = l.sampler
+	if len(l.hooks) > 0 {
+		l2.hooks = append(l2.hooks, l.hooks...)
+	}
 	if l.context != nil {
 		l2.context = make([]byte, len(l.context), cap(l.context))
 		copy(l2.context, l.context)
@@ -201,32 +226,38 @@ func (l Logger) Sample(s Sampler) Logger {
 	return l
 }
 
+// Hook returns a logger with the h Hook.
+func (l Logger) Hook(h Hook) Logger {
+	l.hooks = append(l.hooks, h)
+	return l
+}
+
 // Debug starts a new message with debug level.
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Debug() *Event {
-	return l.newEvent(DebugLevel, true, nil)
+	return l.newEvent(DebugLevel, nil)
 }
 
 // Info starts a new message with info level.
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Info() *Event {
-	return l.newEvent(InfoLevel, true, nil)
+	return l.newEvent(InfoLevel, nil)
 }
 
 // Warn starts a new message with warn level.
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Warn() *Event {
-	return l.newEvent(WarnLevel, true, nil)
+	return l.newEvent(WarnLevel, nil)
 }
 
 // Error starts a new message with error level.
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Error() *Event {
-	return l.newEvent(ErrorLevel, true, nil)
+	return l.newEvent(ErrorLevel, nil)
 }
 
 // Fatal starts a new message with fatal level. The os.Exit(1) function
@@ -234,7 +265,7 @@ func (l *Logger) Error() *Event {
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Fatal() *Event {
-	return l.newEvent(FatalLevel, true, func(msg string) { os.Exit(1) })
+	return l.newEvent(FatalLevel, func(msg string) { os.Exit(1) })
 }
 
 // Panic starts a new message with panic level. The message is also sent
@@ -242,7 +273,7 @@ func (l *Logger) Fatal() *Event {
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Panic() *Event {
-	return l.newEvent(PanicLevel, true, func(msg string) { panic(msg) })
+	return l.newEvent(PanicLevel, func(msg string) { panic(msg) })
 }
 
 // WithLevel starts a new message with level.
@@ -262,6 +293,8 @@ func (l *Logger) WithLevel(level Level) *Event {
 		return l.Fatal()
 	case PanicLevel:
 		return l.Panic()
+	case NoLevel:
+		return l.Log()
 	case Disabled:
 		return nil
 	default:
@@ -274,9 +307,7 @@ func (l *Logger) WithLevel(level Level) *Event {
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Log() *Event {
-	// We use panic level with addLevelField=false to make Log passthrough all
-	// levels except Disabled.
-	return l.newEvent(PanicLevel, false, nil)
+	return l.newEvent(NoLevel, nil)
 }
 
 // Print sends a log event using debug level and no extra field.
@@ -307,22 +338,18 @@ func (l Logger) Write(p []byte) (n int, err error) {
 	return
 }
 
-func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *Event {
+func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	enabled := l.should(level)
 	if !enabled {
 		return nil
 	}
-	lvl := InfoLevel
-	if addLevelField {
-		lvl = level
-	}
-	e := newEvent(l.w, lvl, true)
+	e := newEvent(l.w, level, true)
 	e.done = done
 	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
 		// first byte of context is ts flag
 		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 	}
-	if addLevelField {
+	if level != NoLevel {
 		e.Str(LevelFieldName, level.String())
 	}
 	if l.context != nil && len(l.context) > 1 {
@@ -330,6 +357,9 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 			e.buf = append(e.buf, ',')
 		}
 		e.buf = append(e.buf, l.context[1:]...)
+	}
+	if len(l.hooks) > 0 {
+		e.h = append(e.h, l.hooks...)
 	}
 	return e
 }

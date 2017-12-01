@@ -18,6 +18,7 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 * Low to zero allocation
 * Level logging
 * Sampling
+* Hooks
 * Contextual fields
 * `context.Context` integration
 * `net/http` helpers
@@ -185,6 +186,22 @@ sampled.Debug().Msg("hello world")
 // Output: {"time":1494567715,"level":"debug","message":"hello world"}
 ```
 
+### Hooks
+
+```go
+type SeverityHook struct{}
+
+func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+    if level != zerolog.NoLevel {
+        e.Str("severity", level.String())
+    }
+}
+
+hooked := log.Hook(SeverityHook{})
+hooked.Warn().Msg("")
+
+// Output: {"level":"warn","severity":"warn"}
+```
 
 ### Pass a sub-logger by context
 

@@ -49,6 +49,33 @@ func ExampleLogger_Sample() {
 	// {"level":"info","message":"message 4"}
 }
 
+type LevelNameHook struct{}
+
+func (h LevelNameHook) Run(e *zerolog.Event, l zerolog.Level, msg string) {
+	if l != zerolog.NoLevel {
+		e.Str("level_name", l.String())
+	} else {
+		e.Str("level_name", "NoLevel")
+	}
+}
+
+type MessageHook string
+
+func (h MessageHook) Run(e *zerolog.Event, l zerolog.Level, msg string) {
+	e.Str("the_message", msg)
+}
+
+func ExampleLogger_Hook() {
+	var levelNameHook LevelNameHook
+	var messageHook MessageHook = "The message"
+
+	log := zerolog.New(os.Stdout).Hook(levelNameHook).Hook(messageHook)
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","level_name":"info","the_message":"hello world","message":"hello world"}
+}
+
 func ExampleLogger_Print() {
 	log := zerolog.New(os.Stdout)
 
