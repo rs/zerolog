@@ -35,6 +35,7 @@ var consoleBufPool = sync.Pool{
 type ConsoleWriter struct {
 	Out     io.Writer
 	NoColor bool
+	Syslog  bool
 }
 
 func (w ConsoleWriter) Write(p []byte) (n int, err error) {
@@ -53,10 +54,16 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		}
 		level = strings.ToUpper(l)[0:4]
 	}
-	fmt.Fprintf(buf, "%s |%s| %s",
-		colorize(event[TimestampFieldName], cDarkGray, !w.NoColor),
-		colorize(level, lvlColor, !w.NoColor),
-		colorize(event[MessageFieldName], cReset, !w.NoColor))
+	if !w.Syslog {
+		fmt.Fprintf(buf, "%s |%s| %s",
+			colorize(event[TimestampFieldName], cDarkGray, !w.NoColor),
+			colorize(level, lvlColor, !w.NoColor),
+			colorize(event[MessageFieldName], cReset, !w.NoColor))
+	} else {
+		fmt.Fprintf(buf, "|%s| %s",
+			colorize(level, lvlColor, !w.NoColor),
+			colorize(event[MessageFieldName], cReset, !w.NoColor))
+	}
 	fields := make([]string, 0, len(event))
 	for field := range event {
 		switch field {
