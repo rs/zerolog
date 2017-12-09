@@ -25,7 +25,7 @@ func (c Context) Fields(fields map[string]interface{}) Context {
 
 // Dict adds the field key with the dict to the logger context.
 func (c Context) Dict(key string, dict *Event) Context {
-	dict.buf = append(dict.buf, '}')
+	dict.buf = json.AppendEndMarker(dict.buf, false)
 	c.l.context = append(json.AppendKey(c.l.context, key), dict.buf...)
 	eventPool.Put(dict)
 	return c
@@ -55,8 +55,7 @@ func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
 	e.Object(key, obj)
-	e.buf[0] = ',' // A new event starts as an object, we want to embed it.
-	c.l.context = append(c.l.context, e.buf...)
+	c.l.context = json.AppendObjectData(c.l.context, e.buf)
 	eventPool.Put(e)
 	return c
 }

@@ -44,8 +44,8 @@ func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 		return &Event{}
 	}
 	e := eventPool.Get().(*Event)
-	e.buf = e.buf[:1]
-	e.buf[0] = '{'
+	e.buf = e.buf[:0]
+	e.buf = json.AppendBeginMarker(e.buf)
 	e.w = w
 	e.level = level
 	return e
@@ -55,7 +55,7 @@ func (e *Event) write() (err error) {
 	if e == nil {
 		return nil
 	}
-	e.buf = append(e.buf, '}', '\n')
+	e.buf = json.AppendEndMarker(e.buf, true)
 	_, err = e.w.WriteLevel(e.level, e.buf)
 	eventPool.Put(e)
 	return
@@ -121,7 +121,8 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = append(append(json.AppendKey(e.buf, key), dict.buf...), '}')
+	e.buf = append(json.AppendKey(e.buf, key), dict.buf...)
+	e.buf = json.AppendEndMarker(e.buf, false)
 	eventPool.Put(dict)
 	return e
 }
@@ -153,17 +154,9 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 }
 
 func (e *Event) appendObject(obj LogObjectMarshaler) {
-	pos := len(e.buf)
+	e.buf = json.AppendBeginMarker(e.buf)
 	obj.MarshalZerologObject(e)
-	if pos < len(e.buf) {
-		// As MarshalZerologObject will use event API, the first field will be
-		// preceded by a comma. If at least one field has been added (buf grew),
-		// we replace this coma by the opening bracket.
-		e.buf[pos] = '{'
-	} else {
-		e.buf = append(e.buf, '{')
-	}
-	e.buf = append(e.buf, '}')
+	e.buf = json.AppendEndMarker(e.buf, false)
 }
 
 // Object marshals an object that implement the LogObjectMarshaler interface.

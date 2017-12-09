@@ -7,6 +7,17 @@ import (
 	"strconv"
 )
 
+func AppendBeginMarker(dst []byte) []byte {
+	return append(dst, '{')
+}
+
+func AppendEndMarker(dst []byte, terminal bool) []byte {
+	if terminal {
+		return append(dst, '}', '\n')
+	}
+	return append(dst, '}')
+}
+
 func AppendBool(dst []byte, val bool) []byte {
 	return strconv.AppendBool(dst, val)
 }
@@ -275,4 +286,28 @@ func AppendInterface(dst []byte, i interface{}) []byte {
 		return AppendString(dst, fmt.Sprintf("marshaling error: %v", err))
 	}
 	return append(dst, marshaled...)
+}
+
+func AppendObjectData(dst []byte, o []byte) []byte {
+	if o[0] == '{' {
+		o[0] = ','
+	} else if len(dst) > 1 {
+		dst = append(dst, ',')
+	}
+	return append(dst, o...)
+}
+
+func AppendArrayStart(dst []byte) []byte {
+	return append(dst, '[')
+}
+
+func AppendArrayEnd(dst []byte) []byte {
+	return append(dst, ']')
+}
+
+func AppendArrayDelim(dst []byte) []byte {
+	if len(dst) > 0 {
+		return append(dst, ',')
+	}
+	return dst
 }

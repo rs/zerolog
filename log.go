@@ -326,10 +326,7 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 		e.Str(LevelFieldName, level.String())
 	}
 	if l.context != nil && len(l.context) > 1 {
-		if len(e.buf) > 1 {
-			e.buf = append(e.buf, ',')
-		}
-		e.buf = append(e.buf, l.context[1:]...)
+		e.buf = json.AppendObjectData(e.buf, l.context[1:])
 	}
 	return e
 }
