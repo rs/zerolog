@@ -26,6 +26,10 @@ func (c Context) Fields(fields map[string]interface{}) Context {
 // Dict adds the field key with the dict to the logger context.
 func (c Context) Dict(key string, dict *Event) Context {
 	dict.buf = json.AppendEndMarker(dict.buf, false)
+	if c.l.isBinary != dict.isBinary {
+		//TODO Convert dict to the needed format
+		return c
+	}
 	c.l.context = append(json.AppendKey(c.l.context, key), dict.buf...)
 	eventPool.Put(dict)
 	return c
@@ -53,7 +57,7 @@ func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (c Context) Object(key string, obj LogObjectMarshaler) Context {
-	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
+	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true, c.l.isBinary)
 	e.Object(key, obj)
 	c.l.context = json.AppendObjectData(c.l.context, e.buf)
 	eventPool.Put(e)

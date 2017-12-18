@@ -21,10 +21,11 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf   []byte
-	w     LevelWriter
-	level Level
-	done  func(msg string)
+	buf      []byte
+	w        LevelWriter
+	level    Level
+	done     func(msg string)
+	isBinary bool
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -39,7 +40,7 @@ type LogArrayMarshaler interface {
 	MarshalZerologArray(a *Array)
 }
 
-func newEvent(w LevelWriter, level Level, enabled bool) *Event {
+func newEvent(w LevelWriter, level Level, enabled bool, isBinary bool) *Event {
 	if !enabled {
 		return &Event{}
 	}
@@ -48,6 +49,7 @@ func newEvent(w LevelWriter, level Level, enabled bool) *Event {
 	e.buf = json.AppendBeginMarker(e.buf)
 	e.w = w
 	e.level = level
+	e.isBinary = isBinary
 	return e
 }
 
@@ -121,6 +123,9 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	if e == nil {
 		return e
 	}
+	if e.isBinary != dict.isBinary {
+		//TODO convert dict to the needed format and add to e
+	}
 	e.buf = append(json.AppendKey(e.buf, key), dict.buf...)
 	e.buf = json.AppendEndMarker(e.buf, false)
 	eventPool.Put(dict)
@@ -131,7 +136,13 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 // Call usual field methods like Str, Int etc to add fields to this
 // event and give it as argument the *Event.Dict method.
 func Dict() *Event {
-	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
+	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true, globalIsBinary)
+}
+
+//BinaryDict is a variant of Dict() call - except that it takes a
+//parameter whether to enable binary or not.
+func BinaryDict(isBinary bool) *Event {
+	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true, isBinary)
 }
 
 // Array adds the field key with an array to the event context.

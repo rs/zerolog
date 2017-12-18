@@ -121,10 +121,11 @@ func (l Level) String() string {
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
-	w       LevelWriter
-	level   Level
-	sampler Sampler
-	context []byte
+	w        LevelWriter
+	level    Level
+	sampler  Sampler
+	context  []byte
+	isBinary bool
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -142,7 +143,22 @@ func New(w io.Writer) Logger {
 	if !ok {
 		lw = levelWriterAdapter{w}
 	}
-	return Logger{w: lw}
+	return Logger{w: lw, isBinary: globalIsBinary}
+}
+
+//NewBinary creates a root Binary Logger
+func NewBinary(w io.Writer) Logger {
+	l := New(w)
+	l.isBinary = true
+	return l
+}
+
+//By default we'll NOT do binary Logging
+var globalIsBinary = false
+
+//EnableBinaryMode sets Global Level Binary Mode Logging
+func EnableBinaryMode(enable bool) {
+	globalIsBinary = enable
 }
 
 // Nop returns a disabled logger for which all operation are no-op.
@@ -316,7 +332,7 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 	if addLevelField {
 		lvl = level
 	}
-	e := newEvent(l.w, lvl, true)
+	e := newEvent(l.w, lvl, true, l.isBinary)
 	e.done = done
 	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
 		// first byte of context is ts flag
