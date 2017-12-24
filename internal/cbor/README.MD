@@ -1,3 +1,6 @@
+Tests and benchmark:
+
+```
 sprint @ cbor>pwd
 /home/ravir/go/src/github.com/rs/zerolog/internal/cbor
 sprint @ cbor>go test -v -benchmem -bench=.
@@ -49,3 +52,4 @@ BenchmarkAppendFloat/Float32-4               	50000000	        23.7 ns/op	      
 BenchmarkAppendFloat/Float64-4               	50000000	        33.1 ns/op	       0 B/op	       0 allocs/op
 PASS
 ok  	github.com/rs/zerolog/internal/cbor	33.802s
+```
