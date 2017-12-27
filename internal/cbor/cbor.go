@@ -1,5 +1,7 @@
 package cbor
 
+import "time"
+
 const (
 	majorOffset   = 5
 	additionalMax = 23
@@ -32,6 +34,23 @@ const (
 	majorTypeTags                                      // Major type 6
 	majorTypeSimpleAndFloat                            // Major type 7
 )
+
+const (
+	maskOutAdditionalType byte = (7 << majorOffset)
+	maskOutMajorType      byte = 31
+)
+
+const (
+	float32Nan         = "\xfa\x7f\xc0\x00\x00"
+	float32PosInfinity = "\xfa\x7f\x80\x00\x00"
+	float32NegInfinity = "\xfa\xff\x80\x00\x00"
+	float64Nan         = "\xfb\x7f\xf8\x00\x00\x00\x00\x00\x00"
+	float64PosInfinity = "\xfb\x7f\xf0\x00\x00\x00\x00\x00\x00"
+	float64NegInfinity = "\xfb\xff\xf0\x00\x00\x00\x00\x00\x00"
+)
+
+var IntegerTimeFieldFormat = time.RFC3339
+var NanoTimeFieldFormat = time.RFC3339Nano
 
 func appendCborTypePrefix(dst []byte, major byte, number uint64) []byte {
 	byteCount := 8

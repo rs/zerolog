@@ -6,32 +6,36 @@ import (
 )
 
 var encodeStringTests = []struct {
-	in  string
-	out string
+	plain  string
+	binary string
+	json   string //begin and end quotes are implied
 }{
-	{"", "\x60"},
-	{"\\", "\x61\x5c"},
-	{"\x00", "\x61\x00"},
-	{"\x01", "\x61\x01"},
-	{"\x02", "\x61\x02"},
-	{"\x03", "\x61\x03"},
-	{"\x04", "\x61\x04"},
-	{"*", "\x61*"},
-	{"a", "\x61a"},
-	{"IETF", "\x64IETF"},
-	{"abcdefghijklmnopqrstuvwxyzABCD", "\x78\x1eabcdefghijklmnopqrstuvwxyzABCD"},
+	{"", "\x60", ""},
+	{"\\", "\x61\x5c", "\\\\"},
+	{"\x00", "\x61\x00", "\\u0000"},
+	{"\x01", "\x61\x01", "\\u0001"},
+	{"\x02", "\x61\x02", "\\u0002"},
+	{"\x03", "\x61\x03", "\\u0003"},
+	{"\x04", "\x61\x04", "\\u0004"},
+	{"*", "\x61*", "*"},
+	{"a", "\x61a", "a"},
+	{"IETF", "\x64IETF", "IETF"},
+	{"abcdefghijklmnopqrstuvwxyzABCD", "\x78\x1eabcdefghijklmnopqrstuvwxyzABCD", "abcdefghijklmnopqrstuvwxyzABCD"},
 	{"<------------------------------------  This is a 100 character string ----------------------------->" +
 		"<------------------------------------  This is a 100 character string ----------------------------->" +
 		"<------------------------------------  This is a 100 character string ----------------------------->",
 		"\x79\x01\x2c<------------------------------------  This is a 100 character string ----------------------------->" +
 			"<------------------------------------  This is a 100 character string ----------------------------->" +
+			"<------------------------------------  This is a 100 character string ----------------------------->",
+		"<------------------------------------  This is a 100 character string ----------------------------->" +
+			"<------------------------------------  This is a 100 character string ----------------------------->" +
 			"<------------------------------------  This is a 100 character string ----------------------------->"},
-	{"emoji \u2764\ufe0f!", "\x6demoji ❤️!"},
+	{"emoji \u2764\ufe0f!", "\x6demoji ❤️!", "emoji \u2764\ufe0f!"},
 }
 
 var encodeByteTests = []struct {
-	in  []byte
-	out string
+	plain  []byte
+	binary string
 }{
 	{[]byte{}, "\x40"},
 	{[]byte("\\"), "\x41\x5c"},
@@ -55,9 +59,9 @@ var encodeByteTests = []struct {
 
 func TestAppendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		b := AppendString([]byte{}, tt.in)
-		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendString(%q) = %#q, want %#q", tt.in, got, want)
+		b := AppendString([]byte{}, tt.plain)
+		if got, want := string(b), tt.binary; got != want {
+			t.Errorf("appendString(%q) = %#q, want %#q", tt.plain, got, want)
 		}
 	}
 	//Test a large string > 65535 length
@@ -76,9 +80,9 @@ func TestAppendString(t *testing.T) {
 
 func TestAppendBytes(t *testing.T) {
 	for _, tt := range encodeByteTests {
-		b := AppendBytes([]byte{}, tt.in)
-		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendString(%q) = %#q, want %#q", tt.in, got, want)
+		b := AppendBytes([]byte{}, tt.plain)
+		if got, want := string(b), tt.binary; got != want {
+			t.Errorf("appendString(%q) = %#q, want %#q", tt.plain, got, want)
 		}
 	}
 	//Test a large string > 65535 length
@@ -105,7 +109,7 @@ func BenchmarkAppendString(b *testing.B) {
 	}
 	for name, str := range tests {
 		b.Run(name, func(b *testing.B) {
-			buf := make([]byte, 0, 110)
+			buf := make([]byte, 0, 120)
 			for i := 0; i < b.N; i++ {
 				_ = AppendString(buf, str)
 			}

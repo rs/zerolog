@@ -8,7 +8,6 @@ func appendIntegerTimestamp(dst []byte, t time.Time) []byte {
 	major := majorTypeTags
 	minor := additionalTypeTimestamp
 	dst = append(dst, byte(major|minor))
-	//TODO - do we adjust for TZ
 	secs := t.Unix()
 	var val uint64
 	if secs < 0 {

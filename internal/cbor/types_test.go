@@ -16,9 +16,9 @@ func TestAppendNull(t *testing.T) {
 }
 
 var booleanTestCases = []struct {
-	in    bool
-	out   string
-	inTxt string
+	val    bool
+	binary string
+	json   string
 }{
 	{true, "\xf5", "true"},
 	{false, "\xf4", "false"},
@@ -26,40 +26,40 @@ var booleanTestCases = []struct {
 
 func TestAppendBool(t *testing.T) {
 	for _, tc := range booleanTestCases {
-		s := AppendBool([]byte{}, tc.in)
+		s := AppendBool([]byte{}, tc.val)
 		got := string(s)
-		if got != tc.out {
+		if got != tc.binary {
 			t.Errorf("AppendBool(%s)=0x%s, want: 0x%s",
-				tc.inTxt, hex.EncodeToString(s),
-				hex.EncodeToString([]byte(tc.out)))
+				tc.json, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}
 }
 
 var booleanArrayTestCases = []struct {
-	in    []bool
-	out   string
-	inTxt string
+	val    []bool
+	binary string
+	json   string
 }{
-	{[]bool{true, false, true}, "\x83\xf5\xf4\xf5", "[T,F,T]"},
-	{[]bool{true, false, false, true, false, true}, "\x86\xf5\xf4\xf4\xf5\xf4\xf5", "[T,F,F,T,F,T]"},
+	{[]bool{true, false, true}, "\x83\xf5\xf4\xf5", "[true,false,true]"},
+	{[]bool{true, false, false, true, false, true}, "\x86\xf5\xf4\xf4\xf5\xf4\xf5", "[true,false,false,true,false,true]"},
 }
 
 func TestAppendBoolArray(t *testing.T) {
 	for _, tc := range booleanArrayTestCases {
-		s := AppendBools([]byte{}, tc.in)
+		s := AppendBools([]byte{}, tc.val)
 		got := string(s)
-		if got != tc.out {
+		if got != tc.binary {
 			t.Errorf("AppendBools(%s)=0x%s, want: 0x%s",
-				tc.inTxt, hex.EncodeToString(s),
-				hex.EncodeToString([]byte(tc.out)))
+				tc.json, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}
 }
 
 var integerTestCases = []struct {
-	in  int
-	out string
+	val    int
+	binary string
 }{
 	//value included in the type
 	{0, "\x00"},
@@ -122,44 +122,44 @@ var integerTestCases = []struct {
 
 func TestAppendInt(t *testing.T) {
 	for _, tc := range integerTestCases {
-		s := AppendInt([]byte{}, tc.in)
+		s := AppendInt([]byte{}, tc.val)
 		got := string(s)
-		if got != tc.out {
+		if got != tc.binary {
 			t.Errorf("AppendInt(0x%x)=0x%s, want: 0x%s",
-				tc.in, hex.EncodeToString(s),
-				hex.EncodeToString([]byte(tc.out)))
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}
 }
 
 var integerArrayTestCases = []struct {
-	in    []int
-	out   string
-	inTxt string
+	val    []int
+	binary string
+	json   string
 }{
 	{[]int{-1, 0, 200, 20}, "\x84\x20\x00\x18\xc8\x14", "[-1,0,200,20]"},
 	{[]int{-200, -10, 200, 400}, "\x84\x38\xc7\x29\x18\xc8\x19\x01\x90", "[-200,-10,200,400]"},
 	{[]int{1, 2, 3}, "\x83\x01\x02\x03", "[1,2,3]"},
 	{[]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
 		"\x98\x19\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x18\x18\x19",
-		"[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]"},
+		"[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]"},
 }
 
 func TestAppendIntArray(t *testing.T) {
 	for _, tc := range integerArrayTestCases {
-		s := AppendInts([]byte{}, tc.in)
+		s := AppendInts([]byte{}, tc.val)
 		got := string(s)
-		if got != tc.out {
+		if got != tc.binary {
 			t.Errorf("AppendInts(%s)=0x%s, want: 0x%s",
-				tc.inTxt, hex.EncodeToString(s),
-				hex.EncodeToString([]byte(tc.out)))
+				tc.json, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}
 }
 
 var float32TestCases = []struct {
-	in  float32
-	out string
+	val    float32
+	binary string
 }{
 	{0.0, "\xfa\x00\x00\x00\x00"},
 	{-0.0, "\xfa\x00\x00\x00\x00"},
@@ -172,12 +172,12 @@ var float32TestCases = []struct {
 
 func TestAppendFloat32(t *testing.T) {
 	for _, tc := range float32TestCases {
-		s := AppendFloat32([]byte{}, tc.in)
+		s := AppendFloat32([]byte{}, tc.val)
 		got := string(s)
-		if got != tc.out {
+		if got != tc.binary {
 			t.Errorf("AppendFloat32(%f)=0x%s, want: 0x%s",
-				tc.in, hex.EncodeToString(s),
-				hex.EncodeToString([]byte(tc.out)))
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}
 }

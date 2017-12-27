@@ -344,7 +344,7 @@ func AppendFloat64(dst []byte, val float64) []byte {
 	subType := additionalTypeFloat64
 	n := math.Float64bits(val)
 	dst = append(dst, byte(major|subType))
-	for i := uint(0); i < 8; i++ {
+	for i := uint(1); i <= 8; i++ {
 		b := byte(n >> ((8 - i) * 8))
 		dst = append(dst, b)
 	}
