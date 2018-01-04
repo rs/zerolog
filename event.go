@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog/internal/cbor"
 	"github.com/rs/zerolog/internal/json"
 )
 
@@ -46,7 +47,11 @@ func newEvent(w LevelWriter, level Level, enabled bool, isBinary bool) *Event {
 	}
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:0]
-	e.buf = json.AppendBeginMarker(e.buf)
+	if isBinary {
+		e.buf = cbor.AppendBeginMarker(e.buf)
+	} else {
+		e.buf = json.AppendBeginMarker(e.buf)
+	}
 	e.w = w
 	e.level = level
 	e.isBinary = isBinary
@@ -57,7 +62,11 @@ func (e *Event) write() (err error) {
 	if e == nil {
 		return nil
 	}
-	e.buf = json.AppendEndMarker(e.buf, true)
+	if e.isBinary {
+		e.buf = cbor.AppendEndMarker(e.buf, true)
+	} else {
+		e.buf = json.AppendEndMarker(e.buf, true)
+	}
 	_, err = e.w.WriteLevel(e.level, e.buf)
 	eventPool.Put(e)
 	return
@@ -78,7 +87,11 @@ func (e *Event) Msg(msg string) {
 		return
 	}
 	if msg != "" {
-		e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
+		if e.isBinary {
+			e.buf = cbor.AppendString(cbor.AppendKey(e.buf, MessageFieldName), msg)
+		} else {
+			e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
+		}
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -98,7 +111,11 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	}
 	msg := fmt.Sprintf(format, v...)
 	if msg != "" {
-		e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
+		if e.isBinary {
+			e.buf = cbor.AppendString(cbor.AppendKey(e.buf, MessageFieldName), msg)
+		} else {
+			e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
+		}
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -126,8 +143,13 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	if e.isBinary != dict.isBinary {
 		//TODO convert dict to the needed format and add to e
 	}
-	e.buf = append(json.AppendKey(e.buf, key), dict.buf...)
-	e.buf = json.AppendEndMarker(e.buf, false)
+	if e.isBinary {
+		e.buf = append(cbor.AppendKey(e.buf, key), dict.buf...)
+		e.buf = cbor.AppendEndMarker(e.buf, false)
+	} else {
+		e.buf = append(json.AppendKey(e.buf, key), dict.buf...)
+		e.buf = json.AppendEndMarker(e.buf, false)
+	}
 	eventPool.Put(dict)
 	return e
 }
@@ -152,7 +174,11 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendKey(e.buf, key)
+	if e.isBinary {
+		e.buf = cbor.AppendKey(e.buf, key)
+	} else {
+		e.buf = json.AppendKey(e.buf, key)
+	}
 	var a *Array
 	if aa, ok := arr.(*Array); ok {
 		a = aa
@@ -165,9 +191,17 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 }
 
 func (e *Event) appendObject(obj LogObjectMarshaler) {
-	e.buf = json.AppendBeginMarker(e.buf)
+	if e.isBinary {
+		e.buf = cbor.AppendBeginMarker(e.buf)
+	} else {
+		e.buf = json.AppendBeginMarker(e.buf)
+	}
 	obj.MarshalZerologObject(e)
-	e.buf = json.AppendEndMarker(e.buf, false)
+	if e.isBinary {
+		e.buf = cbor.AppendEndMarker(e.buf, true)
+	} else {
+		e.buf = json.AppendEndMarker(e.buf, false)
+	}
 }
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
@@ -175,7 +209,11 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendKey(e.buf, key)
+	if e.isBinary {
+		e.buf = cbor.AppendKey(e.buf, key)
+	} else {
+		e.buf = json.AppendKey(e.buf, key)
+	}
 	e.appendObject(obj)
 	return e
 }
@@ -185,7 +223,11 @@ func (e *Event) Str(key, val string) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendString(json.AppendKey(e.buf, key), val)
+	if e.isBinary {
+		e.buf = cbor.AppendString(cbor.AppendKey(e.buf, key), val)
+	} else {
+		e.buf = json.AppendString(json.AppendKey(e.buf, key), val)
+	}
 	return e
 }
 
@@ -194,7 +236,11 @@ func (e *Event) Strs(key string, vals []string) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendStrings(json.AppendKey(e.buf, key), vals)
+	if e.isBinary {
+		e.buf = cbor.AppendStrings(cbor.AppendKey(e.buf, key), vals)
+	} else {
+		e.buf = json.AppendStrings(json.AppendKey(e.buf, key), vals)
+	}
 	return e
 }
 
@@ -206,7 +252,11 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendBytes(json.AppendKey(e.buf, key), val)
+	if e.isBinary {
+		e.buf = cbor.AppendBytes(cbor.AppendKey(e.buf, key), val)
+	} else {
+		e.buf = json.AppendBytes(json.AppendKey(e.buf, key), val)
+	}
 	return e
 }
 
@@ -217,7 +267,11 @@ func (e *Event) AnErr(key string, err error) *Event {
 		return e
 	}
 	if err != nil {
-		e.buf = json.AppendError(json.AppendKey(e.buf, key), err)
+		if e.isBinary {
+			e.buf = cbor.AppendError(cbor.AppendKey(e.buf, key), err)
+		} else {
+			e.buf = json.AppendError(json.AppendKey(e.buf, key), err)
+		}
 	}
 	return e
 }
@@ -228,7 +282,11 @@ func (e *Event) Errs(key string, errs []error) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendErrors(json.AppendKey(e.buf, key), errs)
+	if e.isBinary {
+		e.buf = cbor.AppendErrors(cbor.AppendKey(e.buf, key), errs)
+	} else {
+		e.buf = json.AppendErrors(json.AppendKey(e.buf, key), errs)
+	}
 	return e
 }
 
@@ -240,7 +298,11 @@ func (e *Event) Err(err error) *Event {
 		return e
 	}
 	if err != nil {
-		e.buf = json.AppendError(json.AppendKey(e.buf, ErrorFieldName), err)
+		if e.isBinary {
+			e.buf = cbor.AppendError(cbor.AppendKey(e.buf, ErrorFieldName), err)
+		} else {
+			e.buf = json.AppendError(json.AppendKey(e.buf, ErrorFieldName), err)
+		}
 	}
 	return e
 }
@@ -250,7 +312,11 @@ func (e *Event) Bool(key string, b bool) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendBool(json.AppendKey(e.buf, key), b)
+	if e.isBinary {
+		e.buf = cbor.AppendBool(cbor.AppendKey(e.buf, key), b)
+	} else {
+		e.buf = json.AppendBool(json.AppendKey(e.buf, key), b)
+	}
 	return e
 }
 
@@ -259,7 +325,11 @@ func (e *Event) Bools(key string, b []bool) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendBools(json.AppendKey(e.buf, key), b)
+	if e.isBinary {
+		e.buf = cbor.AppendBools(cbor.AppendKey(e.buf, key), b)
+	} else {
+		e.buf = json.AppendBools(json.AppendKey(e.buf, key), b)
+	}
 	return e
 }
 
@@ -268,7 +338,11 @@ func (e *Event) Int(key string, i int) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInt(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInt(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInt(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -277,7 +351,11 @@ func (e *Event) Ints(key string, i []int) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInts(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInts(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInts(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -286,7 +364,11 @@ func (e *Event) Int8(key string, i int8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInt8(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInt8(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInt8(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -295,7 +377,11 @@ func (e *Event) Ints8(key string, i []int8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInts8(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInts8(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInts8(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -304,7 +390,11 @@ func (e *Event) Int16(key string, i int16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInt16(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInt16(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInt16(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -313,7 +403,11 @@ func (e *Event) Ints16(key string, i []int16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInts16(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInts16(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInts16(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -322,7 +416,11 @@ func (e *Event) Int32(key string, i int32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInt32(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInt32(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInt32(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -331,7 +429,11 @@ func (e *Event) Ints32(key string, i []int32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInts32(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInts32(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInts32(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -340,7 +442,11 @@ func (e *Event) Int64(key string, i int64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInt64(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInt64(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInt64(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -349,7 +455,11 @@ func (e *Event) Ints64(key string, i []int64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendInts64(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInts64(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInts64(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -358,7 +468,11 @@ func (e *Event) Uint(key string, i uint) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUint(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUint(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUint(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -367,7 +481,11 @@ func (e *Event) Uints(key string, i []uint) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUints(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUints(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUints(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -376,7 +494,11 @@ func (e *Event) Uint8(key string, i uint8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUint8(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUint8(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUint8(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -385,7 +507,11 @@ func (e *Event) Uints8(key string, i []uint8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUints8(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUints8(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUints8(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -394,7 +520,11 @@ func (e *Event) Uint16(key string, i uint16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUint16(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUint16(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUint16(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -403,7 +533,11 @@ func (e *Event) Uints16(key string, i []uint16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUints16(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUints16(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUints16(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -412,7 +546,11 @@ func (e *Event) Uint32(key string, i uint32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUint32(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUint32(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUint32(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -421,7 +559,11 @@ func (e *Event) Uints32(key string, i []uint32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUints32(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUints32(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUints32(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -430,7 +572,11 @@ func (e *Event) Uint64(key string, i uint64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUint64(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUint64(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUint64(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -439,7 +585,11 @@ func (e *Event) Uints64(key string, i []uint64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendUints64(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendUints64(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendUints64(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
 
@@ -448,7 +598,11 @@ func (e *Event) Float32(key string, f float32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendFloat32(json.AppendKey(e.buf, key), f)
+	if e.isBinary {
+		e.buf = cbor.AppendFloat32(cbor.AppendKey(e.buf, key), f)
+	} else {
+		e.buf = json.AppendFloat32(json.AppendKey(e.buf, key), f)
+	}
 	return e
 }
 
@@ -457,7 +611,11 @@ func (e *Event) Floats32(key string, f []float32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendFloats32(json.AppendKey(e.buf, key), f)
+	if e.isBinary {
+		e.buf = cbor.AppendFloats32(cbor.AppendKey(e.buf, key), f)
+	} else {
+		e.buf = json.AppendFloats32(json.AppendKey(e.buf, key), f)
+	}
 	return e
 }
 
@@ -466,7 +624,11 @@ func (e *Event) Float64(key string, f float64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendFloat64(json.AppendKey(e.buf, key), f)
+	if e.isBinary {
+		e.buf = cbor.AppendFloat64(cbor.AppendKey(e.buf, key), f)
+	} else {
+		e.buf = json.AppendFloat64(json.AppendKey(e.buf, key), f)
+	}
 	return e
 }
 
@@ -475,7 +637,11 @@ func (e *Event) Floats64(key string, f []float64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendFloats64(json.AppendKey(e.buf, key), f)
+	if e.isBinary {
+		e.buf = cbor.AppendFloats64(cbor.AppendKey(e.buf, key), f)
+	} else {
+		e.buf = json.AppendFloats64(json.AppendKey(e.buf, key), f)
+	}
 	return e
 }
 
@@ -485,7 +651,11 @@ func (e *Event) Timestamp() *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
+	if e.isBinary {
+		e.buf = cbor.AppendTime(e.buf, TimestampFunc())
+	} else {
+		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
+	}
 	return e
 }
 
@@ -494,7 +664,11 @@ func (e *Event) Time(key string, t time.Time) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendTime(json.AppendKey(e.buf, key), t, TimeFieldFormat)
+	if e.isBinary {
+		e.buf = cbor.AppendTime(cbor.AppendKey(e.buf, key), t)
+	} else {
+		e.buf = json.AppendTime(json.AppendKey(e.buf, key), t, TimeFieldFormat)
+	}
 	return e
 }
 
@@ -503,7 +677,11 @@ func (e *Event) Times(key string, t []time.Time) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendTimes(json.AppendKey(e.buf, key), t, TimeFieldFormat)
+	if e.isBinary {
+		e.buf = cbor.AppendTimes(cbor.AppendKey(e.buf, key), t)
+	} else {
+		e.buf = json.AppendTimes(json.AppendKey(e.buf, key), t, TimeFieldFormat)
+	}
 	return e
 }
 
@@ -525,7 +703,11 @@ func (e *Event) Durs(key string, d []time.Duration) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = json.AppendDurations(json.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	if e.isBinary {
+		e.buf = cbor.AppendDurations(cbor.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	} else {
+		e.buf = json.AppendDurations(json.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	}
 	return e
 }
 
@@ -540,7 +722,11 @@ func (e *Event) TimeDiff(key string, t time.Time, start time.Time) *Event {
 	if t.After(start) {
 		d = t.Sub(start)
 	}
-	e.buf = json.AppendDuration(json.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	if e.isBinary {
+		e.buf = cbor.AppendDuration(cbor.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	} else {
+		e.buf = json.AppendDuration(json.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	}
 	return e
 }
 

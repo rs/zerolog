@@ -214,4 +214,16 @@ func BenchmarkLogFieldType(b *testing.B) {
 			})
 		})
 	}
+	logger = NewBinary(ioutil.Discard)
+	b.ResetTimer()
+	for name := range types {
+		f := types[name]
+		b.Run(name+"-Binary", func(b *testing.B) {
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					f(logger.Info()).Msg("")
+				}
+			})
+		})
+	}
 }

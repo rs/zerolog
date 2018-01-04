@@ -410,7 +410,7 @@ func cbor2JsonOneObject(src []byte, dst io.Writer) (uint, error) {
 	return bc, err
 }
 
-func cbor2JsonManyObjects(src []byte, dst io.Writer) (uint, error) {
+func Cbor2JsonManyObjects(src []byte, dst io.Writer) (uint, error) {
 	curPos := uint(0)
 	totalBytes := uint(len(src))
 	for curPos < totalBytes {

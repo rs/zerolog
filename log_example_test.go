@@ -1,12 +1,15 @@
 package zerolog_test
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	stdlog "log"
 	"os"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/internal/cbor"
 )
 
 func ExampleNew() {
@@ -14,6 +17,17 @@ func ExampleNew() {
 
 	log.Info().Msg("hello world")
 
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleNewBinary() {
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+	log := zerolog.NewBinary(writer)
+
+	log.Info().Msg("hello world")
+	writer.Flush()
+	cbor.Cbor2JsonManyObjects(b.Bytes(), os.Stdout)
 	// Output: {"level":"info","message":"hello world"}
 }
 

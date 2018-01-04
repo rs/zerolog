@@ -75,6 +75,7 @@ import (
 	"strconv"
 
 	"github.com/rs/zerolog/internal/json"
+	"github.com/rs/zerolog/internal/cbor"
 )
 
 // Level defines log levels.
@@ -336,13 +337,21 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 	e.done = done
 	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
 		// first byte of context is ts flag
-		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
+		if l.isBinary {
+			e.buf = cbor.AppendTime(e.buf, TimestampFunc())
+		} else {
+			e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
+		}
 	}
 	if addLevelField {
 		e.Str(LevelFieldName, level.String())
 	}
 	if l.context != nil && len(l.context) > 1 {
-		e.buf = json.AppendObjectData(e.buf, l.context[1:])
+		if l.isBinary {
+			e.buf = cbor.AppendObjectData(e.buf, l.context[1:])
+		} else {
+			e.buf = json.AppendObjectData(e.buf, l.context[1:])
+		}
 	}
 	return e
 }

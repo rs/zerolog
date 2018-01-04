@@ -1,3 +1,7 @@
+Reference:
+   CBOR Encoding is described in RFC7049 https://tools.ietf.org/html/rfc7049
+
+
 Tests and benchmark:
 
 ```

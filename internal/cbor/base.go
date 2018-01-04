@@ -1,7 +1,7 @@
 package cbor
 
 func AppendKey(dst []byte, key string) []byte {
-	if len(dst) <= 1 {
+	if len(dst) < 1 {
 		dst = AppendBeginMarker(dst)
 	}
 	return AppendString(dst, key)
