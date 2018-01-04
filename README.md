@@ -4,7 +4,7 @@
 
 The zerolog package provides a fast and simple logger dedicated to JSON output.
 
-Zerolog's API is designed to provide both a great developer experience and stunning [performance](#performance). Its unique chaining API allows zerolog to write JSON log events by avoiding allocations and reflection.
+Zerolog's API is designed to provide both a great developer experience and stunning [performance](#benchmarks). Its unique chaining API allows zerolog to write JSON log events by avoiding allocations and reflection.
 
 The uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach. Zerolog is taking this concept to the next level with simpler to use API and even better performance.
 
