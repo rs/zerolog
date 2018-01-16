@@ -53,16 +53,6 @@ func main() {
 ----
 ### Leveled Logging
 
-zerolog allows for logging at the following levels (from highest to lowest):
-- panic (PanicLevel, 5)
-- fatal (FatalLevel, 4)
-- error (ErrorLevel, 3)
-- warn (WarnLevel, 2)
-- info (InfoLevel, 1)
-- debug (DebugLevel, 0)
-
-You can set the Global logging level to any of these options using the SetGlobalLevel function in the zerolog package, passing in one of the given constants above, e.g. zerolog.InfoLevel would be the "info" level.  Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the Disabled constant.
-
 #### Simple Leveled Logging Example
 
 ```go
@@ -79,6 +69,16 @@ func main() {
 
 // Output: {"time":1516134303,"level":"info","message":"hello world"}
 ```
+
+zerolog allows for logging at the following levels (from highest to lowest):
+- panic (PanicLevel, 5)
+- fatal (FatalLevel, 4)
+- error (ErrorLevel, 3)
+- warn (WarnLevel, 2)
+- info (InfoLevel, 1)
+- debug (DebugLevel, 0)
+
+You can set the Global logging level to any of these options using the SetGlobalLevel function in the zerolog package, passing in one of the given constants above, e.g. zerolog.InfoLevel would be the "info" level.  Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the Disabled constant.
 
 #### Setting Global Log Level
 ```go
