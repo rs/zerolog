@@ -100,12 +100,11 @@ func main() {
 
 }
 
-	// Output, Run 1: {{"time":1516133856,"level":"info","message":"routed message"}
+// Output, Run 1: {{"time":1516133856,"level":"info","message":"routed message"}
 
-	// Output, Run 2: {"time":1516133955,"level":"debug","message":"filtered out message"}
-	//                {"time":1516133955,"level":"info","message":"routed message"}
-	//                {"time":1516133955,"level":"debug","foo":"bar","message":"some debug message"}
-
+// Output, Run 2: {"time":1516133955,"level":"debug","message":"filtered out message"}
+//                {"time":1516133955,"level":"info","message":"routed message"}
+//                {"time":1516133955,"level":"debug","foo":"bar","message":"some debug message"}
 
 ```
 #### Logging Fatal Messages
