@@ -29,13 +29,21 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 go get -u github.com/rs/zerolog/log
 ```
 ## Getting Started
-
+For simple logging, a global logger 
 
 ```go
-import "github.com/rs/zerolog/log"
+package main
+
+import (
+	"github.com/rs/zerolog/log"
+)
+
+func main() {
+	log.Print("hello world")
+}
 ```
 
-### A global logger can be used for simple logging
+> ### A global logger can be used for simple logging
 
 ```go
 log.Print("hello world")
