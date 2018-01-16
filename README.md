@@ -29,8 +29,8 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 go get -u github.com/rs/zerolog/log
 ```
 ## Getting Started
-### Simple Logging
-For simple logging, import the global logger package **github.co/rs/zerolog/log**
+### Simple Logging Example
+For simple logging, import the global logger package **github.com/rs/zerolog/log**
 ```go
 package main
 
@@ -39,8 +39,9 @@ import (
 )
 
 func main() {
-	// I like UNIX Time - if you set zerolog.TimeFieldFormat to an
-	// empty string, logs will write with UNIX time
+	// UNIX Time is faster and smaller than most timestamps
+	// If you set zerolog.TimeFieldFormat to an empty string,
+	// logs will write with UNIX time
 	zerolog.TimeFieldFormat = ""
 
 	log.Print("hello world")
