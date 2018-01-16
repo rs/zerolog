@@ -29,6 +29,7 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 go get -u github.com/rs/zerolog/log
 ```
 ## Getting Started
+----
 ### Simple Logging
 For simple logging, import the global logger package **github.co/rs/zerolog/log**
 ```go
@@ -45,17 +46,20 @@ func main() {
 // Output: {"time":"2018-01-16T11:23:58-05:00","level":"debug","message":"hello world"}
 ```
 > Note: The default logging level for log.Print is *debug*
-
+----
 ### Leveled Logging
 
-zerolog allows for logging at the following levels (ordered from lowest to highest)
+zerolog allows for logging at the following levels (from highest to lowest):
+- panic (PanicLevel, 5)
+- fatal (FatalLevel, 4)
+- error (ErrorLevel, 3)
+- warn (WarnLevel, 2)
+- info (InfoLevel, 1)
+- debug (DebugLevel, 0)
 
-- panic (PanicLevel, 6)
-- fatal (FatalLevel, 5)
-- error (ErrorLevel, 4)
-- warn (WarnLevel, 3)
-- info (InfoLevel, 2)
-- debug (DebugLevel, 1)
+You can set the Global logging level to any of these options using the SetGlobalLevel function in the zerolog package, passing in one of the given constants above, e.g. zerolog.InfoLevel would be the "info" level.  Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the Disabled constant.
+
+#### Simple Leveled Logging Example
 
 ```go
 package main
@@ -69,41 +73,66 @@ func main() {
 
 }
 
-// {"time":"2018-01-16T11:39:09-05:00","level":"info","message":"hello world"}
-
-
+// Output: {"time":"2018-01-16T11:39:09-05:00","level":"info","message":"hello world"}
 ```
 
+#### Setting Global Log Level
 ```go
-zerolog.SetGlobalLevel(zerolog.InfoLevel)
+package main
 
-log.Debug().Msg("filtered out message")
-log.Info().Msg("routed message")
+import (
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
 
-if e := log.Debug(); e.Enabled() {
-    // Compute log output only if enabled.
-    value := compute()
-    e.Str("foo": value).Msg("some debug message")
+func main() {
+	//zerolog.SetGlobalLevel(zerolog.InfoLevel) // Run 1
+	zerolog.SetGlobalLevel(zerolog.DebugLevel) // Run 2
+
+	log.Debug().Msg("filtered out message")
+	log.Info().Msg("routed message")
+
+	if e := log.Debug(); e.Enabled() {
+		// Compute log output only if enabled.
+		value := "bar"
+		e.Str("foo", value).Msg("some debug message")
+	}
+
+	// Output, Run 1: {"time":"2018-01-16T14:14:44-05:00","level":"info","message":"routed message"}
+
+        // Output, Run 2: {"time":"2018-01-16T14:15:28-05:00","level":"debug","message":"filtered out message"}
+	//                {"time":"2018-01-16T14:15:28-05:00","level":"info","message":"routed message"}
+	//                {"time":"2018-01-16T14:15:28-05:00","level":"debug","foo":"bar","message":"some debug message"}
 }
-
-// Output: {"level":"info","time":1494567715,"message":"routed message"}
 ```
-
-
+#### Logging Fatal Messages
 ```go
-log.Fatal().
-    Err(err).
-    Str("service", service).
-    Msgf("Cannot start %s", service)
+package main
 
-// Output: {"level":"fatal","time":1494567715,"message":"Cannot start myservice","error":"some error","service":"myservice"}
-// Exit 1
+import (
+	"errors"
+
+	"github.com/rs/zerolog/log"
+)
+
+func main() {
+	err := errors.New("A repo man spends his life getting into tense situations")
+	service := "myservice"
+
+	log.Fatal().
+		Err(err).
+		Str("service", service).
+		Msgf("Cannot start %s", service)
+
+	// Output: {"time":"2018-01-16T14:25:40-05:00","level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
+	//         exit status 1
+}
 ```
+> NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
+----------------
+### Contextual Logging
 
-NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
-
-### Fields can be added to log messages
-
+#### Fields can be added to log messages
 ```go
 log.Info().
     Str("foo", "bar").
