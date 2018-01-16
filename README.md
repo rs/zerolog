@@ -29,7 +29,7 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 go get -u github.com/rs/zerolog/log
 ```
 ## Getting Started
-For simple logging, a global logger 
+For simple logging, import the global logger package *github.co/rs/zerolog/log*
 
 ```go
 package main
@@ -42,8 +42,7 @@ func main() {
 	log.Print("hello world")
 }
 ```
-
-> ### A global logger can be used for simple logging
+> Note: The default logging level for log.Print is *Debug*
 
 ```go
 log.Print("hello world")
