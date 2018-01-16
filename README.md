@@ -40,10 +40,14 @@ import (
 )
 
 func main() {
+	// I like UNIX Time - if you set zerolog.TimeFieldFormat to an
+	// empty string, logs will write with UNIX time
+	zerolog.TimeFieldFormat = ""
+
 	log.Print("hello world")
 }
 
-// Output: {"time":"2018-01-16T11:23:58-05:00","level":"debug","message":"hello world"}
+// Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
 > Note: The default logging level for log.Print is *debug*
 ----
@@ -73,7 +77,7 @@ func main() {
 
 }
 
-// Output: {"time":"2018-01-16T11:39:09-05:00","level":"info","message":"hello world"}
+// Output: {"time":1516134303,"level":"info","message":"hello world"}
 ```
 
 #### Setting Global Log Level
@@ -126,8 +130,8 @@ func main() {
 		Str("service", service).
 		Msgf("Cannot start %s", service)
 
-	// Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
-	//         exit status 1
+// Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
+//         exit status 1
 }
 ```
 > NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
