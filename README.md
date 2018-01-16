@@ -29,8 +29,8 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 go get -u github.com/rs/zerolog/log
 ```
 ## Getting Started
-For simple logging, import the global logger package *github.co/rs/zerolog/log*
-
+### Simple Logging
+For simple logging, import the global logger package **github.co/rs/zerolog/log**
 ```go
 package main
 
@@ -41,23 +41,54 @@ import (
 func main() {
 	log.Print("hello world")
 }
+
+// Output: {"time":"2018-01-16T11:23:58-05:00","level":"debug","message":"hello world"}
 ```
-> Note: The default logging level for log.Print is *Debug*
+> Note: The default logging level for log.Print is *debug*
+
+### Leveled Logging
+
+zerolog allows for logging at the following levels (ordered from lowest to highest)
+
+- panic (PanicLevel, 6)
+- fatal (FatalLevel, 5)
+- error (ErrorLevel, 4)
+- warn (WarnLevel, 3)
+- info (InfoLevel, 2)
+- debug (DebugLevel, 1)
 
 ```go
-log.Print("hello world")
+package main
 
-// Output: {"level":"debug","time":1494567715,"message":"hello world"}
+import (
+	"github.com/rs/zerolog/log"
+)
+
+func main() {
+	log.Info().Msg("hello world")
+
+}
+
+// {"time":"2018-01-16T11:39:09-05:00","level":"info","message":"hello world"}
+
+
 ```
-
 
 ```go
-log.Info().Msg("hello world")
+zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-// Output: {"level":"info","time":1494567715,"message":"hello world"}
+log.Debug().Msg("filtered out message")
+log.Info().Msg("routed message")
+
+if e := log.Debug(); e.Enabled() {
+    // Compute log output only if enabled.
+    value := compute()
+    e.Str("foo": value).Msg("some debug message")
+}
+
+// Output: {"level":"info","time":1494567715,"message":"routed message"}
 ```
 
-NOTE: To import the global logger, import the `log` subpackage `github.com/rs/zerolog/log`.
 
 ```go
 log.Fatal().
@@ -103,22 +134,7 @@ sublogger.Info().Msg("hello world")
 // Output: {"level":"info","time":1494567715,"message":"hello world","component":"foo"}
 ```
 
-### Level logging
 
-```go
-zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-log.Debug().Msg("filtered out message")
-log.Info().Msg("routed message")
-
-if e := log.Debug(); e.Enabled() {
-    // Compute log output only if enabled.
-    value := compute()
-    e.Str("foo": value).Msg("some debug message")
-}
-
-// Output: {"level":"info","time":1494567715,"message":"routed message"}
-```
 
 ### Pretty logging
 
