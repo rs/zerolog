@@ -29,7 +29,6 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 go get -u github.com/rs/zerolog/log
 ```
 ## Getting Started
-----
 ### Simple Logging
 For simple logging, import the global logger package **github.co/rs/zerolog/log**
 ```go
