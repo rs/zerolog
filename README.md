@@ -70,7 +70,7 @@ func main() {
 // Output: {"time":1516134303,"level":"info","message":"hello world"}
 ```
 
-zerolog allows for logging at the following levels (from highest to lowest):
+**zerolog** allows for logging at the following levels (from highest to lowest):
 - panic (PanicLevel, 5)
 - fatal (FatalLevel, 4)
 - error (ErrorLevel, 3)
@@ -104,7 +104,7 @@ func main() {
 
 }
 
-// Output, Run 1: {{"time":1516133856,"level":"info","message":"routed message"}
+// Output, Run 1: {"time":1516133856,"level":"info","message":"routed message"}
 
 // Output, Run 2: {"time":1516133955,"level":"debug","message":"filtered out message"}
 //                {"time":1516133955,"level":"info","message":"routed message"}
