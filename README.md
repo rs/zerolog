@@ -24,13 +24,18 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 * `net/http` helpers
 * Pretty logging for development
 
-## Usage
+## Installation
+```go
+go get -u github.com/rs/zerolog/log
+```
+## Getting Started
+
 
 ```go
 import "github.com/rs/zerolog/log"
 ```
 
-### A global logger can be use for simple logging
+### A global logger can be used for simple logging
 
 ```go
 log.Print("hello world")
