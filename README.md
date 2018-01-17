@@ -35,6 +35,7 @@ For simple logging, import the global logger package **github.com/rs/zerolog/log
 package main
 
 import (
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -45,6 +46,7 @@ func main() {
 	zerolog.TimeFieldFormat = ""
 
 	log.Print("hello world")
+
 }
 
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
@@ -59,10 +61,13 @@ func main() {
 package main
 
 import (
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	zerolog.TimeFieldFormat = ""
+
 	log.Info().Msg("hello world")
 
 }
@@ -118,6 +123,7 @@ package main
 import (
 	"errors"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -125,14 +131,17 @@ func main() {
 	err := errors.New("A repo man spends his life getting into tense situations")
 	service := "myservice"
 
+	zerolog.TimeFieldFormat = ""
+
 	log.Fatal().
 		Err(err).
 		Str("service", service).
 		Msgf("Cannot start %s", service)
 
+}
+
 // Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
 //         exit status 1
-}
 ```
 > NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
 ----------------
