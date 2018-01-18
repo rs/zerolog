@@ -7,7 +7,34 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
+
+// Simple logging example using the log package.
+func ExampleSimple() {
+	// UNIX Time is faster and smaller than most timestamps
+	// If you set zerolog.TimeFieldFormat to an empty string,
+	// logs will write with UNIX time
+	zerolog.TimeFieldFormat = ""
+
+	log.Print("hello world")
+
+	// Output: {"time":1516134303,"level":"debug","message":"hello world"}
+
+}
+
+// Simple example of a log at a particular "level" (in this case, "info")
+// using the log package.  You'll note the below function ExampleNew is similar,
+// but has a different log output as it's getting an instance of
+// the logger from the zerolog package instead of using the log package
+func ExampleSimpleLevelLog() {
+	zerolog.TimeFieldFormat = ""
+
+	log.Info().Msg("hello world")
+
+	// Output: {"time":1516227604,"level":"info","message":"hello world"}
+
+}
 
 func ExampleNew() {
 	log := zerolog.New(os.Stdout)
@@ -393,4 +420,20 @@ func ExampleContext_Durs() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+}
+
+func ExampleFatal() {
+	err := errors.New("A repo man spends his life getting into tense situations")
+	service := "myservice"
+
+	zerolog.TimeFieldFormat = ""
+
+	log.Fatal().
+		Err(err).
+		Str("service", service).
+		Msgf("Cannot start %s", service)
+
+	// Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
+	//         exit status 1
+
 }
