@@ -19,7 +19,7 @@ func ExampleSimple() {
 
 	log.Print("hello world")
 
-	// Output: {"time":1516134303,"level":"debug","message":"hello world"}
+	// Produces: {"time":1516134303,"level":"debug","message":"hello world"}
 
 }
 
@@ -32,7 +32,7 @@ func ExampleSimpleLevelLog() {
 
 	log.Info().Msg("hello world")
 
-	// Output: {"time":1516227604,"level":"info","message":"hello world"}
+	// Produces: {"time":1516227604,"level":"info","message":"hello world"}
 
 }
 
@@ -433,7 +433,7 @@ func ExampleFatal() {
 		Str("service", service).
 		Msgf("Cannot start %s", service)
 
-	// Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
+	// Produces: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
 	//         exit status 1
 
 }
