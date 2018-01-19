@@ -51,7 +51,7 @@ func main() {
 
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
-> Note: The default logging level for `log.Print` is *debug*
+> Note: The default log level for `log.Print` is *debug*
 ----
 ### Leveled Logging
 
@@ -88,8 +88,6 @@ You can set the Global logging level to any of these options using the `SetGloba
 #### Setting Global Log Level
 This example uses command-line flags to demonstrate various outputs depending on the chosen log level.
 ```go
-package main
-
 import (
 	"flag"
 
@@ -97,23 +95,25 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var lvl string
-
-// Declare "level" flag and bind it to lvl variable
-func init() {
-	flag.StringVar(&lvl, "level", "error", "level is the logging level (debug, info, warn, etc.")
-}
-
 func main() {
+	debug := flag.Bool("debug", false, "sets log level to debug")
 
 	flag.Parse()
 	zerolog.TimeFieldFormat = ""
 
-	// Set the logging level based on the command line flag
-	zerolog.SetGlobalLevel(level(lvl))
+	// Determine log level based on command line flag
+	// For this example, we set level to Info if Debug flag is not present
+	var lvl zerolog.Level
+	if *debug {
+		lvl = zerolog.DebugLevel
+	} else {
+		lvl = zerolog.InfoLevel
+	}
 
-	log.Debug().Msg("filtered out message")
-	log.Info().Msg("routed message")
+	zerolog.SetGlobalLevel(lvl)
+
+	log.Debug().Msg("This message appears only when log level set to Debug")
+	log.Info().Msg("This message appears when log level set to Debug or Info")
 
 	if e := log.Debug(); e.Enabled() {
 		// Compute log output only if enabled.
@@ -121,30 +121,19 @@ func main() {
 		e.Str("foo", value).Msg("some debug message")
 	}
 }
-
-func level(l string) zerolog.Level {
-
-	switch l {
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	}
-	return zerolog.NoLevel
-
-}
 ```
-Debug Output
+Info Output (no flag)
 ```bash
-$ ./logLevelExample -level=debug
-{"time":1516329108,"level":"debug","message":"filtered out message"}
-{"time":1516329108,"level":"info","message":"routed message"}
-{"time":1516329108,"level":"debug","foo":"bar","message":"some debug message"}
+$ ./logLevelExample
+{"time":1516387492,"level":"info","message":"This message appears when log level set to Debug or Info"}
 ```
-Info Output
+
+Debug Output (debug flag set)
 ```bash
-$ ./logLevelExample -level=info
-{"time":1516329482,"level":"info","message":"routed message"}
+$ ./logLevelExample -debug
+{"time":1516387573,"level":"debug","message":"This message appears only when log level set to Debug"}
+{"time":1516387573,"level":"info","message":"This message appears when log level set to Debug or Info"}
+{"time":1516387573,"level":"debug","foo":"bar","message":"some debug message"}
 ```
 
 #### Logging Fatal Messages
