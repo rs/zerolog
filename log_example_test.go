@@ -23,7 +23,7 @@ func ExampleSimple() {
 }
 
 // Simple example of a log at a particular "level" (in this case, "info")
-// using the log package.  You'll note the below function ExampleNew is similar,
+// using the log package.  You'll note the function ExampleNew below is similar,
 // but has a different log output as it's getting an instance of
 // the logger from the zerolog package instead of using the log package
 func ExampleSimpleLevelLog() {
