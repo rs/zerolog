@@ -86,17 +86,31 @@ func main() {
 You can set the Global logging level to any of these options using the `SetGlobalLevel` function in the zerolog package, passing in one of the given constants above, e.g. `zerolog.InfoLevel` would be the "info" level.  Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the `zerolog.Disabled` constant.
 
 #### Setting Global Log Level
+This example uses command-line flags to demonstrate various outputs depending on the chosen log level.
 ```go
 package main
 
 import (
+	"flag"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
+var lvl string
+
+// Declare "level" flag and bind it to lvl variable
+func init() {
+	flag.StringVar(&lvl, "level", "error", "level is the logging level (debug, info, warn, etc.")
+}
+
 func main() {
-	//zerolog.SetGlobalLevel(zerolog.InfoLevel) // Run 1
-	zerolog.SetGlobalLevel(zerolog.DebugLevel) // Run 2
+
+	flag.Parse()
+	zerolog.TimeFieldFormat = ""
+
+	// Set the logging level based on the command line flag
+	zerolog.SetGlobalLevel(level(lvl))
 
 	log.Debug().Msg("filtered out message")
 	log.Info().Msg("routed message")
@@ -106,16 +120,33 @@ func main() {
 		value := "bar"
 		e.Str("foo", value).Msg("some debug message")
 	}
-
 }
 
-// Output, Run 1: {"time":1516133856,"level":"info","message":"routed message"}
+func level(l string) zerolog.Level {
 
-// Output, Run 2: {"time":1516133955,"level":"debug","message":"filtered out message"}
-//                {"time":1516133955,"level":"info","message":"routed message"}
-//                {"time":1516133955,"level":"debug","foo":"bar","message":"some debug message"}
+	switch l {
+	case "debug":
+		return zerolog.DebugLevel
+	case "info":
+		return zerolog.InfoLevel
+	}
+	return zerolog.NoLevel
 
+}
 ```
+Debug Output
+```bash
+$ ./logLevelExample -level=debug
+{"time":1516329108,"level":"debug","message":"filtered out message"}
+{"time":1516329108,"level":"info","message":"routed message"}
+{"time":1516329108,"level":"debug","foo":"bar","message":"some debug message"}
+```
+Info Output
+```bash
+$ ./logLevelExample -level=info
+{"time":1516329482,"level":"info","message":"routed message"}
+```
+
 #### Logging Fatal Messages
 ```go
 package main
