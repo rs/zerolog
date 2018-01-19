@@ -20,7 +20,6 @@ func ExampleSimple() {
 	log.Print("hello world")
 
 	// Produces: {"time":1516134303,"level":"debug","message":"hello world"}
-
 }
 
 // Simple example of a log at a particular "level" (in this case, "info")
@@ -33,7 +32,6 @@ func ExampleSimpleLevelLog() {
 	log.Info().Msg("hello world")
 
 	// Produces: {"time":1516227604,"level":"info","message":"hello world"}
-
 }
 
 func ExampleNew() {
@@ -434,6 +432,4 @@ func ExampleFatal() {
 		Msgf("Cannot start %s", service)
 
 	// Produces: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
-	//         exit status 1
-
 }
