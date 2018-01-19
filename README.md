@@ -88,6 +88,8 @@ You can set the Global logging level to any of these options using the `SetGloba
 #### Setting Global Log Level
 This example uses command-line flags to demonstrate various outputs depending on the chosen log level.
 ```go
+package main
+
 import (
 	"flag"
 
@@ -96,21 +98,16 @@ import (
 )
 
 func main() {
+	zerolog.TimeFieldFormat = ""
 	debug := flag.Bool("debug", false, "sets log level to debug")
 
 	flag.Parse()
-	zerolog.TimeFieldFormat = ""
 
-	// Determine log level based on command line flag
-	// For this example, we set level to Info if Debug flag is not present
-	var lvl zerolog.Level
+	// Default level for this example is info, unless debug flag is present
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if *debug {
-		lvl = zerolog.DebugLevel
-	} else {
-		lvl = zerolog.InfoLevel
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
-
-	zerolog.SetGlobalLevel(lvl)
 
 	log.Debug().Msg("This message appears only when log level set to Debug")
 	log.Info().Msg("This message appears when log level set to Debug or Info")
