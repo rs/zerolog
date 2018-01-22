@@ -46,7 +46,6 @@ func main() {
 	zerolog.TimeFieldFormat = ""
 
 	log.Print("hello world")
-
 }
 
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
@@ -69,7 +68,6 @@ func main() {
 	zerolog.TimeFieldFormat = ""
 
 	log.Info().Msg("hello world")
-
 }
 
 // Output: {"time":1516134303,"level":"info","message":"hello world"}
@@ -154,7 +152,6 @@ func main() {
 		Err(err).
 		Str("service", service).
 		Msgf("Cannot start %s", service)
-
 }
 
 // Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
@@ -464,4 +461,3 @@ Log a static string, without any context or `printf`-style templating:
 | logrus | 1244 ns/op | 1505 B/op | 27 allocs/op |
 | apex/log | 2751 ns/op | 584 B/op | 11 allocs/op |
 | log15 | 5181 ns/op | 1592 B/op | 26 allocs/op |
-
