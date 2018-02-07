@@ -16,6 +16,9 @@ var (
 	// ErrorFieldName is the field name used for error fields.
 	ErrorFieldName = "error"
 
+	// CallerFieldName is the field name used for caller field.
+	CallerFieldName = "caller"
+
 	// TimeFieldFormat defines the time format of the Time field type.
 	// If set to an empty string, the time is formatted as an UNIX timestamp
 	// as integer.

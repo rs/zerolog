@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -559,5 +561,22 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 		return e.Object(key, obj)
 	}
 	e.buf = json.AppendInterface(json.AppendKey(e.buf, key), i)
+	return e
+}
+
+// Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
+func (e *Event) Caller() *Event {
+	return e.caller(2)
+}
+
+func (e *Event) caller(skip int) *Event {
+	if e == nil {
+		return e
+	}
+	_, file, line, ok := runtime.Caller(skip)
+	if !ok {
+		return e
+	}
+	e.buf = json.AppendString(json.AppendKey(e.buf, CallerFieldName), file+":"+strconv.Itoa(line))
 	return e
 }

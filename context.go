@@ -302,3 +302,17 @@ func (c Context) Interface(key string, i interface{}) Context {
 	c.l.context = json.AppendInterface(json.AppendKey(c.l.context, key), i)
 	return c
 }
+
+type callerHook struct{}
+
+func (ch callerHook) Run(e *Event, level Level, msg string) {
+	e.caller(4)
+}
+
+var ch = callerHook{}
+
+// Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
+func (c Context) Caller() Context {
+	c.l = c.l.Hook(ch)
+	return c
+}
