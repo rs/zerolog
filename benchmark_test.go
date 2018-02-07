@@ -215,3 +215,130 @@ func BenchmarkLogFieldType(b *testing.B) {
 		})
 	}
 }
+
+func BenchmarkContextFieldType(b *testing.B) {
+	oldFormat := TimeFieldFormat
+	TimeFieldFormat = ""
+	defer func() { TimeFieldFormat = oldFormat }()
+	bools := []bool{true, false, true, false, true, false, true, false, true, false}
+	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	floats := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	strings := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+	durations := []time.Duration{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	times := []time.Time{
+		time.Unix(0, 0),
+		time.Unix(1, 0),
+		time.Unix(2, 0),
+		time.Unix(3, 0),
+		time.Unix(4, 0),
+		time.Unix(5, 0),
+		time.Unix(6, 0),
+		time.Unix(7, 0),
+		time.Unix(8, 0),
+		time.Unix(9, 0),
+	}
+	interfaces := []struct {
+		Pub  string
+		Tag  string `json:"tag"`
+		priv int
+	}{
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+	}
+	objects := []obj{
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+		obj{"a", "a", 0},
+	}
+	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
+	types := map[string]func(c Context) Context{
+		"Bool": func(c Context) Context {
+			return c.Bool("k", bools[0])
+		},
+		"Bools": func(c Context) Context {
+			return c.Bools("k", bools)
+		},
+		"Int": func(c Context) Context {
+			return c.Int("k", ints[0])
+		},
+		"Ints": func(c Context) Context {
+			return c.Ints("k", ints)
+		},
+		"Float": func(c Context) Context {
+			return c.Float64("k", floats[0])
+		},
+		"Floats": func(c Context) Context {
+			return c.Floats64("k", floats)
+		},
+		"Str": func(c Context) Context {
+			return c.Str("k", strings[0])
+		},
+		"Strs": func(c Context) Context {
+			return c.Strs("k", strings)
+		},
+		"Err": func(c Context) Context {
+			return c.Err(errs[0])
+		},
+		"Errs": func(c Context) Context {
+			return c.Errs("k", errs)
+		},
+		"Time": func(c Context) Context {
+			return c.Time("k", times[0])
+		},
+		"Times": func(c Context) Context {
+			return c.Times("k", times)
+		},
+		"Dur": func(c Context) Context {
+			return c.Dur("k", durations[0])
+		},
+		"Durs": func(c Context) Context {
+			return c.Durs("k", durations)
+		},
+		"Interface": func(c Context) Context {
+			return c.Interface("k", interfaces[0])
+		},
+		"Interfaces": func(c Context) Context {
+			return c.Interface("k", interfaces)
+		},
+		"Interface(Object)": func(c Context) Context {
+			return c.Interface("k", objects[0])
+		},
+		"Interface(Objects)": func(c Context) Context {
+			return c.Interface("k", objects)
+		},
+		"Object": func(c Context) Context {
+			return c.Object("k", objects[0])
+		},
+		"Timestamp": func(c Context) Context {
+			return c.Timestamp()
+		},
+	}
+	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	for name := range types {
+		f := types[name]
+		b.Run(name, func(b *testing.B) {
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					l := f(logger.With()).Logger()
+					l.Info().Msg("")
+				}
+			})
+		})
+	}
+}
