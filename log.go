@@ -90,8 +90,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-
-	"github.com/rs/zerolog/internal/json"
 )
 
 // Level defines log levels.
@@ -193,9 +191,6 @@ func (l Logger) With() Context {
 	l.context = make([]byte, 0, 500)
 	if context != nil {
 		l.context = append(l.context, context...)
-	} else {
-		// first byte of context is presence of timestamp or not
-		l.context = append(l.context, 0)
 	}
 	return Context{l}
 }
@@ -208,7 +203,7 @@ func (l *Logger) UpdateContext(update func(c Context) Context) {
 		return
 	}
 	if cap(l.context) == 0 {
-		l.context = make([]byte, 1, 500) // first byte is timestamp flag
+		l.context = make([]byte, 0, 500)
 	}
 	c := update(Context{*l})
 	l.context = c.l.context
@@ -345,21 +340,15 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	}
 	e := newEvent(l.w, level, true)
 	e.done = done
-	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
-		// first byte of context is ts flag
-		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
-	}
+	e.ch = l.hooks
 	if level != NoLevel {
 		e.Str(LevelFieldName, level.String())
 	}
-	if l.context != nil && len(l.context) > 1 {
+	if len(l.context) > 0 {
 		if len(e.buf) > 1 {
 			e.buf = append(e.buf, ',')
 		}
-		e.buf = append(e.buf, l.context[1:]...)
-	}
-	if len(l.hooks) > 0 {
-		e.h = append(e.h, l.hooks...)
+		e.buf = append(e.buf, l.context...)
 	}
 	return e
 }

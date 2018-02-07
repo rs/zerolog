@@ -25,6 +25,7 @@ type Event struct {
 	w     LevelWriter
 	level Level
 	done  func(msg string)
+	ch    []Hook // hooks from context
 	h     []Hook
 }
 
@@ -76,6 +77,14 @@ func (e *Event) Enabled() bool {
 func (e *Event) Msg(msg string) {
 	if e == nil {
 		return
+	}
+	if len(e.ch) > 0 {
+		e.ch[0].Run(e, e.level, msg)
+		if len(e.ch) > 1 {
+			for _, hook := range e.ch[1:] {
+				hook.Run(e, e.level, msg)
+			}
+		}
 	}
 	if len(e.h) > 0 {
 		e.h[0].Run(e, e.level, msg)

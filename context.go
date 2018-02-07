@@ -258,14 +258,18 @@ func (c Context) Floats64(key string, f []float64) Context {
 	return c
 }
 
+type timestampHook struct{}
+
+func (ts timestampHook) Run(e *Event, level Level, msg string) {
+	e.Timestamp()
+}
+
+var th = timestampHook{}
+
 // Timestamp adds the current local time as UNIX timestamp to the logger context with the "time" key.
 // To customize the key name, change zerolog.TimestampFieldName.
 func (c Context) Timestamp() Context {
-	if len(c.l.context) > 0 {
-		c.l.context[0] = 1
-	} else {
-		c.l.context = append(c.l.context, 1)
-	}
+	c.l = c.l.Hook(th)
 	return c
 }
 
