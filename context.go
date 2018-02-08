@@ -316,3 +316,17 @@ func (c Context) Caller() Context {
 	c.l = c.l.Hook(ch)
 	return c
 }
+
+type stackTraceHook struct{}
+
+func (sh stackTraceHook) Run(e *Event, level Level, msg string) {
+	e.Stack()
+}
+
+var sh = callerHook{}
+
+// Stack enables stack trace printing for the error passed to Err().
+func (c Context) Stack() Context {
+	c.l = c.l.Hook(sh)
+	return c
+}

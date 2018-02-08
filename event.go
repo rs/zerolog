@@ -27,6 +27,7 @@ type Event struct {
 	w     LevelWriter
 	level Level
 	done  func(msg string)
+	stack bool   // enable error stack trace
 	ch    []Hook // hooks from context
 	h     []Hook
 }
@@ -242,13 +243,34 @@ func (e *Event) Errs(key string, errs []error) *Event {
 
 // Err adds the field "error" with err as a string to the *Event context.
 // If err is nil, no field is added.
+//
 // To customize the key name, change zerolog.ErrorFieldName.
+//
+// If Stack() has been called before and zerolog.ErrorStackMarshaler is defined,
+// the err is passed to ErrorStackMarshaler and the result is appended to the
+// zerolog.ErrorStackFieldName.
 func (e *Event) Err(err error) *Event {
 	if e == nil {
 		return e
 	}
+	if e.stack && ErrorStackMarshaler != nil {
+		s := ErrorStackMarshaler(err)
+		if len(s) > 0 {
+			e.buf = append(json.AppendKey(e.buf, ErrorStackFieldName), s...)
+		}
+	}
 	if err != nil {
 		e.buf = json.AppendError(json.AppendKey(e.buf, ErrorFieldName), err)
+	}
+	return e
+}
+
+// Stack enables stack trace printing for the error passed to Err().
+//
+// ErrorStackMarshaler must be set for this method to do something.
+func (e *Event) Stack() *Event {
+	if e != nil {
+		e.stack = true
 	}
 	return e
 }
