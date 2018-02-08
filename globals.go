@@ -22,6 +22,13 @@ var (
 	// CallerSkipFrameCount is the number of stack frames to skip to find the caller.
 	CallerSkipFrameCount = 2
 
+	// ErrorStackFieldName is the field name used for error stacks.
+	ErrorStackFieldName = "stack"
+
+	// ErrorStackMarshaler extract the stack from err if any, and returns it as
+	// a marshaled JSON.
+	ErrorStackMarshaler func(err error) []byte
+
 	// TimeFieldFormat defines the time format of the Time field type.
 	// If set to an empty string, the time is formatted as an UNIX timestamp
 	// as integer.

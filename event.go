@@ -30,6 +30,7 @@ type Event struct {
 	w     LevelWriter
 	level Level
 	done  func(msg string)
+	stack bool   // enable error stack trace
 	ch    []Hook // hooks from context
 }
 
@@ -316,6 +317,16 @@ func (e *Event) Errs(key string, errs []error) *Event {
 // To customize the key name, change zerolog.ErrorFieldName.
 func (e *Event) Err(err error) *Event {
 	return e.AnErr(ErrorFieldName, err)
+}
+
+// Stack enables stack trace printing for the error passed to Err().
+//
+// ErrorStackMarshaler must be set for this method to do something.
+func (e *Event) Stack() *Event {
+	if e != nil {
+		e.stack = true
+	}
+	return e
 }
 
 // Bool adds the field key with val as a bool to the *Event context.
