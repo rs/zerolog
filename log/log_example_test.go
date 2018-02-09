@@ -33,7 +33,7 @@ func ExamplePrint() {
 	setup()
 
 	log.Print("hello world")
-	// Output: {"time":1199811905,"level":"debug","message":"hello world"}
+	// Output: {"level":"debug","time":1199811905,"message":"hello world"}
 }
 
 // Simple logging example using the Printf function in the log package
@@ -41,7 +41,7 @@ func ExamplePrintf() {
 	setup()
 
 	log.Printf("hello %s", "world")
-	// Output: {"time":1199811905,"level":"debug","message":"hello world"}
+	// Output: {"level":"debug","time":1199811905,"message":"hello world"}
 }
 
 // Example of a log with no particular "level"
@@ -57,7 +57,7 @@ func ExampleDebug() {
 	setup()
 	log.Debug().Msg("hello world")
 
-	// Output: {"time":1199811905,"level":"debug","message":"hello world"}
+	// Output: {"level":"debug","time":1199811905,"message":"hello world"}
 }
 
 // Example of a log at a particular "level" (in this case, "info")
@@ -65,7 +65,7 @@ func ExampleInfo() {
 	setup()
 	log.Info().Msg("hello world")
 
-	// Output: {"time":1199811905,"level":"info","message":"hello world"}
+	// Output: {"level":"info","time":1199811905,"message":"hello world"}
 }
 
 // Example of a log at a particular "level" (in this case, "warn")
@@ -73,7 +73,7 @@ func ExampleWarn() {
 	setup()
 	log.Warn().Msg("hello world")
 
-	// Output: {"time":1199811905,"level":"warn","message":"hello world"}
+	// Output: {"level":"warn","time":1199811905,"message":"hello world"}
 }
 
 // Example of a log at a particular "level" (in this case, "error")
@@ -81,7 +81,7 @@ func ExampleError() {
 	setup()
 	log.Error().Msg("hello world")
 
-	// Output: {"time":1199811905,"level":"error","message":"hello world"}
+	// Output: {"level":"error","time":1199811905,"message":"hello world"}
 }
 
 // Example of a log at a particular "level" (in this case, "fatal")
@@ -95,7 +95,7 @@ func ExampleFatal() {
 		Str("service", service).
 		Msgf("Cannot start %s", service)
 
-	// Outputs: {"time":1199811905,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
+	// Outputs: {"level":"fatal","time":1199811905,"error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
 }
 
 // TODO: Panic
@@ -123,7 +123,7 @@ func ExampleLevelFlag() {
 		e.Str("foo", value).Msg("some debug message")
 	}
 
-	// Output: {"time":1199811905,"level":"info","message":"This message appears when log level set to Debug or Info"}
+	// Output: {"level":"info","time":1199811905,"message":"This message appears when log level set to Debug or Info"}
 }
 
 // TODO: Output
