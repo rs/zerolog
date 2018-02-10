@@ -32,6 +32,11 @@ func Sample(s zerolog.Sampler) zerolog.Logger {
 	return Logger.Sample(s)
 }
 
+// Hook returns a logger with the h Hook.
+func Hook(h zerolog.Hook) zerolog.Logger {
+	return Logger.Hook(h)
+}
+
 // Debug starts a new message with debug level.
 //
 // You must call Msg on the returned event in order to send the event.
@@ -74,6 +79,13 @@ func Fatal() *zerolog.Event {
 // You must call Msg on the returned event in order to send the event.
 func Panic() *zerolog.Event {
 	return Logger.Panic()
+}
+
+// WithLevel starts a new message with level.
+//
+// You must call Msg on the returned event in order to send the event.
+func WithLevel(level zerolog.Level) *zerolog.Event {
+	return Logger.WithLevel(level)
 }
 
 // Log starts a new message with no level. Setting zerolog.GlobalLevel to

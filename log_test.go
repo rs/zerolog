@@ -3,7 +3,9 @@ package zerolog
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -74,7 +76,7 @@ func TestInfo(t *testing.T) {
 
 func TestWith(t *testing.T) {
 	out := &bytes.Buffer{}
-	log := New(out).With().
+	ctx := New(out).With().
 		Str("foo", "bar").
 		AnErr("some_err", nil).
 		Err(errors.New("some error")).
@@ -91,10 +93,12 @@ func TestWith(t *testing.T) {
 		Uint64("uint64", 10).
 		Float32("float32", 11).
 		Float64("float64", 12).
-		Time("time", time.Time{}).
-		Logger()
+		Time("time", time.Time{})
+	_, file, line, _ := runtime.Caller(0)
+	caller := fmt.Sprintf("%s:%d", file, line+3)
+	log := ctx.Caller().Logger()
 	log.Log().Msg("")
-	if got, want := out.String(), `{"foo":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"time":"0001-01-01T00:00:00Z"}`+"\n"; got != want {
+	if got, want := out.String(), `{"foo":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -132,7 +136,10 @@ func TestFields(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
 	now := time.Now()
+	_, file, line, _ := runtime.Caller(0)
+	caller := fmt.Sprintf("%s:%d", file, line+3)
 	log.Log().
+		Caller().
 		Str("string", "foo").
 		Bytes("bytes", []byte("bar")).
 		AnErr("some_err", nil).
@@ -154,7 +161,7 @@ func TestFields(t *testing.T) {
 		Time("time", time.Time{}).
 		TimeDiff("diff", now, now.Add(-10*time.Second)).
 		Msg("")
-	if got, want := out.String(), `{"string":"foo","bytes":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
+	if got, want := out.String(), `{"caller":"`+caller+`","string":"foo","bytes":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -299,6 +306,42 @@ func TestLevel(t *testing.T) {
 		}
 	})
 
+	t.Run("NoLevel/Disabled", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(Disabled)
+		log.Log().Msg("test")
+		if got, want := out.String(), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("NoLevel/Info", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(InfoLevel)
+		log.Log().Msg("test")
+		if got, want := out.String(), `{"message":"test"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("NoLevel/Panic", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(PanicLevel)
+		log.Log().Msg("test")
+		if got, want := out.String(), `{"message":"test"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("NoLevel/WithLevel", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(InfoLevel)
+		log.WithLevel(NoLevel).Msg("test")
+		if got, want := out.String(), `{"message":"test"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
 	t.Run("Info", func(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Level(InfoLevel)
@@ -352,10 +395,12 @@ func TestLevelWriter(t *testing.T) {
 	log.Info().Msg("2")
 	log.Warn().Msg("3")
 	log.Error().Msg("4")
+	log.Log().Msg("nolevel-1")
 	log.WithLevel(DebugLevel).Msg("5")
 	log.WithLevel(InfoLevel).Msg("6")
 	log.WithLevel(WarnLevel).Msg("7")
 	log.WithLevel(ErrorLevel).Msg("8")
+	log.WithLevel(NoLevel).Msg("nolevel-2")
 
 	want := []struct {
 		l Level
@@ -365,10 +410,12 @@ func TestLevelWriter(t *testing.T) {
 		{InfoLevel, `{"level":"info","message":"2"}` + "\n"},
 		{WarnLevel, `{"level":"warn","message":"3"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"4"}` + "\n"},
+		{NoLevel, `{"message":"nolevel-1"}` + "\n"},
 		{DebugLevel, `{"level":"debug","message":"5"}` + "\n"},
 		{InfoLevel, `{"level":"info","message":"6"}` + "\n"},
 		{WarnLevel, `{"level":"warn","message":"7"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"8"}` + "\n"},
+		{NoLevel, `{"message":"nolevel-2"}` + "\n"},
 	}
 	if got := lw.ops; !reflect.DeepEqual(got, want) {
 		t.Errorf("invalid ops:\ngot:\n%v\nwant:\n%v", got, want)
@@ -386,7 +433,7 @@ func TestContextTimestamp(t *testing.T) {
 	log := New(out).With().Timestamp().Str("foo", "bar").Logger()
 	log.Log().Msg("hello world")
 
-	if got, want := out.String(), `{"time":"2001-02-03T04:05:06Z","foo":"bar","message":"hello world"}`+"\n"; got != want {
+	if got, want := out.String(), `{"foo":"bar","time":"2001-02-03T04:05:06Z","message":"hello world"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -430,7 +477,7 @@ func TestOutputWithTimestamp(t *testing.T) {
 	log := New(ignoredOut).Output(out).With().Timestamp().Str("foo", "bar").Logger()
 	log.Log().Msg("hello world")
 
-	if got, want := out.String(), `{"time":"2001-02-03T04:05:06Z","foo":"bar","message":"hello world"}`+"\n"; got != want {
+	if got, want := out.String(), `{"foo":"bar","time":"2001-02-03T04:05:06Z","message":"hello world"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }

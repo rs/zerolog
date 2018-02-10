@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -22,10 +24,12 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf      []byte
-	w        LevelWriter
-	level    Level
-	done     func(msg string)
+	buf   []byte
+	w     LevelWriter
+	level Level
+	done  func(msg string)
+	ch    []Hook // hooks from context
+	h     []Hook
 	isBinary bool
 }
 
@@ -47,6 +51,7 @@ func newEvent(w LevelWriter, level Level, enabled bool, isBinary bool) *Event {
 	}
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:0]
+	e.h = e.h[:0]
 	if isBinary {
 		e.buf = cbor.AppendBeginMarker(e.buf)
 	} else {
@@ -86,6 +91,22 @@ func (e *Event) Msg(msg string) {
 	if e == nil {
 		return
 	}
+	if len(e.ch) > 0 {
+		e.ch[0].Run(e, e.level, msg)
+		if len(e.ch) > 1 {
+			for _, hook := range e.ch[1:] {
+				hook.Run(e, e.level, msg)
+			}
+		}
+	}
+	if len(e.h) > 0 {
+		e.h[0].Run(e, e.level, msg)
+		if len(e.h) > 1 {
+			for _, hook := range e.h[1:] {
+				hook.Run(e, e.level, msg)
+			}
+		}
+	}
 	if msg != "" {
 		if e.isBinary {
 			e.buf = cbor.AppendString(cbor.AppendKey(e.buf, MessageFieldName), msg)
@@ -109,20 +130,7 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	if e == nil {
 		return
 	}
-	msg := fmt.Sprintf(format, v...)
-	if msg != "" {
-		if e.isBinary {
-			e.buf = cbor.AppendString(cbor.AppendKey(e.buf, MessageFieldName), msg)
-		} else {
-			e.buf = json.AppendString(json.AppendKey(e.buf, MessageFieldName), msg)
-		}
-	}
-	if e.done != nil {
-		defer e.done(msg)
-	}
-	if err := e.write(); err != nil {
-		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
-	}
+	e.Msg(fmt.Sprintf(format, v...))
 }
 
 // Fields is a helper function to use a map to set fields using type assertion.
@@ -761,5 +769,22 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 	} else {
 		e.buf = json.AppendInterface(json.AppendKey(e.buf, key), i)
 	}
+	return e
+}
+
+// Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
+func (e *Event) Caller() *Event {
+	return e.caller(2)
+}
+
+func (e *Event) caller(skip int) *Event {
+	if e == nil {
+		return e
+	}
+	_, file, line, ok := runtime.Caller(skip)
+	if !ok {
+		return e
+	}
+	e.buf = json.AppendString(json.AppendKey(e.buf, CallerFieldName), file+":"+strconv.Itoa(line))
 	return e
 }

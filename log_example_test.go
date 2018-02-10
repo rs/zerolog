@@ -1,7 +1,6 @@
 package zerolog_test
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -21,11 +20,9 @@ func ExampleNew() {
 
 func ExampleNewBinary() {
 	var b bytes.Buffer
-	writer := bufio.NewWriter(&b)
-	log := zerolog.NewBinary(writer)
+	log := zerolog.NewBinary(&b)
 
 	log.Info().Msg("hello world")
-	writer.Flush()
 	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
 	// Output: {"level":"info","message":"hello world"}
 }
@@ -60,6 +57,33 @@ func ExampleLogger_Sample() {
 
 	// Output: {"level":"info","message":"message 2"}
 	// {"level":"info","message":"message 4"}
+}
+
+type LevelNameHook struct{}
+
+func (h LevelNameHook) Run(e *zerolog.Event, l zerolog.Level, msg string) {
+	if l != zerolog.NoLevel {
+		e.Str("level_name", l.String())
+	} else {
+		e.Str("level_name", "NoLevel")
+	}
+}
+
+type MessageHook string
+
+func (h MessageHook) Run(e *zerolog.Event, l zerolog.Level, msg string) {
+	e.Str("the_message", msg)
+}
+
+func ExampleLogger_Hook() {
+	var levelNameHook LevelNameHook
+	var messageHook MessageHook = "The message"
+
+	log := zerolog.New(os.Stdout).Hook(levelNameHook).Hook(messageHook)
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","level_name":"info","the_message":"hello world","message":"hello world"}
 }
 
 func ExampleLogger_Print() {
@@ -179,8 +203,7 @@ func ExampleEvent_BinaryDict() {
 		Msg("hello world")
 
 	var b bytes.Buffer
-	writer := bufio.NewWriter(&b)
-	log = zerolog.NewBinary(writer)
+	log = zerolog.NewBinary(&b)
 
 	//Adding a json Dict to binary logger
 	log.Log().
@@ -190,7 +213,6 @@ func ExampleEvent_BinaryDict() {
 			Int("n", 1),
 		).
 		Msg("hello world")
-	writer.Flush()
 	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
 	// Output:
 	//{"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
@@ -281,9 +303,7 @@ func ExampleEvent_Interface() {
 
 func ExampleBinaryEvent_Interface() {
 	var b bytes.Buffer
-	writer := bufio.NewWriter(&b)
-
-	log := zerolog.NewBinary(writer)
+	log := zerolog.NewBinary(&b)
 
 	obj := struct {
 		Name string `json:"name"`
@@ -296,7 +316,6 @@ func ExampleBinaryEvent_Interface() {
 		Interface("obj", obj).
 		Msg("hello world")
 
-	writer.Flush()
 	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
@@ -411,15 +430,12 @@ func ExampleBinaryContext_Interface() {
 	}
 
 	var b bytes.Buffer
-	writer := bufio.NewWriter(&b)
-
-	log := zerolog.NewBinary(writer).With().
+	log := zerolog.New(&b).With().
 		Str("foo", "bar").
 		Interface("obj", obj).
 		Logger()
 
 	log.Log().Msg("hello world")
-	writer.Flush()
 	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
@@ -459,11 +475,9 @@ func ExampleArrBinary() {
 	a.Str("Testing")
 
 	var b bytes.Buffer
-	writer := bufio.NewWriter(&b)
-	log := zerolog.NewBinary(writer)
+	log := zerolog.NewBinary(&b)
 
 	log.Info().Array("Key:", a).Msg("hello world")
-	writer.Flush()
 	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
 	//Output:
 	//{"level":"info","Key:":[true,"Testing"],"message":"hello world"}
