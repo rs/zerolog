@@ -1,6 +1,8 @@
 package cbor
 
 import (
+	"encoding/json"
+	"fmt"
 	"math"
 )
 
@@ -370,8 +372,14 @@ func AppendFloats64(dst []byte, vals []float64) []byte {
 }
 
 func AppendInterface(dst []byte, i interface{}) []byte {
-	//TODO
-	return dst
+	//TODO - gotto use reflect to find out the contents and print accordingly
+	//For now we'll use JSON to reflect to a string - until we build
+	//a CBOR based reflection
+	marshaled, err := json.Marshal(i)
+	if err != nil {
+		return AppendString(dst, fmt.Sprintf("marshaling error: %v", err))
+	}
+	return AppendBytes(dst, marshaled)
 }
 
 func AppendObjectData(dst []byte, o []byte) []byte {

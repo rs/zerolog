@@ -4,19 +4,18 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	stdlog "log"
 	"os"
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/cbor"
 )
 
 func ExampleNew() {
 	log := zerolog.New(os.Stdout)
 
 	log.Info().Msg("hello world")
-
 	// Output: {"level":"info","message":"hello world"}
 }
 
@@ -27,7 +26,7 @@ func ExampleNewBinary() {
 
 	log.Info().Msg("hello world")
 	writer.Flush()
-	cbor.Cbor2JsonManyObjects(b.Bytes(), os.Stdout)
+	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
 	// Output: {"level":"info","message":"hello world"}
 }
 
@@ -167,6 +166,36 @@ func ExampleEvent_Dict() {
 
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
+func ExampleEvent_BinaryDict() {
+	log := zerolog.New(os.Stdout)
+
+	//Adding a Binary Dict to json logger
+	log.Log().
+		Str("foo", "bar").
+		Dict("dict", zerolog.BinaryDict(true).
+			Str("bar", "baz").
+			Int("n", 1),
+		).
+		Msg("hello world")
+
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+	log = zerolog.NewBinary(writer)
+
+	//Adding a json Dict to binary logger
+	log.Log().
+		Str("foo", "bar").
+		Dict("dict", zerolog.Dict().
+			Str("bar", "baz").
+			Int("n", 1),
+		).
+		Msg("hello world")
+	writer.Flush()
+	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
+	// Output:
+	//{"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+	//{"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+}
 
 type User struct {
 	Name    string
@@ -250,6 +279,27 @@ func ExampleEvent_Interface() {
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
 
+func ExampleBinaryEvent_Interface() {
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+
+	log := zerolog.NewBinary(writer)
+
+	obj := struct {
+		Name string `json:"name"`
+	}{
+		Name: "john",
+	}
+
+	log.Log().
+		Str("foo", "bar").
+		Interface("obj", obj).
+		Msg("hello world")
+
+	writer.Flush()
+	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
+	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
+}
 func ExampleEvent_Dur() {
 	d := time.Duration(10 * time.Second)
 
@@ -353,6 +403,26 @@ func ExampleContext_Interface() {
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
 
+func ExampleBinaryContext_Interface() {
+	obj := struct {
+		Name string `json:"name"`
+	}{
+		Name: "john",
+	}
+
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+
+	log := zerolog.NewBinary(writer).With().
+		Str("foo", "bar").
+		Interface("obj", obj).
+		Logger()
+
+	log.Log().Msg("hello world")
+	writer.Flush()
+	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
+	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
+}
 func ExampleContext_Dur() {
 	d := time.Duration(10 * time.Second)
 
@@ -380,4 +450,21 @@ func ExampleContext_Durs() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+}
+
+func ExampleArrBinary() {
+	a := zerolog.ArrBinary()
+
+	a.Bool(true)
+	a.Str("Testing")
+
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+	log := zerolog.NewBinary(writer)
+
+	log.Info().Array("Key:", a).Msg("hello world")
+	writer.Flush()
+	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
+	//Output:
+	//{"level":"info","Key:":[true,"Testing"],"message":"hello world"}
 }

@@ -19,7 +19,7 @@ func TestDecodeInteger(t *testing.T) {
 
 func TestDecodeString(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		got, _, err := decodeString([]byte(tt.binary))
+		got, _, err := decodeUTF8String([]byte(tt.binary))
 		if err != nil {
 			t.Errorf("Got Error for the case: %s", hex.EncodeToString([]byte(tt.binary)))
 		}
@@ -176,7 +176,7 @@ var compositeCborTestCases = []struct {
 func TestDecodeCbor2Json(t *testing.T) {
 	for _, tc := range compositeCborTestCases {
 		buf := bytes.NewBuffer([]byte{})
-		_, err := cbor2JsonManyObjects(tc.binary, buf)
+		_, err := Cbor2JsonManyObjects(tc.binary, buf)
 		if err != nil {
 			t.Errorf("cbor2JsonManyObjects(0x%s) returned error", err)
 		}

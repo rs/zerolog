@@ -32,7 +32,7 @@ func appendFloatTimestamp(dst []byte, t time.Time) []byte {
 	return AppendFloat64(dst, val)
 }
 
-func AppendTime(dst []byte, t time.Time) []byte {
+func AppendTime(dst []byte, t time.Time, unused string) []byte {
 	utc := t.UTC()
 	if utc.Nanosecond() == 0 {
 		return appendIntegerTimestamp(dst, utc)
@@ -40,7 +40,7 @@ func AppendTime(dst []byte, t time.Time) []byte {
 	return appendFloatTimestamp(dst, utc)
 }
 
-func AppendTimes(dst []byte, vals []time.Time) []byte {
+func AppendTimes(dst []byte, vals []time.Time, unused string) []byte {
 	major := majorTypeArray
 	l := len(vals)
 	if l == 0 {
@@ -54,7 +54,7 @@ func AppendTimes(dst []byte, vals []time.Time) []byte {
 	}
 
 	for _, t := range vals {
-		dst = AppendTime(dst, t)
+		dst = AppendTime(dst, t, unused)
 	}
 	return dst
 }

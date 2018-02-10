@@ -166,8 +166,28 @@ func decodeStringComplex(dst []byte, s string, pos uint) []byte {
 func decodeString(src []byte) ([]byte, uint, error) {
 	major := src[0] & maskOutAdditionalType
 	minor := src[0] & maskOutMajorType
-	if major != majorTypeUtf8String && major != majorTypeByteString {
+	if major != majorTypeByteString {
 		return []byte{}, 0, fmt.Errorf("Major type is: %d in decodeString", major)
+	}
+	result := []byte{}
+	length, bytesRead, err := decodeIntAdditonalType(src[1:], minor)
+	if err != nil {
+		return []byte{}, 0, err
+	}
+	bytesRead++
+	st := bytesRead
+	len := uint(length)
+	bytesRead += len
+
+	result = append(result, src[st:st+len]...)
+	return result, bytesRead, nil
+}
+
+func decodeUTF8String(src []byte) ([]byte, uint, error) {
+	major := src[0] & maskOutAdditionalType
+	minor := src[0] & maskOutMajorType
+	if major != majorTypeUtf8String {
+		return []byte{}, 0, fmt.Errorf("Major type is: %d in decodeUTF8String", major)
 	}
 	result := []byte{'"'}
 	length, bytesRead, err := decodeIntAdditonalType(src[1:], minor)
@@ -388,9 +408,11 @@ func cbor2JsonOneObject(src []byte, dst io.Writer) (uint, error) {
 		dst.Write([]byte(strconv.Itoa(int(n))))
 
 	case majorTypeByteString:
-		fallthrough
-	case majorTypeUtf8String:
 		s, bc, err = decodeString(src)
+		dst.Write(s)
+
+	case majorTypeUtf8String:
+		s, bc, err = decodeUTF8String(src)
 		dst.Write(s)
 
 	case majorTypeArray:

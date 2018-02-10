@@ -57,6 +57,20 @@ func BenchmarkContextFields(b *testing.B) {
 	})
 }
 
+func BenchmarkBinaryContextFields(b *testing.B) {
+	logger := NewBinary(ioutil.Discard).With().
+		Str("string", "four!").
+		Time("time", time.Time{}).
+		Int("int", 123).
+		Float32("float", -2.203230293249593).
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().Msg(fakeMessage)
+		}
+	})
+}
 func BenchmarkContextAppend(b *testing.B) {
 	logger := New(ioutil.Discard).With().
 		Str("foo", "bar").
@@ -69,8 +83,35 @@ func BenchmarkContextAppend(b *testing.B) {
 	})
 }
 
+func BenchmarkBinaryContextAppend(b *testing.B) {
+	logger := NewBinary(ioutil.Discard).With().
+		Str("foo", "bar").
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.With().Str("bar", "baz")
+		}
+	})
+}
+
 func BenchmarkLogFields(b *testing.B) {
 	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().
+				Str("string", "four!").
+				Time("time", time.Time{}).
+				Int("int", 123).
+				Float32("float", -2.203230293249593).
+				Msg(fakeMessage)
+		}
+	})
+}
+
+func BenchmarkBinaryLogFields(b *testing.B) {
+	logger := NewBinary(ioutil.Discard)
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

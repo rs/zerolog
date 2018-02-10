@@ -68,14 +68,16 @@
 package zerolog
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
 
-	"github.com/rs/zerolog/internal/json"
 	"github.com/rs/zerolog/internal/cbor"
+	"github.com/rs/zerolog/internal/json"
 )
 
 // Level defines log levels.
@@ -157,8 +159,12 @@ func NewBinary(w io.Writer) Logger {
 //By default we'll NOT do binary Logging
 var globalIsBinary = false
 
-//EnableBinaryMode sets Global Level Binary Mode Logging
-func EnableBinaryMode(enable bool) {
+//NewLoggerEncoder sets the encoding type (JSON or Binary) for
+//any logger/context Objects created after this call
+//enable = TRUE - means Binary Logging is ON
+//enable = FALSE - means JSON Logging is ON
+//It will NOT ALTER the encoding of objects already created
+func NewLoggerEncoder(enable bool) {
 	globalIsBinary = enable
 }
 
@@ -338,7 +344,7 @@ func (l *Logger) newEvent(level Level, addLevelField bool, done func(string)) *E
 	if l.context != nil && len(l.context) > 0 && l.context[0] > 0 {
 		// first byte of context is ts flag
 		if l.isBinary {
-			e.buf = cbor.AppendTime(e.buf, TimestampFunc())
+			e.buf = cbor.AppendTime(cbor.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 		} else {
 			e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 		}
@@ -365,4 +371,42 @@ func (l *Logger) should(lvl Level) bool {
 		return l.sampler.Sample(lvl)
 	}
 	return true
+}
+
+//Detect if the bytes to be printed is Binary or not
+//May be more robust method is needed here ?
+func binaryFmt(p []byte) bool {
+	if p[0] > 0x7F {
+		return true
+	}
+	return false
+}
+
+//DecodeIfBinaryToString - converts a binary formatted log msg to a
+//JSON formatted String Log message - suitable for printing to Console/Syslog etc
+func DecodeIfBinaryToString(in []byte) string {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		writer := bufio.NewWriter(&b)
+		cbor.Cbor2JsonManyObjects(in, writer)
+		writer.Flush()
+		return b.String()
+	}
+	return string(in)
+}
+
+//DecodeIfBinaryToBytes - converts a binary formatted log msg to a
+//JSON formatted Bytes Log message
+func DecodeIfBinaryToBytes(in []byte, isFinal bool) []byte {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		writer := bufio.NewWriter(&b)
+		cbor.Cbor2JsonManyObjects(in, writer)
+		writer.Flush()
+		if isFinal {
+			return append(b.Bytes(), '\n')
+		}
+		return b.Bytes()
+	}
+	return in
 }

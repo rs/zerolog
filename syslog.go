@@ -2,7 +2,9 @@
 
 package zerolog
 
-import "io"
+import (
+	"io"
+)
 
 // SyslogWriter is an interface matching a syslog.Writer struct.
 type SyslogWriter interface {
@@ -26,11 +28,13 @@ func SyslogLevelWriter(w SyslogWriter) LevelWriter {
 }
 
 func (sw syslogWriter) Write(p []byte) (n int, err error) {
+	p = DecodeIfBinaryToBytes(p, true)
 	return sw.w.Write(p)
 }
 
 // WriteLevel implements LevelWriter interface.
 func (sw syslogWriter) WriteLevel(level Level, p []byte) (n int, err error) {
+	p = DecodeIfBinaryToBytes(p, true)
 	switch level {
 	case DebugLevel:
 		err = sw.w.Debug(string(p))

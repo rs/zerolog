@@ -4,10 +4,11 @@ import (
 	"sort"
 	"time"
 
+	"github.com/rs/zerolog/internal/cbor"
 	"github.com/rs/zerolog/internal/json"
 )
 
-func appendFields(dst []byte, fields map[string]interface{}) []byte {
+func appendFieldsText(dst []byte, fields map[string]interface{}) []byte {
 	keys := make([]string, 0, len(fields))
 	for key := range fields {
 		keys = append(keys, key)
@@ -90,6 +91,94 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 			dst = append(dst, "null"...)
 		default:
 			dst = json.AppendInterface(dst, val)
+		}
+	}
+	return dst
+}
+
+func appendFieldsBinary(dst []byte, fields map[string]interface{}) []byte {
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		dst = cbor.AppendKey(dst, key)
+		switch val := fields[key].(type) {
+		case string:
+			dst = cbor.AppendString(dst, val)
+		case []byte:
+			dst = cbor.AppendBytes(dst, val)
+		case error:
+			dst = cbor.AppendError(dst, val)
+		case []error:
+			dst = cbor.AppendErrors(dst, val)
+		case bool:
+			dst = cbor.AppendBool(dst, val)
+		case int:
+			dst = cbor.AppendInt(dst, val)
+		case int8:
+			dst = cbor.AppendInt8(dst, val)
+		case int16:
+			dst = cbor.AppendInt16(dst, val)
+		case int32:
+			dst = cbor.AppendInt32(dst, val)
+		case int64:
+			dst = cbor.AppendInt64(dst, val)
+		case uint:
+			dst = cbor.AppendUint(dst, val)
+		case uint8:
+			dst = cbor.AppendUint8(dst, val)
+		case uint16:
+			dst = cbor.AppendUint16(dst, val)
+		case uint32:
+			dst = cbor.AppendUint32(dst, val)
+		case uint64:
+			dst = cbor.AppendUint64(dst, val)
+		case float32:
+			dst = cbor.AppendFloat32(dst, val)
+		case float64:
+			dst = cbor.AppendFloat64(dst, val)
+		case time.Time:
+			dst = cbor.AppendTime(dst, val, TimeFieldFormat)
+		case time.Duration:
+			dst = cbor.AppendDuration(dst, val, DurationFieldUnit, DurationFieldInteger)
+		case []string:
+			dst = cbor.AppendStrings(dst, val)
+		case []bool:
+			dst = cbor.AppendBools(dst, val)
+		case []int:
+			dst = cbor.AppendInts(dst, val)
+		case []int8:
+			dst = cbor.AppendInts8(dst, val)
+		case []int16:
+			dst = cbor.AppendInts16(dst, val)
+		case []int32:
+			dst = cbor.AppendInts32(dst, val)
+		case []int64:
+			dst = cbor.AppendInts64(dst, val)
+		case []uint:
+			dst = cbor.AppendUints(dst, val)
+		// case []uint8:
+		// 	dst = appendUints8(dst, val)
+		case []uint16:
+			dst = cbor.AppendUints16(dst, val)
+		case []uint32:
+			dst = cbor.AppendUints32(dst, val)
+		case []uint64:
+			dst = cbor.AppendUints64(dst, val)
+		case []float32:
+			dst = cbor.AppendFloats32(dst, val)
+		case []float64:
+			dst = cbor.AppendFloats64(dst, val)
+		case []time.Time:
+			dst = cbor.AppendTimes(dst, val, TimeFieldFormat)
+		case []time.Duration:
+			dst = cbor.AppendDurations(dst, val, DurationFieldUnit, DurationFieldInteger)
+		case nil:
+			dst = append(dst, "null"...)
+		default:
+			dst = cbor.AppendInterface(dst, val)
 		}
 	}
 	return dst

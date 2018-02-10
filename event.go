@@ -130,7 +130,11 @@ func (e *Event) Fields(fields map[string]interface{}) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = appendFields(e.buf, fields)
+	if e.isBinary {
+		e.buf = appendFieldsBinary(e.buf, fields)
+	} else {
+		e.buf = appendFieldsText(e.buf, fields)
+	}
 	return e
 }
 
@@ -141,14 +145,28 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 		return e
 	}
 	if e.isBinary != dict.isBinary {
-		//TODO convert dict to the needed format and add to e
+		//Close the existing Dict with appropriate end marker
+		//And append to the destination
+		if e.isBinary {
+			//Adding json Dict to binary event
+			dict.buf = json.AppendEndMarker(dict.buf, false)
+			e.buf = cbor.AppendBytes(cbor.AppendKey(e.buf, key), dict.buf)
+		} else {
+			//Adding Binary Dict to json logger context
+			//Lets convert binary dict to json right now
+			dict.buf = cbor.AppendEndMarker(dict.buf, false)
+			b := DecodeIfBinaryToBytes(dict.buf, false)
+			e.buf = append(json.AppendKey(e.buf, key), b...)
+		}
+		eventPool.Put(dict)
+		return e
 	}
 	if e.isBinary {
+		dict.buf = cbor.AppendEndMarker(dict.buf, false)
 		e.buf = append(cbor.AppendKey(e.buf, key), dict.buf...)
-		e.buf = cbor.AppendEndMarker(e.buf, false)
 	} else {
+		dict.buf = json.AppendEndMarker(dict.buf, false)
 		e.buf = append(json.AppendKey(e.buf, key), dict.buf...)
-		e.buf = json.AppendEndMarker(e.buf, false)
 	}
 	eventPool.Put(dict)
 	return e
@@ -652,7 +670,7 @@ func (e *Event) Timestamp() *Event {
 		return e
 	}
 	if e.isBinary {
-		e.buf = cbor.AppendTime(e.buf, TimestampFunc())
+		e.buf = cbor.AppendTime(cbor.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 	} else {
 		e.buf = json.AppendTime(json.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 	}
@@ -665,7 +683,7 @@ func (e *Event) Time(key string, t time.Time) *Event {
 		return e
 	}
 	if e.isBinary {
-		e.buf = cbor.AppendTime(cbor.AppendKey(e.buf, key), t)
+		e.buf = cbor.AppendTime(cbor.AppendKey(e.buf, key), t, TimeFieldFormat)
 	} else {
 		e.buf = json.AppendTime(json.AppendKey(e.buf, key), t, TimeFieldFormat)
 	}
@@ -678,7 +696,7 @@ func (e *Event) Times(key string, t []time.Time) *Event {
 		return e
 	}
 	if e.isBinary {
-		e.buf = cbor.AppendTimes(cbor.AppendKey(e.buf, key), t)
+		e.buf = cbor.AppendTimes(cbor.AppendKey(e.buf, key), t, TimeFieldFormat)
 	} else {
 		e.buf = json.AppendTimes(json.AppendKey(e.buf, key), t, TimeFieldFormat)
 	}
@@ -738,6 +756,10 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 	if obj, ok := i.(LogObjectMarshaler); ok {
 		return e.Object(key, obj)
 	}
-	e.buf = json.AppendInterface(json.AppendKey(e.buf, key), i)
+	if e.isBinary {
+		e.buf = cbor.AppendInterface(cbor.AppendKey(e.buf, key), i)
+	} else {
+		e.buf = json.AppendInterface(json.AppendKey(e.buf, key), i)
+	}
 	return e
 }
