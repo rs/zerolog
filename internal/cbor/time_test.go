@@ -32,16 +32,15 @@ var timeIntegerTestcases = []struct {
 	binary string
 	rfcStr string
 }{
-	{"Feb 3, 2013 at 7:54pm (PST)", "\xc1\x1a\x51\x0f\x30\xd8", "2013-02-03T19:54:00-08:00"},
-	{"Feb 3, 1950 at 7:54pm (PST)", "\xc1\x3a\x25\x71\x93\xa7", "1950-02-03T19:54:00-08:00"},
+	{"2013-02-03T19:54:00-08:00", "\xc1\x1a\x51\x0f\x30\xd8", "2013-02-04T03:54:00Z"},
+	{"1950-02-03T19:54:00-08:00", "\xc1\x3a\x25\x71\x93\xa7", "1950-02-04T03:54:00Z"},
 }
 
 func TestAppendTimePastPresentInteger(t *testing.T) {
-	const timeIntegerFmt = "Jan 2, 2006 at 3:04pm (MST)"
 	for _, tt := range timeIntegerTestcases {
-		tin, err := time.Parse(timeIntegerFmt, tt.txt)
+		tin, err := time.Parse(time.RFC3339, tt.txt)
 		if err != nil {
-			fmt.Println("Cannot parse input", tt.txt, ".. Skipping!")
+			fmt.Println("Cannot parse input", tt.txt, ".. Skipping!", err)
 			continue
 		}
 		b := AppendTime([]byte{}, tin, "unused")
@@ -83,11 +82,10 @@ func BenchmarkAppendTime(b *testing.B) {
 		"Integer": "Feb 3, 2013 at 7:54pm (PST)",
 		"Float":   "2006-01-02T15:04:05.999999-08:00",
 	}
-	const timeIntegerFmt = "Jan 2, 2006 at 3:04pm (MST)"
 	const timeFloatFmt = "2006-01-02T15:04:05.999999-07:00"
 
 	for name, str := range tests {
-		t, err := time.Parse(timeIntegerFmt, str)
+		t, err := time.Parse(time.RFC3339, str)
 		if err != nil {
 			t, _ = time.Parse(timeFloatFmt, str)
 		}

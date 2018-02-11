@@ -9,6 +9,8 @@ import (
 	"unicode/utf8"
 )
 
+var decodeTimeZone *time.Location
+
 func decodeIntAdditonalType(src []byte, minor byte) (int64, uint, error) {
 	val := int64(0)
 	bytesRead := 0
@@ -331,6 +333,9 @@ func decodeTagData(src []byte) ([]byte, uint, error) {
 				return []byte{}, 0, err
 			}
 			t := time.Unix(n, 0)
+			if decodeTimeZone != nil {
+				t = t.In(decodeTimeZone)
+			}
 			tsb := t.AppendFormat([]byte{}, IntegerTimeFieldFormat)
 			return tsb, 1 + 1 + 4, nil
 		} else if tsMajor == majorTypeSimpleAndFloat {
@@ -342,6 +347,9 @@ func decodeTagData(src []byte) ([]byte, uint, error) {
 			n -= float64(secs)
 			n *= float64(1e9)
 			t := time.Unix(secs, int64(n))
+			if decodeTimeZone != nil {
+				t = t.In(decodeTimeZone)
+			}
 			tsb := t.AppendFormat([]byte{}, NanoTimeFieldFormat)
 			return tsb, 1 + bc, nil
 		} else {

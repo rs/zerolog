@@ -139,6 +139,7 @@ func TestDecodeFloat(t *testing.T) {
 }
 
 func TestDecodeTimestamp(t *testing.T) {
+	decodeTimeZone,_ = time.LoadLocation("UTC")
 	for _, tc := range timeIntegerTestcases {
 		tm, _, err := decodeTagData([]byte(tc.binary))
 		if err != nil {
