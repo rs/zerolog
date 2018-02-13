@@ -78,6 +78,7 @@ func TestWith(t *testing.T) {
 	out := &bytes.Buffer{}
 	ctx := New(out).With().
 		Str("foo", "bar").
+		RawJSON("json", []byte(`{"some":"json"}`)).
 		AnErr("some_err", nil).
 		Err(errors.New("some error")).
 		Bool("bool", true).
@@ -98,7 +99,7 @@ func TestWith(t *testing.T) {
 	caller := fmt.Sprintf("%s:%d", file, line+3)
 	log := ctx.Caller().Logger()
 	log.Log().Msg("")
-	if got, want := out.String(), `{"foo":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
+	if got, want := out.String(), `{"foo":"bar","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -142,6 +143,7 @@ func TestFields(t *testing.T) {
 		Caller().
 		Str("string", "foo").
 		Bytes("bytes", []byte("bar")).
+		RawJSON("json", []byte(`{"some":"json"}`)).
 		AnErr("some_err", nil).
 		Err(errors.New("some error")).
 		Bool("bool", true).
@@ -161,7 +163,7 @@ func TestFields(t *testing.T) {
 		Time("time", time.Time{}).
 		TimeDiff("diff", now, now.Add(-10*time.Second)).
 		Msg("")
-	if got, want := out.String(), `{"caller":"`+caller+`","string":"foo","bytes":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
+	if got, want := out.String(), `{"caller":"`+caller+`","string":"foo","bytes":"bar","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }

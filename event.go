@@ -218,6 +218,15 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 	return e
 }
 
+// RawJSON adds already encoded JSON to the log line under key.
+//
+// No sanity check is performed on b; it must not contain carriage returns and
+// be valid JSON.
+func (e *Event) RawJSON(key string, b []byte) *Event {
+	e.buf = append(json.AppendKey(e.buf, key), b...)
+	return e
+}
+
 // AnErr adds the field key with err as a string to the *Event context.
 // If err is nil, no field is added.
 func (e *Event) AnErr(key string, err error) *Event {
