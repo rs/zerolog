@@ -48,6 +48,7 @@ func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	obj.MarshalZerologObject(e)
 	e.buf = append(e.buf, '}')
 	a.buf = append(a.buf, e.buf...)
+	eventPool.Put(e)
 	return a
 }
 

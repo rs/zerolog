@@ -96,6 +96,22 @@ func (o obj) MarshalZerologObject(e *Event) {
 		Int("priv", o.priv)
 }
 
+func BenchmarkLogArrayObject(b *testing.B) {
+	obj1 := obj{"a", "b", 2}
+	obj2 := obj{"c", "d", 3}
+	obj3 := obj{"e", "f", 4}
+	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		arr := Arr()
+		arr.Object(&obj1)
+		arr.Object(&obj2)
+		arr.Object(&obj3)
+		logger.Info().Array("objects", arr).Msg("test")
+	}
+}
+
 func BenchmarkLogFieldType(b *testing.B) {
 	bools := []bool{true, false, true, false, true, false, true, false, true, false}
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
