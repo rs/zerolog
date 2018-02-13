@@ -2,7 +2,6 @@ package zerolog
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strconv"
@@ -61,7 +60,9 @@ func (e *Event) write() (err error) {
 		return nil
 	}
 	e.buf = append(e.buf, '}', '\n')
-	_, err = e.w.WriteLevel(e.level, e.buf)
+	if e.w != nil {
+		_, err = e.w.WriteLevel(e.level, e.buf)
+	}
 	eventPool.Put(e)
 	return
 }
@@ -142,7 +143,7 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 // Call usual field methods like Str, Int etc to add fields to this
 // event and give it as argument the *Event.Dict method.
 func Dict() *Event {
-	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
+	return newEvent(nil, 0, true)
 }
 
 // Array adds the field key with an array to the event context.
