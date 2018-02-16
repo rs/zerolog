@@ -74,6 +74,7 @@ func (a *Array) Object(obj LogObjectMarshaler) *Array {
 		e.buf = json.AppendEndMarker(e.buf, false)
 	}
 	a.buf = append(a.buf, e.buf...)
+	eventPool.Put(e)
 	return a
 }
 

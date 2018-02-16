@@ -2,7 +2,6 @@ package zerolog
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strconv"
@@ -72,7 +71,9 @@ func (e *Event) write() (err error) {
 	} else {
 		e.buf = json.AppendEndMarker(e.buf, true)
 	}
-	_, err = e.w.WriteLevel(e.level, e.buf)
+	if e.w != nil {
+		_, err = e.w.WriteLevel(e.level, e.buf)
+	}
 	eventPool.Put(e)
 	return
 }
@@ -184,13 +185,13 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 // Call usual field methods like Str, Int etc to add fields to this
 // event and give it as argument the *Event.Dict method.
 func Dict() *Event {
-	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true, globalIsBinary)
+	return newEvent(nil, 0, true, globalIsBinary)
 }
 
 //BinaryDict is a variant of Dict() call - except that it takes a
 //parameter whether to enable binary or not.
 func BinaryDict(isBinary bool) *Event {
-	return newEvent(levelWriterAdapter{ioutil.Discard}, 0, true, isBinary)
+	return newEvent(nil, 0, true, isBinary)
 }
 
 // Array adds the field key with an array to the event context.
@@ -283,6 +284,15 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 	} else {
 		e.buf = json.AppendBytes(json.AppendKey(e.buf, key), val)
 	}
+	return e
+}
+
+// RawJSON adds already encoded JSON to the log line under key.
+//
+// No sanity check is performed on b; it must not contain carriage returns and
+// be valid JSON.
+func (e *Event) RawJSON(key string, b []byte) *Event {
+	e.buf = append(json.AppendKey(e.buf, key), b...)
 	return e
 }
 

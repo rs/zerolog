@@ -111,6 +111,15 @@ func (c Context) Bytes(key string, val []byte) Context {
 	return c
 }
 
+// RawJSON adds already encoded JSON to context.
+//
+// No sanity check is performed on b; it must not contain carriage returns and
+// be valid JSON.
+func (c Context) RawJSON(key string, b []byte) Context {
+	c.l.context = append(json.AppendKey(c.l.context, key), b...)
+	return c
+}
+
 // AnErr adds the field key with err as a string to the logger context.
 func (c Context) AnErr(key string, err error) Context {
 	if err != nil {

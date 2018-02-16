@@ -76,8 +76,15 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 			} else {
 				buf.WriteString(value)
 			}
-		default:
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 			fmt.Fprint(buf, value)
+		default:
+			b, err := json.Marshal(value)
+			if err != nil {
+				fmt.Fprintf(buf, "[error: %v]", err)
+			} else {
+				fmt.Fprint(buf, string(b))
+			}
 		}
 	}
 	buf.WriteByte('\n')
