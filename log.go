@@ -93,7 +93,6 @@ import (
 	"strconv"
 
 	"github.com/rs/zerolog/internal/cbor"
-	"github.com/rs/zerolog/internal/json"
 )
 
 // Level defines log levels.
@@ -149,7 +148,6 @@ type Logger struct {
 	sampler Sampler
 	context []byte
 	hooks   []Hook
-	isBinary bool
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -167,26 +165,7 @@ func New(w io.Writer) Logger {
 	if !ok {
 		lw = levelWriterAdapter{w}
 	}
-	return Logger{w: lw, isBinary: globalIsBinary}
-}
-
-//NewBinary creates a root Binary Logger
-func NewBinary(w io.Writer) Logger {
-	l := New(w)
-	l.isBinary = true
-	return l
-}
-
-//By default we'll NOT do binary Logging
-var globalIsBinary = false
-
-//NewLoggerEncoder sets the encoding type (JSON or Binary) for
-//any logger/context Objects created after this call
-//enable = TRUE - means Binary Logging is ON
-//enable = FALSE - means JSON Logging is ON
-//It will NOT ALTER the encoding of objects already created
-func NewLoggerEncoder(enable bool) {
-	globalIsBinary = enable
+	return Logger{w: lw}
 }
 
 // Nop returns a disabled logger for which all operation are no-op.
@@ -362,20 +341,14 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	if !enabled {
 		return nil
 	}
-	e := newEvent(l.w, level, true, l.isBinary)
+	e := newEvent(l.w, level, true)
 	e.done = done
 	e.ch = l.hooks
 	if level != NoLevel {
 		e.Str(LevelFieldName, level.String())
 	}
 	if l.context != nil && len(l.context) > 0 {
-		if l.isBinary {
-			//we keep the map begin Character in context - we 
-			//don't need to copy that - so skip first char
-			e.buf = cbor.AppendObjectData(e.buf, l.context[1:])
-		} else {
-			e.buf = json.AppendObjectData(e.buf, l.context)
-		}
+		e.buf = appendObjectData(e.buf, l.context)
 	}
 	return e
 }

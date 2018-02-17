@@ -3,9 +3,6 @@ package zerolog
 import (
 	"io/ioutil"
 	"time"
-
-	"github.com/rs/zerolog/internal/cbor"
-	"github.com/rs/zerolog/internal/json"
 )
 
 // Context configures a new sub-logger with contextual fields.
@@ -20,34 +17,14 @@ func (c Context) Logger() Logger {
 
 // Fields is a helper function to use a map to set fields using type assertion.
 func (c Context) Fields(fields map[string]interface{}) Context {
-	if c.l.isBinary {
-		c.l.context = appendFieldsBinary(c.l.context, fields)
-	} else {
-		c.l.context = appendFieldsText(c.l.context, fields)
-	}
+	c.l.context = appendFields(c.l.context, fields)
 	return c
 }
 
 // Dict adds the field key with the dict to the logger context.
 func (c Context) Dict(key string, dict *Event) Context {
-	dict.buf = json.AppendEndMarker(dict.buf, false)
-	if c.l.isBinary != dict.isBinary {
-		if c.l.isBinary {
-			//Adding json Dict to binary Logger Context
-			c.l.context = cbor.AppendBytes(cbor.AppendKey(c.l.context, key), dict.buf)
-		} else {
-			//Adding Binary Dict to json logger context
-			//Lets convert binary dict to json right now
-			b := DecodeIfBinaryToBytes(dict.buf, false)
-			c.l.context = append(json.AppendKey(c.l.context, key), b...)
-		}
-		return c
-	}
-	if c.l.isBinary {
-		c.l.context = append(cbor.AppendKey(c.l.context, key), dict.buf...)
-	} else {
-		c.l.context = append(json.AppendKey(c.l.context, key), dict.buf...)
-	}
+	dict.buf = appendEndMarker(dict.buf, false)
+	c.l.context = append(appendKey(c.l.context, key), dict.buf...)
 	eventPool.Put(dict)
 	return c
 }
@@ -56,7 +33,7 @@ func (c Context) Dict(key string, dict *Event) Context {
 // Use zerolog.Arr() to create the array or pass a type that
 // implement the LogArrayMarshaler interface.
 func (c Context) Array(key string, arr LogArrayMarshaler) Context {
-	c.l.context = json.AppendKey(c.l.context, key)
+	c.l.context = appendKey(c.l.context, key)
 	if arr, ok := arr.(*Array); ok {
 		c.l.context = arr.write(c.l.context)
 		return c
@@ -74,40 +51,28 @@ func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (c Context) Object(key string, obj LogObjectMarshaler) Context {
-	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true, c.l.isBinary)
+	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
 	e.Object(key, obj)
-	c.l.context = json.AppendObjectData(c.l.context, e.buf)
+	c.l.context = appendObjectData(c.l.context, e.buf)
 	eventPool.Put(e)
 	return c
 }
 
 // Str adds the field key with val as a string to the logger context.
 func (c Context) Str(key, val string) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendString(cbor.AppendKey(c.l.context, key), val)
-	} else {
-		c.l.context = json.AppendString(json.AppendKey(c.l.context, key), val)
-	}
+	c.l.context = appendString(appendKey(c.l.context, key), val)
 	return c
 }
 
 // Strs adds the field key with val as a string to the logger context.
 func (c Context) Strs(key string, vals []string) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendStrings(cbor.AppendKey(c.l.context, key), vals)
-	} else {
-		c.l.context = json.AppendStrings(json.AppendKey(c.l.context, key), vals)
-	}
+	c.l.context = appendStrings(appendKey(c.l.context, key), vals)
 	return c
 }
 
 // Bytes adds the field key with val as a []byte to the logger context.
 func (c Context) Bytes(key string, val []byte) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendBytes(cbor.AppendKey(c.l.context, key), val)
-	} else {
-		c.l.context = json.AppendBytes(json.AppendKey(c.l.context, key), val)
-	}
+	c.l.context = appendBytes(appendKey(c.l.context, key), val)
 	return c
 }
 
@@ -116,29 +81,21 @@ func (c Context) Bytes(key string, val []byte) Context {
 // No sanity check is performed on b; it must not contain carriage returns and
 // be valid JSON.
 func (c Context) RawJSON(key string, b []byte) Context {
-	c.l.context = append(json.AppendKey(c.l.context, key), b...)
+	c.l.context = appendJson(appendKey(c.l.context, key), b)
 	return c
 }
 
 // AnErr adds the field key with err as a string to the logger context.
 func (c Context) AnErr(key string, err error) Context {
 	if err != nil {
-		if c.l.isBinary {
-			c.l.context = cbor.AppendError(cbor.AppendKey(c.l.context, key), err)
-		} else {
-			c.l.context = json.AppendError(json.AppendKey(c.l.context, key), err)
-		}
+		c.l.context = appendError(appendKey(c.l.context, key), err)
 	}
 	return c
 }
 
 // Errs adds the field key with errs as an array of strings to the logger context.
 func (c Context) Errs(key string, errs []error) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendErrors(cbor.AppendKey(c.l.context, key), errs)
-	} else {
-		c.l.context = json.AppendErrors(json.AppendKey(c.l.context, key), errs)
-	}
+	c.l.context = appendErrors(appendKey(c.l.context, key), errs)
 	return c
 }
 
@@ -150,261 +107,157 @@ func (c Context) Err(err error) Context {
 
 // Bool adds the field key with val as a bool to the logger context.
 func (c Context) Bool(key string, b bool) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendBool(cbor.AppendKey(c.l.context, key), b)
-	} else {
-		c.l.context = json.AppendBool(json.AppendKey(c.l.context, key), b)
-	}
+	c.l.context = appendBool(appendKey(c.l.context, key), b)
 	return c
 }
 
 // Bools adds the field key with val as a []bool to the logger context.
 func (c Context) Bools(key string, b []bool) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendBools(cbor.AppendKey(c.l.context, key), b)
-	} else {
-		c.l.context = json.AppendBools(json.AppendKey(c.l.context, key), b)
-	}
+	c.l.context = appendBools(appendKey(c.l.context, key), b)
 	return c
 }
 
 // Int adds the field key with i as a int to the logger context.
 func (c Context) Int(key string, i int) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInt(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInt(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInt(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Ints adds the field key with i as a []int to the logger context.
 func (c Context) Ints(key string, i []int) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInts(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInts(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInts(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Int8 adds the field key with i as a int8 to the logger context.
 func (c Context) Int8(key string, i int8) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInt8(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInt8(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInt8(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Ints8 adds the field key with i as a []int8 to the logger context.
 func (c Context) Ints8(key string, i []int8) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInts8(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInts8(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInts8(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Int16 adds the field key with i as a int16 to the logger context.
 func (c Context) Int16(key string, i int16) Context {
-	if c.l.isBinary {
-		c.l.context = json.AppendInt16(json.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInt16(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInt16(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Ints16 adds the field key with i as a []int16 to the logger context.
 func (c Context) Ints16(key string, i []int16) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInts16(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInts16(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInts16(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Int32 adds the field key with i as a int32 to the logger context.
 func (c Context) Int32(key string, i int32) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInt32(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInt32(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInt32(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Ints32 adds the field key with i as a []int32 to the logger context.
 func (c Context) Ints32(key string, i []int32) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInts32(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInts32(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInts32(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Int64 adds the field key with i as a int64 to the logger context.
 func (c Context) Int64(key string, i int64) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInt64(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInt64(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInt64(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Ints64 adds the field key with i as a []int64 to the logger context.
 func (c Context) Ints64(key string, i []int64) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInts64(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInts64(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInts64(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uint adds the field key with i as a uint to the logger context.
 func (c Context) Uint(key string, i uint) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUint(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUint(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUint(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uints adds the field key with i as a []uint to the logger context.
 func (c Context) Uints(key string, i []uint) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUints(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUints(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUints(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uint8 adds the field key with i as a uint8 to the logger context.
 func (c Context) Uint8(key string, i uint8) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUint8(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUint8(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUint8(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uints8 adds the field key with i as a []uint8 to the logger context.
 func (c Context) Uints8(key string, i []uint8) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUints8(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUints8(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUints8(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uint16 adds the field key with i as a uint16 to the logger context.
 func (c Context) Uint16(key string, i uint16) Context {
-	if c.l.isBinary {
-		c.l.context = json.AppendUint16(json.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUint16(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUint16(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uints16 adds the field key with i as a []uint16 to the logger context.
 func (c Context) Uints16(key string, i []uint16) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUints16(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUints16(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUints16(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uint32 adds the field key with i as a uint32 to the logger context.
 func (c Context) Uint32(key string, i uint32) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUint32(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUint32(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUint32(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uints32 adds the field key with i as a []uint32 to the logger context.
 func (c Context) Uints32(key string, i []uint32) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUints32(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUints32(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUints32(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uint64 adds the field key with i as a uint64 to the logger context.
 func (c Context) Uint64(key string, i uint64) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUint64(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUint64(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUint64(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Uints64 adds the field key with i as a []uint64 to the logger context.
 func (c Context) Uints64(key string, i []uint64) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendUints64(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendUints64(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendUints64(appendKey(c.l.context, key), i)
 	return c
 }
 
 // Float32 adds the field key with f as a float32 to the logger context.
 func (c Context) Float32(key string, f float32) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendFloat32(cbor.AppendKey(c.l.context, key), f)
-	} else {
-		c.l.context = json.AppendFloat32(json.AppendKey(c.l.context, key), f)
-	}
+	c.l.context = appendFloat32(appendKey(c.l.context, key), f)
 	return c
 }
 
 // Floats32 adds the field key with f as a []float32 to the logger context.
 func (c Context) Floats32(key string, f []float32) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendFloats32(cbor.AppendKey(c.l.context, key), f)
-	} else {
-		c.l.context = json.AppendFloats32(json.AppendKey(c.l.context, key), f)
-	}
+	c.l.context = appendFloats32(appendKey(c.l.context, key), f)
 	return c
 }
 
 // Float64 adds the field key with f as a float64 to the logger context.
 func (c Context) Float64(key string, f float64) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendFloat64(cbor.AppendKey(c.l.context, key), f)
-	} else {
-		c.l.context = json.AppendFloat64(json.AppendKey(c.l.context, key), f)
-	}
+	c.l.context = appendFloat64(appendKey(c.l.context, key), f)
 	return c
 }
 
 // Floats64 adds the field key with f as a []float64 to the logger context.
 func (c Context) Floats64(key string, f []float64) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendFloats64(cbor.AppendKey(c.l.context, key), f)
-	} else {
-		c.l.context = json.AppendFloats64(json.AppendKey(c.l.context, key), f)
-	}
+	c.l.context = appendFloats64(appendKey(c.l.context, key), f)
 	return c
 }
 
@@ -425,51 +278,31 @@ func (c Context) Timestamp() Context {
 
 // Time adds the field key with t formated as string using zerolog.TimeFieldFormat.
 func (c Context) Time(key string, t time.Time) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendTime(cbor.AppendKey(c.l.context, key), t, TimeFieldFormat)
-	} else {
-		c.l.context = json.AppendTime(json.AppendKey(c.l.context, key), t, TimeFieldFormat)
-	}
+	c.l.context = appendTime(appendKey(c.l.context, key), t, TimeFieldFormat)
 	return c
 }
 
 // Times adds the field key with t formated as string using zerolog.TimeFieldFormat.
 func (c Context) Times(key string, t []time.Time) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendTimes(cbor.AppendKey(c.l.context, key), t, TimeFieldFormat)
-	} else {
-		c.l.context = json.AppendTimes(json.AppendKey(c.l.context, key), t, TimeFieldFormat)
-	}
+	c.l.context = appendTimes(appendKey(c.l.context, key), t, TimeFieldFormat)
 	return c
 }
 
 // Dur adds the fields key with d divided by unit and stored as a float.
 func (c Context) Dur(key string, d time.Duration) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendDuration(cbor.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
-	} else {
-		c.l.context = json.AppendDuration(json.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
-	}
+	c.l.context = appendDuration(appendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
 	return c
 }
 
 // Durs adds the fields key with d divided by unit and stored as a float.
 func (c Context) Durs(key string, d []time.Duration) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendDurations(cbor.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
-	} else {
-		c.l.context = json.AppendDurations(json.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
-	}
+	c.l.context = appendDurations(appendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
 	return c
 }
 
 // Interface adds the field key with obj marshaled using reflection.
 func (c Context) Interface(key string, i interface{}) Context {
-	if c.l.isBinary {
-		c.l.context = cbor.AppendInterface(cbor.AppendKey(c.l.context, key), i)
-	} else {
-		c.l.context = json.AppendInterface(json.AppendKey(c.l.context, key), i)
-	}
+	c.l.context = appendInterface(appendKey(c.l.context, key), i)
 	return c
 }
 

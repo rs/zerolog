@@ -1,9 +1,9 @@
+// +build !enable_binary_log
+
 package zerolog_test
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	stdlog "log"
 	"os"
 	"time"
@@ -15,15 +15,6 @@ func ExampleNew() {
 	log := zerolog.New(os.Stdout)
 
 	log.Info().Msg("hello world")
-	// Output: {"level":"info","message":"hello world"}
-}
-
-func ExampleNewBinary() {
-	var b bytes.Buffer
-	log := zerolog.NewBinary(&b)
-
-	log.Info().Msg("hello world")
-	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
 	// Output: {"level":"info","message":"hello world"}
 }
 
@@ -190,34 +181,6 @@ func ExampleEvent_Dict() {
 
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
-func ExampleEvent_BinaryDict() {
-	log := zerolog.New(os.Stdout)
-
-	//Adding a Binary Dict to json logger
-	log.Log().
-		Str("foo", "bar").
-		Dict("dict", zerolog.BinaryDict(true).
-			Str("bar", "baz").
-			Int("n", 1),
-		).
-		Msg("hello world")
-
-	var b bytes.Buffer
-	log = zerolog.NewBinary(&b)
-
-	//Adding a json Dict to binary logger
-	log.Log().
-		Str("foo", "bar").
-		Dict("dict", zerolog.Dict().
-			Str("bar", "baz").
-			Int("n", 1),
-		).
-		Msg("hello world")
-	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
-	// Output:
-	//{"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
-	//{"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
-}
 
 type User struct {
 	Name    string
@@ -301,24 +264,6 @@ func ExampleEvent_Interface() {
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
 
-func ExampleBinaryEvent_Interface() {
-	var b bytes.Buffer
-	log := zerolog.NewBinary(&b)
-
-	obj := struct {
-		Name string `json:"name"`
-	}{
-		Name: "john",
-	}
-
-	log.Log().
-		Str("foo", "bar").
-		Interface("obj", obj).
-		Msg("hello world")
-
-	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
-	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
-}
 func ExampleEvent_Dur() {
 	d := time.Duration(10 * time.Second)
 
@@ -422,23 +367,6 @@ func ExampleContext_Interface() {
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
 }
 
-func ExampleBinaryContext_Interface() {
-	obj := struct {
-		Name string `json:"name"`
-	}{
-		Name: "john",
-	}
-
-	var b bytes.Buffer
-	log := zerolog.New(&b).With().
-		Str("foo", "bar").
-		Interface("obj", obj).
-		Logger()
-
-	log.Log().Msg("hello world")
-	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
-	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
-}
 func ExampleContext_Dur() {
 	d := time.Duration(10 * time.Second)
 
@@ -466,19 +394,4 @@ func ExampleContext_Durs() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
-}
-
-func ExampleArrBinary() {
-	a := zerolog.ArrBinary()
-
-	a.Bool(true)
-	a.Str("Testing")
-
-	var b bytes.Buffer
-	log := zerolog.NewBinary(&b)
-
-	log.Info().Array("Key:", a).Msg("hello world")
-	fmt.Println(zerolog.DecodeIfBinaryToString(b.Bytes()))
-	//Output:
-	//{"level":"info","Key:":[true,"Testing"],"message":"hello world"}
 }
