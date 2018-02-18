@@ -43,8 +43,8 @@ func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	e := Dict()
 	obj.MarshalZerologObject(e)
 	e.buf = appendEndMarker(e.buf, false)
-	a.buf = appendArrayDelim(a.buf)
-	a.buf = append(a.buf, e.buf...)
+	a.buf = append(appendArrayDelim(a.buf), e.buf...)
+	eventPool.Put(e)
 	return a
 }
 

@@ -12,7 +12,7 @@ import (
 var eventPool = &sync.Pool{
 	New: func() interface{} {
 		return &Event{
-			buf: make([]byte, 0, 1500),
+			buf: make([]byte, 0, 500),
 		}
 	},
 }
