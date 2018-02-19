@@ -53,7 +53,7 @@ var encodeStringTests = []struct {
 	{"emoji \u2764\ufe0f!", `"emoji ❤️!"`},
 }
 
-func TestappendString(t *testing.T) {
+func TestAppendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
 		b := AppendString([]byte{}, tt.in)
 		if got, want := string(b), tt.out; got != want {
@@ -62,7 +62,7 @@ func TestappendString(t *testing.T) {
 	}
 }
 
-func TestappendBytes(t *testing.T) {
+func TestAppendBytes(t *testing.T) {
 	for _, tt := range encodeStringTests {
 		b := AppendBytes([]byte{}, []byte(tt.in))
 		if got, want := string(b), tt.out; got != want {
@@ -108,7 +108,7 @@ func TestStringBytes(t *testing.T) {
 	}
 }
 
-func BenchmarkappendString(b *testing.B) {
+func BenchmarkAppendString(b *testing.B) {
 	tests := map[string]string{
 		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 		"EncodingFirst":    `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
@@ -128,7 +128,7 @@ func BenchmarkappendString(b *testing.B) {
 	}
 }
 
-func BenchmarkappendBytes(b *testing.B) {
+func BenchmarkAppendBytes(b *testing.B) {
 	tests := map[string]string{
 		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 		"EncodingFirst":    `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
