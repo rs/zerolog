@@ -3,7 +3,6 @@
 package zerolog
 
 import (
-	"bytes"
 	"time"
 
 	"github.com/rs/zerolog/internal/cbor"
@@ -196,42 +195,18 @@ func appendNil(dst []byte) []byte {
 	return cbor.AppendNull(dst)
 }
 
-//Detect if the bytes to be printed is Binary or not
-//May be more robust method is needed here ?
-func binaryFmt(p []byte) bool {
-	if len(p) > 0 && p[0] > 0x7F {
-		return true
-	}
-	return false
-}
-
 //decodeIfBinaryToString - converts a binary formatted log msg to a
 //JSON formatted String Log message - suitable for printing to Console/Syslog etc
 func decodeIfBinaryToString(in []byte) string {
-	if binaryFmt(in) {
-		var b bytes.Buffer
-		cbor.Cbor2JsonManyObjects(in, &b)
-		return b.String()
-	}
-	return string(in)
+	return cbor.DecodeIfBinaryToString(in)
 }
 
 func decodeObjectToStr(in []byte) string {
-	if binaryFmt(in) {
-		var b bytes.Buffer
-		cbor.Cbor2JsonOneObject(in, &b)
-		return b.String()
-	}
-	return string(in)
+	return cbor.DecodeObjectToStr(in)
 }
 
 //decodeIfBinaryToBytes - converts a binary formatted log msg to a
 //JSON formatted Bytes Log message
 func decodeIfBinaryToBytes(in []byte) []byte {
-	if binaryFmt(in) {
-		var b bytes.Buffer
-		cbor.Cbor2JsonManyObjects(in, &b)
-		return b.Bytes()
-	}
-	return in
+	return cbor.DecodeIfBinaryToBytes(in)
 }

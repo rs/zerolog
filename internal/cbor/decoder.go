@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"time"
+	"bytes"
 	"unicode/utf8"
 )
 
@@ -487,4 +488,44 @@ func Cbor2JsonManyObjects(src []byte, dst io.Writer) (uint, error) {
 		curPos += bc
 	}
 	return curPos, nil
+}
+
+//Detect if the bytes to be printed is Binary or not
+//May be more robust method is needed here ?
+func binaryFmt(p []byte) bool {
+	if len(p) > 0 && p[0] > 0x7F {
+		return true
+	}
+	return false
+}
+
+//decodeIfBinaryToString - converts a binary formatted log msg to a
+//JSON formatted String Log message - suitable for printing to Console/Syslog etc
+func DecodeIfBinaryToString(in []byte) string {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		Cbor2JsonManyObjects(in, &b)
+		return b.String()
+	}
+	return string(in)
+}
+
+func DecodeObjectToStr(in []byte) string {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		Cbor2JsonOneObject(in, &b)
+		return b.String()
+	}
+	return string(in)
+}
+
+//decodeIfBinaryToBytes - converts a binary formatted log msg to a
+//JSON formatted Bytes Log message
+func DecodeIfBinaryToBytes(in []byte) []byte {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		Cbor2JsonManyObjects(in, &b)
+		return b.Bytes()
+	}
+	return in
 }

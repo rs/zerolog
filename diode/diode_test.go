@@ -7,21 +7,25 @@ import (
 	"os"
 	"testing"
 	"time"
+	"bytes"
 
 	diodes "code.cloudfoundry.org/go-diodes"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
+	"github.com/rs/zerolog/internal/cbor"
 )
 
 func ExampleNewWriter() {
 	d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
 		fmt.Printf("Dropped %d messages\n", missed)
 	}))
-	w := diode.NewWriter(os.Stdout, d, 10*time.Millisecond)
+	buf := bytes.Buffer{}
+	w := diode.NewWriter(&buf, d, 10*time.Millisecond)
 	log := zerolog.New(w)
 	log.Print("test")
 
 	w.Close()
+	fmt.Println(cbor.DecodeIfBinaryToString(buf.Bytes()))
 
 	// Output: {"level":"debug","message":"test"}
 }
