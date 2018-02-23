@@ -3,7 +3,9 @@
 package zerolog
 
 import (
+	"bytes"
 	"time"
+
 	"github.com/rs/zerolog/internal/cbor"
 )
 
@@ -151,8 +153,13 @@ func appendTime(dst []byte, t time.Time, fmt string) []byte {
 	return cbor.AppendTime(dst, t, fmt)
 }
 
-func appendEndMarker(dst []byte, b bool) []byte {
-	return cbor.AppendEndMarker(dst, b)
+func appendEndMarker(dst []byte) []byte {
+	return cbor.AppendEndMarker(dst)
+}
+
+func appendLineBreak(dst []byte) []byte {
+	//No line breaks in binary
+	return dst
 }
 
 func appendBeginMarker(dst []byte) []byte {
@@ -182,5 +189,49 @@ func appendObjectData(dst []byte, src []byte) []byte {
 }
 
 func appendJson(dst []byte, j []byte) []byte {
-	return cbor.AppendBytes(dst, j)
+	return cbor.AppendEmbeddedJSON(dst, j)
+}
+
+func appendNil(dst []byte) []byte {
+	return cbor.AppendNull(dst)
+}
+
+//Detect if the bytes to be printed is Binary or not
+//May be more robust method is needed here ?
+func binaryFmt(p []byte) bool {
+	if len(p) > 0 && p[0] > 0x7F {
+		return true
+	}
+	return false
+}
+
+//decodeIfBinaryToString - converts a binary formatted log msg to a
+//JSON formatted String Log message - suitable for printing to Console/Syslog etc
+func decodeIfBinaryToString(in []byte) string {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		cbor.Cbor2JsonManyObjects(in, &b)
+		return b.String()
+	}
+	return string(in)
+}
+
+func decodeObjectToStr(in []byte) string {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		cbor.Cbor2JsonOneObject(in, &b)
+		return b.String()
+	}
+	return string(in)
+}
+
+//decodeIfBinaryToBytes - converts a binary formatted log msg to a
+//JSON formatted Bytes Log message
+func decodeIfBinaryToBytes(in []byte) []byte {
+	if binaryFmt(in) {
+		var b bytes.Buffer
+		cbor.Cbor2JsonManyObjects(in, &b)
+		return b.Bytes()
+	}
+	return in
 }

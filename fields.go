@@ -85,7 +85,7 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case []time.Duration:
 			dst = appendDurations(dst, val, DurationFieldUnit, DurationFieldInteger)
 		case nil:
-			dst = append(dst, "null"...)
+			dst = appendNil(dst)
 		default:
 			dst = appendInterface(dst, val)
 		}

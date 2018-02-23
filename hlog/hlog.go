@@ -1,3 +1,5 @@
+// +build !enable_binary_log
+
 // Package hlog provides a set of http.Handler helpers for zerolog.
 package hlog
 

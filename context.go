@@ -23,7 +23,7 @@ func (c Context) Fields(fields map[string]interface{}) Context {
 
 // Dict adds the field key with the dict to the logger context.
 func (c Context) Dict(key string, dict *Event) Context {
-	dict.buf = appendEndMarker(dict.buf, false)
+	dict.buf = appendEndMarker(dict.buf)
 	c.l.context = append(appendKey(c.l.context, key), dict.buf...)
 	eventPool.Put(dict)
 	return c

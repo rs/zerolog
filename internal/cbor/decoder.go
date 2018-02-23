@@ -165,13 +165,16 @@ func decodeStringComplex(dst []byte, s string, pos uint) []byte {
 	return dst
 }
 
-func decodeString(src []byte) ([]byte, uint, error) {
+func decodeString(src []byte, noQuotes bool) ([]byte, uint, error) {
 	major := src[0] & maskOutAdditionalType
 	minor := src[0] & maskOutMajorType
 	if major != majorTypeByteString {
 		return []byte{}, 0, fmt.Errorf("Major type is: %d in decodeString", major)
 	}
-	result := []byte{}
+	result := []byte{'"'}
+	if noQuotes {
+		result = []byte{}
+	}
 	length, bytesRead, err := decodeIntAdditonalType(src[1:], minor)
 	if err != nil {
 		return []byte{}, 0, err
@@ -182,7 +185,10 @@ func decodeString(src []byte) ([]byte, uint, error) {
 	bytesRead += len
 
 	result = append(result, src[st:st+len]...)
-	return result, bytesRead, nil
+	if noQuotes {
+		return result, bytesRead, nil
+	}
+	return append(result, '"'), bytesRead, nil
 }
 
 func decodeUTF8String(src []byte) ([]byte, uint, error) {
@@ -245,8 +251,12 @@ func array2Json(src []byte, dst io.Writer) (uint, error) {
 	}
 	curPos := bytesRead
 	for i := 0; unSpecifiedCount || i < len; i++ {
-		bc, err := cbor2JsonOneObject(src[curPos:], dst)
+		bc, err := Cbor2JsonOneObject(src[curPos:], dst)
 		if err != nil {
+			if src[curPos] == byte(majorTypeSimpleAndFloat|additionalTypeBreak) {
+				bytesRead++
+				break
+			}
 			return 0, err
 		}
 		curPos += bc
@@ -294,8 +304,13 @@ func map2Json(src []byte, dst io.Writer) (uint, error) {
 	dst.Write([]byte{'{'})
 	curPos := bytesRead
 	for i := 0; unSpecifiedCount || i < len; i++ {
-		bc, err := cbor2JsonOneObject(src[curPos:], dst)
+		bc, err := Cbor2JsonOneObject(src[curPos:], dst)
 		if err != nil {
+			//We hit the BREAK
+			if src[curPos] == byte(majorTypeSimpleAndFloat|additionalTypeBreak) {
+				bytesRead++
+				break
+			}
 			return 0, err
 		}
 		curPos += bc
@@ -328,16 +343,21 @@ func decodeTagData(src []byte) ([]byte, uint, error) {
 	if minor == additionalTypeTimestamp {
 		tsMajor := src[1] & maskOutAdditionalType
 		if tsMajor == majorTypeUnsignedInt || tsMajor == majorTypeNegativeInt {
-			n, _, err := decodeInteger(src[1:])
+			n, bc, err := decodeInteger(src[1:])
 			if err != nil {
 				return []byte{}, 0, err
 			}
 			t := time.Unix(n, 0)
 			if decodeTimeZone != nil {
 				t = t.In(decodeTimeZone)
+			} else {
+				t = t.In(time.UTC)
 			}
-			tsb := t.AppendFormat([]byte{}, IntegerTimeFieldFormat)
-			return tsb, 1 + 1 + 4, nil
+			tsb := []byte{}
+			tsb = append(tsb, '"')
+			tsb = t.AppendFormat(tsb, IntegerTimeFieldFormat)
+			tsb = append(tsb, '"')
+			return tsb, 1 + bc, nil
 		} else if tsMajor == majorTypeSimpleAndFloat {
 			n, bc, err := decodeFloat(src[1:])
 			if err != nil {
@@ -349,12 +369,27 @@ func decodeTagData(src []byte) ([]byte, uint, error) {
 			t := time.Unix(secs, int64(n))
 			if decodeTimeZone != nil {
 				t = t.In(decodeTimeZone)
+			} else {
+				t = t.In(time.UTC)
 			}
-			tsb := t.AppendFormat([]byte{}, NanoTimeFieldFormat)
+			tsb := []byte{}
+			tsb = append(tsb, '"')
+			tsb = t.AppendFormat(tsb, NanoTimeFieldFormat)
+			tsb = append(tsb, '"')
 			return tsb, 1 + bc, nil
 		} else {
 			return nil, 0, fmt.Errorf("TS format is neigther int nor float: %d", tsMajor)
 		}
+	} else if minor == additionalTypeEmbeddedJSON {
+		dataMajor := src[1] & maskOutAdditionalType
+		if dataMajor == majorTypeByteString {
+			emb, bc, err := decodeString(src[1:], true)
+			if err != nil {
+				return nil, 0, err
+			}
+			return emb, 1 + bc, nil
+		}
+		return nil, 0, fmt.Errorf("Unsupported embedded Type: %d in decodeEmbeddedJSON", dataMajor)
 	}
 	return nil, 0, fmt.Errorf("Unsupported Additional Type: %d in decodeTagData", minor)
 }
@@ -402,7 +437,7 @@ func decodeSimpleFloat(src []byte) ([]byte, uint, error) {
 	}
 }
 
-func cbor2JsonOneObject(src []byte, dst io.Writer) (uint, error) {
+func Cbor2JsonOneObject(src []byte, dst io.Writer) (uint, error) {
 	var err error
 	major := (src[0] & maskOutAdditionalType)
 	bc := uint(0)
@@ -416,7 +451,7 @@ func cbor2JsonOneObject(src []byte, dst io.Writer) (uint, error) {
 		dst.Write([]byte(strconv.Itoa(int(n))))
 
 	case majorTypeByteString:
-		s, bc, err = decodeString(src)
+		s, bc, err = decodeString(src, false)
 		dst.Write(s)
 
 	case majorTypeUtf8String:
@@ -444,10 +479,11 @@ func Cbor2JsonManyObjects(src []byte, dst io.Writer) (uint, error) {
 	curPos := uint(0)
 	totalBytes := uint(len(src))
 	for curPos < totalBytes {
-		bc, err := cbor2JsonOneObject(src[curPos:], dst)
+		bc, err := Cbor2JsonOneObject(src[curPos:], dst)
 		if err != nil {
 			return curPos, err
 		}
+		dst.Write([]byte("\n"))
 		curPos += bc
 	}
 	return curPos, nil

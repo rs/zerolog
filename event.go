@@ -57,7 +57,8 @@ func (e *Event) write() (err error) {
 	if e == nil {
 		return nil
 	}
-	e.buf = appendEndMarker(e.buf, true)
+	e.buf = appendEndMarker(e.buf)
+	e.buf = appendLineBreak(e.buf)
 	if e.w != nil {
 		_, err = e.w.WriteLevel(e.level, e.buf)
 	}
@@ -132,7 +133,7 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	if e == nil {
 		return e
 	}
-	dict.buf = appendEndMarker(dict.buf, false)
+	dict.buf = appendEndMarker(dict.buf)
 	e.buf = append(appendKey(e.buf, key), dict.buf...)
 	eventPool.Put(dict)
 	return e
@@ -167,7 +168,7 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 func (e *Event) appendObject(obj LogObjectMarshaler) {
 	e.buf = appendBeginMarker(e.buf)
 	obj.MarshalZerologObject(e)
-	e.buf = appendEndMarker(e.buf, false)
+	e.buf = appendEndMarker(e.buf)
 }
 
 // Object marshals an object that implement the LogObjectMarshaler interface.

@@ -14,7 +14,7 @@ var arrayPool = &sync.Pool{
 }
 
 type Array struct {
-	buf      []byte
+	buf []byte
 }
 
 // Arr creates an array to be added to an Event or Context.
@@ -42,7 +42,7 @@ func (a *Array) write(dst []byte) []byte {
 func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	e := Dict()
 	obj.MarshalZerologObject(e)
-	e.buf = appendEndMarker(e.buf, false)
+	e.buf = appendEndMarker(e.buf)
 	a.buf = append(appendArrayDelim(a.buf), e.buf...)
 	eventPool.Put(e)
 	return a

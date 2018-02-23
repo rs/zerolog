@@ -40,3 +40,20 @@ func AppendBytes(dst, s []byte) []byte {
 	}
 	return append(dst, s...)
 }
+
+func AppendEmbeddedJSON(dst, s []byte) []byte {
+	major := majorTypeTags
+	minor := additionalTypeEmbeddedJSON
+	dst = append(dst, byte(major|minor))
+
+	major = majorTypeByteString
+
+	l := len(s)
+	if l <= additionalMax {
+		lb := byte(l)
+		dst = append(dst, byte(major|lb))
+	} else {
+		dst = appendCborTypePrefix(dst, major, uint64(l))
+	}
+	return append(dst, s...)
+}

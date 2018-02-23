@@ -1,11 +1,9 @@
-// +build !enable_binary_log
-
 package zerolog
 
 import (
-	"testing"
 	"bytes"
 	"io/ioutil"
+	"testing"
 )
 
 type LevelNameHook struct{}
@@ -53,7 +51,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook)
 		log.Log().Msg("test message")
-		if got, want := out.String(), `{"level_name":"nolevel","message":"test message"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level_name":"nolevel","message":"test message"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -61,7 +59,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook)
 		log.Log().Msg("")
-		if got, want := out.String(), `{"level_name":"nolevel"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level_name":"nolevel"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -69,7 +67,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook)
 		log.Print("")
-		if got, want := out.String(), `{"level":"debug","level_name":"debug"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"debug","level_name":"debug"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -77,7 +75,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","level_name":"error"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -85,7 +83,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(copyHook)
 		log.Log().Msg("")
-		if got, want := out.String(), `{"copy_has_level":false,"copy_msg":""}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"copy_has_level":false,"copy_msg":""}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -93,7 +91,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(copyHook)
 		log.Info().Msg("a message")
-		if got, want := out.String(), `{"level":"info","copy_has_level":true,"copy_level":"info","copy_msg":"a message","message":"a message"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","copy_has_level":true,"copy_level":"info","copy_msg":"a message","message":"a message"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -101,7 +99,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook).Hook(simpleHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -109,7 +107,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook).Hook(simpleHook)
 		log.Error().Msg("a message")
-		if got, want := out.String(), `{"level":"error","level_name":"error","has_level":true,"test":"logged","message":"a message"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error","has_level":true,"test":"logged","message":"a message"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -118,7 +116,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(ignored).Hook(levelNameHook).Output(out)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","level_name":"error"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -127,7 +125,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(ignored).Output(out).Hook(levelNameHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","level_name":"error"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -136,7 +134,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(ignored).Hook(levelNameHook).Hook(simpleHook).Output(out)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -145,7 +143,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(ignored).Output(out).Hook(levelNameHook).Hook(simpleHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -154,7 +152,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(ignored).Hook(levelNameHook).Output(out).Hook(simpleHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -162,7 +160,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook).With().Str("with", "pre").Logger()
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","with":"pre","level_name":"error"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","with":"pre","level_name":"error"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -170,7 +168,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).With().Str("with", "post").Logger().Hook(levelNameHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","with":"post","level_name":"error"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","with":"post","level_name":"error"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -178,7 +176,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook).Hook(simpleHook).With().Str("with", "pre").Logger()
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","with":"pre","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","with":"pre","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -186,7 +184,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).With().Str("with", "post").Logger().Hook(levelNameHook).Hook(simpleHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","with":"post","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","with":"post","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -194,7 +192,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out).Hook(levelNameHook).With().Str("with", "mixed").Logger().Hook(simpleHook)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error","with":"mixed","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error","with":"mixed","level_name":"error","has_level":true,"test":"logged"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
@@ -202,7 +200,7 @@ func TestHook(t *testing.T) {
 		out := &bytes.Buffer{}
 		log := New(out)
 		log.Error().Msg("")
-		if got, want := out.String(), `{"level":"error"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"error"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})

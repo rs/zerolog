@@ -139,13 +139,13 @@ func TestDecodeFloat(t *testing.T) {
 }
 
 func TestDecodeTimestamp(t *testing.T) {
-	decodeTimeZone,_ = time.LoadLocation("UTC")
+	decodeTimeZone, _ = time.LoadLocation("UTC")
 	for _, tc := range timeIntegerTestcases {
 		tm, _, err := decodeTagData([]byte(tc.binary))
 		if err != nil {
 			t.Errorf("decodeTagData(0x%s) returned error: %s", hex.EncodeToString([]byte(tc.binary)), err.Error())
 		}
-		if string(tm) != tc.rfcStr {
+		if string(tm) != "\""+tc.rfcStr+"\"" {
 			t.Errorf("decodeFloat(0x%s)=%s, want:%s", hex.EncodeToString([]byte(tc.binary)), tm, tc.rfcStr)
 		}
 	}
@@ -170,8 +170,8 @@ var compositeCborTestCases = []struct {
 	binary []byte
 	json   string
 }{
-	{[]byte("\xbf\x64IETF\x20\x65Array\x9f\x20\x00\x18\xc8\x14\xff\xff"), "{\"IETF\":-1,\"Array\":[-1,0,200,20]}"},
-	{[]byte("\xbf\x64IETF\x64YES!\x65Array\x9f\x20\x00\x18\xc8\x14\xff\xff"), "{\"IETF\":\"YES!\",\"Array\":[-1,0,200,20]}"},
+	{[]byte("\xbf\x64IETF\x20\x65Array\x9f\x20\x00\x18\xc8\x14\xff\xff"), "{\"IETF\":-1,\"Array\":[-1,0,200,20]}\n"},
+	{[]byte("\xbf\x64IETF\x64YES!\x65Array\x9f\x20\x00\x18\xc8\x14\xff\xff"), "{\"IETF\":\"YES!\",\"Array\":[-1,0,200,20]}\n"},
 }
 
 func TestDecodeCbor2Json(t *testing.T) {

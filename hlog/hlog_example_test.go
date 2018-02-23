@@ -1,3 +1,5 @@
+// +build !enable_binary_log
+
 package hlog_test
 
 import (

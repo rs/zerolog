@@ -11,10 +11,7 @@ func AppendBeginMarker(dst []byte) []byte {
 	return append(dst, '{')
 }
 
-func AppendEndMarker(dst []byte, terminal bool) []byte {
-	if terminal {
-		return append(dst, '}', '\n')
-	}
+func AppendEndMarker(dst []byte) []byte {
 	return append(dst, '}')
 }
 
@@ -289,6 +286,10 @@ func AppendInterface(dst []byte, i interface{}) []byte {
 }
 
 func AppendObjectData(dst []byte, o []byte) []byte {
+	//Two conditions we want to put a ',' between existing content and
+	//new content:
+	// 1. new content starts with '{' - which shd be dropped   OR
+	// 2. existing content has already other fields
 	if o[0] == '{' {
 		o[0] = ','
 	} else if len(dst) > 1 {

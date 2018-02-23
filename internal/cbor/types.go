@@ -14,7 +14,7 @@ func AppendBeginMarker(dst []byte) []byte {
 	return append(dst, byte(majorTypeMap|additionalTypeInfiniteCount))
 }
 
-func AppendEndMarker(dst []byte, terminal bool) []byte {
+func AppendEndMarker(dst []byte) []byte {
 	return append(dst, byte(majorTypeSimpleAndFloat|additionalTypeBreak))
 }
 
@@ -379,7 +379,7 @@ func AppendInterface(dst []byte, i interface{}) []byte {
 	if err != nil {
 		return AppendString(dst, fmt.Sprintf("marshaling error: %v", err))
 	}
-	return AppendBytes(dst, marshaled)
+	return AppendEmbeddedJSON(dst, marshaled)
 }
 
 func AppendObjectData(dst []byte, o []byte) []byte {

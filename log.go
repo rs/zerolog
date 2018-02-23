@@ -85,14 +85,11 @@
 package zerolog
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
-
-	"github.com/rs/zerolog/internal/cbor"
 )
 
 // Level defines log levels.
@@ -362,38 +359,4 @@ func (l *Logger) should(lvl Level) bool {
 		return l.sampler.Sample(lvl)
 	}
 	return true
-}
-
-//Detect if the bytes to be printed is Binary or not
-//May be more robust method is needed here ?
-func binaryFmt(p []byte) bool {
-	if p[0] > 0x7F {
-		return true
-	}
-	return false
-}
-
-//DecodeIfBinaryToString - converts a binary formatted log msg to a
-//JSON formatted String Log message - suitable for printing to Console/Syslog etc
-func DecodeIfBinaryToString(in []byte) string {
-	if binaryFmt(in) {
-		var b bytes.Buffer
-		cbor.Cbor2JsonManyObjects(in, &b)
-		return b.String()
-	}
-	return string(in)
-}
-
-//DecodeIfBinaryToBytes - converts a binary formatted log msg to a
-//JSON formatted Bytes Log message
-func DecodeIfBinaryToBytes(in []byte, isFinal bool) []byte {
-	if binaryFmt(in) {
-		var b bytes.Buffer
-		cbor.Cbor2JsonManyObjects(in, &b)
-		if isFinal {
-			return append(b.Bytes(), '\n')
-		}
-		return b.Bytes()
-	}
-	return in
 }

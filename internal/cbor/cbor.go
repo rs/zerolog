@@ -20,7 +20,8 @@ const (
 	additionalTypeFloat64 byte = 27
 	additionalTypeBreak   byte = 31
 	//Tag Sub-types
-	additionalTypeTimestamp byte = 01
+	additionalTypeTimestamp    byte = 01
+	additionalTypeEmbeddedJSON byte = 31
 	//Unspecified number of elements
 	additionalTypeInfiniteCount byte = 31
 )

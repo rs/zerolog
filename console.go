@@ -39,7 +39,7 @@ type ConsoleWriter struct {
 
 func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	var event map[string]interface{}
-	p = DecodeIfBinaryToBytes(p, true)
+	p = decodeIfBinaryToBytes(p)
 	err = json.Unmarshal(p, &event)
 	if err != nil {
 		return

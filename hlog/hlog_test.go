@@ -1,4 +1,5 @@
 // +build go1.7
+// +build !enable_binary_log
 
 package hlog
 

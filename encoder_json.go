@@ -3,8 +3,8 @@
 package zerolog
 
 import (
-	"time"
 	"github.com/rs/zerolog/internal/json"
+	"time"
 )
 
 func appendInterface(dst []byte, i interface{}) []byte {
@@ -151,8 +151,12 @@ func appendTime(dst []byte, t time.Time, fmt string) []byte {
 	return json.AppendTime(dst, t, fmt)
 }
 
-func appendEndMarker(dst []byte, b bool) []byte {
-	return json.AppendEndMarker(dst, b)
+func appendEndMarker(dst []byte) []byte {
+	return json.AppendEndMarker(dst)
+}
+
+func appendLineBreak(dst []byte) []byte {
+	return append(dst, byte('\n'))
 }
 
 func appendBeginMarker(dst []byte) []byte {
@@ -172,7 +176,10 @@ func appendArrayEnd(dst []byte) []byte {
 }
 
 func appendArrayDelim(dst []byte) []byte {
-	return json.AppendArrayDelim(dst)
+        if len(dst) > 0 {
+                return append(dst, ',')
+        }
+        return dst
 }
 
 func appendObjectData(dst []byte, src []byte) []byte {
@@ -181,4 +188,20 @@ func appendObjectData(dst []byte, src []byte) []byte {
 
 func appendJson(dst []byte, j []byte) []byte {
 	return append(dst, j...)
+}
+
+func appendNil(dst []byte) []byte {
+	return append(dst, "null"...)
+}
+
+func decodeIfBinaryToString(in []byte) string {
+	return string(in)
+}
+
+func decodeObjectToStr(in []byte) string {
+	return string(in)
+}
+
+func decodeIfBinaryToBytes(in []byte) []byte {
+	return in
 }
