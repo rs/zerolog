@@ -372,9 +372,6 @@ func AppendFloats64(dst []byte, vals []float64) []byte {
 }
 
 func AppendInterface(dst []byte, i interface{}) []byte {
-	//TODO - gotto use reflect to find out the contents and print accordingly
-	//For now we'll use JSON to reflect to a string - until we build
-	//a CBOR based reflection
 	marshaled, err := json.Marshal(i)
 	if err != nil {
 		return AppendString(dst, fmt.Sprintf("marshaling error: %v", err))
@@ -383,7 +380,6 @@ func AppendInterface(dst []byte, i interface{}) []byte {
 }
 
 func AppendObjectData(dst []byte, o []byte) []byte {
-	//TODO - check is this sufficient or do we need to something more..
 	return append(dst, o...)
 }
 

@@ -1,13 +1,13 @@
 package diode_test
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
 	"time"
-	"bytes"
 
 	diodes "code.cloudfoundry.org/go-diodes"
 	"github.com/rs/zerolog"

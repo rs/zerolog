@@ -4,6 +4,7 @@ package zerolog
 
 import (
 	"github.com/rs/zerolog/internal/json"
+	"strconv"
 	"time"
 )
 
@@ -36,7 +37,7 @@ func appendUints64(dst []byte, i []uint64) []byte {
 }
 
 func appendUint64(dst []byte, i uint64) []byte {
-	return json.AppendUint64(dst, i)
+	return strconv.AppendUint(dst, uint64(i), 10)
 }
 
 func appendUints32(dst []byte, i []uint32) []byte {
@@ -44,7 +45,7 @@ func appendUints32(dst []byte, i []uint32) []byte {
 }
 
 func appendUint32(dst []byte, i uint32) []byte {
-	return json.AppendUint32(dst, i)
+	return strconv.AppendUint(dst, uint64(i), 10)
 }
 
 func appendUints16(dst []byte, i []uint16) []byte {
@@ -52,7 +53,7 @@ func appendUints16(dst []byte, i []uint16) []byte {
 }
 
 func appendUint16(dst []byte, i uint16) []byte {
-	return json.AppendUint16(dst, i)
+	return strconv.AppendUint(dst, uint64(i), 10)
 }
 
 func appendUints8(dst []byte, i []uint8) []byte {
@@ -60,7 +61,7 @@ func appendUints8(dst []byte, i []uint8) []byte {
 }
 
 func appendUint8(dst []byte, i uint8) []byte {
-	return json.AppendUint8(dst, i)
+	return strconv.AppendUint(dst, uint64(i), 10)
 }
 
 func appendUints(dst []byte, i []uint) []byte {
@@ -68,7 +69,7 @@ func appendUints(dst []byte, i []uint) []byte {
 }
 
 func appendUint(dst []byte, i uint) []byte {
-	return json.AppendUint(dst, i)
+	return strconv.AppendUint(dst, uint64(i), 10)
 }
 
 func appendInts64(dst []byte, i []int64) []byte {
@@ -76,7 +77,7 @@ func appendInts64(dst []byte, i []int64) []byte {
 }
 
 func appendInt64(dst []byte, i int64) []byte {
-	return json.AppendInt64(dst, i)
+	return strconv.AppendInt(dst, int64(i), 10)
 }
 
 func appendInts32(dst []byte, i []int32) []byte {
@@ -84,7 +85,7 @@ func appendInts32(dst []byte, i []int32) []byte {
 }
 
 func appendInt32(dst []byte, i int32) []byte {
-	return json.AppendInt32(dst, i)
+	return strconv.AppendInt(dst, int64(i), 10)
 }
 
 func appendInts16(dst []byte, i []int16) []byte {
@@ -92,7 +93,7 @@ func appendInts16(dst []byte, i []int16) []byte {
 }
 
 func appendInt16(dst []byte, i int16) []byte {
-	return json.AppendInt16(dst, i)
+	return strconv.AppendInt(dst, int64(i), 10)
 }
 
 func appendInts8(dst []byte, i []int8) []byte {
@@ -100,7 +101,7 @@ func appendInts8(dst []byte, i []int8) []byte {
 }
 
 func appendInt8(dst []byte, i int8) []byte {
-	return json.AppendInt8(dst, i)
+	return strconv.AppendInt(dst, int64(i), 10)
 }
 
 func appendInts(dst []byte, i []int) []byte {
@@ -108,7 +109,7 @@ func appendInts(dst []byte, i []int) []byte {
 }
 
 func appendInt(dst []byte, i int) []byte {
-	return json.AppendInt(dst, i)
+	return strconv.AppendInt(dst, int64(i), 10)
 }
 
 func appendBools(dst []byte, b []bool) []byte {
@@ -116,7 +117,7 @@ func appendBools(dst []byte, b []bool) []byte {
 }
 
 func appendBool(dst []byte, b bool) []byte {
-	return json.AppendBool(dst, b)
+	return strconv.AppendBool(dst, b)
 }
 
 func appendError(dst []byte, e error) []byte {
@@ -152,7 +153,7 @@ func appendTime(dst []byte, t time.Time, fmt string) []byte {
 }
 
 func appendEndMarker(dst []byte) []byte {
-	return json.AppendEndMarker(dst)
+	return append(dst, '}')
 }
 
 func appendLineBreak(dst []byte) []byte {
@@ -160,7 +161,7 @@ func appendLineBreak(dst []byte) []byte {
 }
 
 func appendBeginMarker(dst []byte) []byte {
-	return json.AppendBeginMarker(dst)
+	return append(dst, '{')
 }
 
 func appendBytes(dst []byte, b []byte) []byte {
@@ -168,18 +169,18 @@ func appendBytes(dst []byte, b []byte) []byte {
 }
 
 func appendArrayStart(dst []byte) []byte {
-	return json.AppendArrayStart(dst)
+	return append(dst, '[')
 }
 
 func appendArrayEnd(dst []byte) []byte {
-	return json.AppendArrayEnd(dst)
+	return append(dst, ']')
 }
 
 func appendArrayDelim(dst []byte) []byte {
-        if len(dst) > 0 {
-                return append(dst, ',')
-        }
-        return dst
+	if len(dst) > 0 {
+		return append(dst, ',')
+	}
+	return dst
 }
 
 func appendObjectData(dst []byte, src []byte) []byte {

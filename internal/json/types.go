@@ -7,18 +7,6 @@ import (
 	"strconv"
 )
 
-func AppendBeginMarker(dst []byte) []byte {
-	return append(dst, '{')
-}
-
-func AppendEndMarker(dst []byte) []byte {
-	return append(dst, '}')
-}
-
-func AppendBool(dst []byte, val bool) []byte {
-	return strconv.AppendBool(dst, val)
-}
-
 func AppendBools(dst []byte, vals []bool) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
@@ -32,10 +20,6 @@ func AppendBools(dst []byte, vals []bool) []byte {
 	}
 	dst = append(dst, ']')
 	return dst
-}
-
-func AppendInt(dst []byte, val int) []byte {
-	return strconv.AppendInt(dst, int64(val), 10)
 }
 
 func AppendInts(dst []byte, vals []int) []byte {
@@ -53,10 +37,6 @@ func AppendInts(dst []byte, vals []int) []byte {
 	return dst
 }
 
-func AppendInt8(dst []byte, val int8) []byte {
-	return strconv.AppendInt(dst, int64(val), 10)
-}
-
 func AppendInts8(dst []byte, vals []int8) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
@@ -70,10 +50,6 @@ func AppendInts8(dst []byte, vals []int8) []byte {
 	}
 	dst = append(dst, ']')
 	return dst
-}
-
-func AppendInt16(dst []byte, val int16) []byte {
-	return strconv.AppendInt(dst, int64(val), 10)
 }
 
 func AppendInts16(dst []byte, vals []int16) []byte {
@@ -91,10 +67,6 @@ func AppendInts16(dst []byte, vals []int16) []byte {
 	return dst
 }
 
-func AppendInt32(dst []byte, val int32) []byte {
-	return strconv.AppendInt(dst, int64(val), 10)
-}
-
 func AppendInts32(dst []byte, vals []int32) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
@@ -108,10 +80,6 @@ func AppendInts32(dst []byte, vals []int32) []byte {
 	}
 	dst = append(dst, ']')
 	return dst
-}
-
-func AppendInt64(dst []byte, val int64) []byte {
-	return strconv.AppendInt(dst, val, 10)
 }
 
 func AppendInts64(dst []byte, vals []int64) []byte {
@@ -129,8 +97,8 @@ func AppendInts64(dst []byte, vals []int64) []byte {
 	return dst
 }
 
-func AppendUint(dst []byte, val uint) []byte {
-	return strconv.AppendUint(dst, uint64(val), 10)
+func AppendInt64(dst []byte, val int64) []byte {
+	return strconv.AppendInt(dst, val, 10)
 }
 
 func AppendUints(dst []byte, vals []uint) []byte {
@@ -148,10 +116,6 @@ func AppendUints(dst []byte, vals []uint) []byte {
 	return dst
 }
 
-func AppendUint8(dst []byte, val uint8) []byte {
-	return strconv.AppendUint(dst, uint64(val), 10)
-}
-
 func AppendUints8(dst []byte, vals []uint8) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
@@ -165,10 +129,6 @@ func AppendUints8(dst []byte, vals []uint8) []byte {
 	}
 	dst = append(dst, ']')
 	return dst
-}
-
-func AppendUint16(dst []byte, val uint16) []byte {
-	return strconv.AppendUint(dst, uint64(val), 10)
 }
 
 func AppendUints16(dst []byte, vals []uint16) []byte {
@@ -186,10 +146,6 @@ func AppendUints16(dst []byte, vals []uint16) []byte {
 	return dst
 }
 
-func AppendUint32(dst []byte, val uint32) []byte {
-	return strconv.AppendUint(dst, uint64(val), 10)
-}
-
 func AppendUints32(dst []byte, vals []uint32) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
@@ -203,10 +159,6 @@ func AppendUints32(dst []byte, vals []uint32) []byte {
 	}
 	dst = append(dst, ']')
 	return dst
-}
-
-func AppendUint64(dst []byte, val uint64) []byte {
-	return strconv.AppendUint(dst, uint64(val), 10)
 }
 
 func AppendUints64(dst []byte, vals []uint64) []byte {
@@ -296,19 +248,4 @@ func AppendObjectData(dst []byte, o []byte) []byte {
 		dst = append(dst, ',')
 	}
 	return append(dst, o...)
-}
-
-func AppendArrayStart(dst []byte) []byte {
-	return append(dst, '[')
-}
-
-func AppendArrayEnd(dst []byte) []byte {
-	return append(dst, ']')
-}
-
-func AppendArrayDelim(dst []byte) []byte {
-	if len(dst) > 0 {
-		return append(dst, ',')
-	}
-	return dst
 }

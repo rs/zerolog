@@ -1,12 +1,12 @@
 package cbor
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math"
 	"strconv"
 	"time"
-	"bytes"
 	"unicode/utf8"
 )
 
