@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"runtime"
@@ -216,6 +217,15 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 		return e
 	}
 	e.buf = json.AppendBytes(json.AppendKey(e.buf, key), val)
+	return e
+}
+
+// Hex adds the field key with val as a hex string to the *Event context.
+func (e *Event) Hex(key string, val []byte) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = json.AppendString(json.AppendKey(e.buf, key), hex.EncodeToString(val))
 	return e
 }
 

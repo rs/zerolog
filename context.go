@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/hex"
 	"io/ioutil"
 	"time"
 
@@ -70,6 +71,12 @@ func (c Context) Str(key, val string) Context {
 // Strs adds the field key with val as a string to the logger context.
 func (c Context) Strs(key string, vals []string) Context {
 	c.l.context = json.AppendStrings(json.AppendKey(c.l.context, key), vals)
+	return c
+}
+
+// Hex adds the field key with val as a hex string to the logger context.
+func (c Context) Hex(key string, val []byte) Context {
+	c.l.context = json.AppendString(json.AppendKey(c.l.context, key), hex.EncodeToString(val))
 	return c
 }
 
