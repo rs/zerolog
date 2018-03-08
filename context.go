@@ -277,6 +277,8 @@ var th = timestampHook{}
 
 // Timestamp adds the current local time as UNIX timestamp to the logger context with the "time" key.
 // To customize the key name, change zerolog.TimestampFieldName.
+//
+// NOTE: It won't dedupe the "time" key if the *Context has one already.
 func (c Context) Timestamp() Context {
 	c.l = c.l.Hook(th)
 	return c
