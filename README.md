@@ -476,3 +476,18 @@ Log a static string, without any context or `printf`-style templating:
 | logrus | 1244 ns/op | 1505 B/op | 27 allocs/op |
 | apex/log | 2751 ns/op | 584 B/op | 11 allocs/op |
 | log15 | 5181 ns/op | 1592 B/op | 26 allocs/op |
+
+## Caveats
+
+There is no fields deduplication out-of-the-box.
+Using the same key multiple times creates new key in final JSON each time.
+
+```go
+logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+logger.Info().
+       Timestamp().
+       Msg("dup")
+// Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
+```
+
+However, it’s not a big deal though as JSON accepts dup keys, the last one prevails.
