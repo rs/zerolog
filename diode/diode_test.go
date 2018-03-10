@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog/internal/cbor"
 )
 
-func ExampleNewWriter() {
+func TestNewWriter(t *testing.T) {
 	d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
 		fmt.Printf("Dropped %d messages\n", missed)
 	}))
@@ -25,9 +25,11 @@ func ExampleNewWriter() {
 	log.Print("test")
 
 	w.Close()
-	fmt.Println(cbor.DecodeIfBinaryToString(buf.Bytes()))
-
-	// Output: {"level":"debug","message":"test"}
+	want := "{\"level\":\"debug\",\"message\":\"test\"}\n"
+	got := cbor.DecodeIfBinaryToString(buf.Bytes())
+	if got != want {
+		t.Errorf("Diode New Writer Test failed. got:%s, want:%s!", got, want)
+	}
 }
 
 func Benchmark(b *testing.B) {
