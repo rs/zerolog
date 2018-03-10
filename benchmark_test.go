@@ -108,7 +108,6 @@ func BenchmarkLogArrayObject(b *testing.B) {
 		arr.Object(&obj1)
 		arr.Object(&obj2)
 		arr.Object(&obj3)
-		arr.Str("Key")
 		logger.Info().Array("objects", arr).Msg("test")
 	}
 }
