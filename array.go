@@ -1,7 +1,6 @@
 package zerolog
 
 import (
-	"encoding/hex"
 	"sync"
 	"time"
 
@@ -67,7 +66,7 @@ func (a *Array) Bytes(val []byte) *Array {
 
 // Hex append the val as a hex string to the array.
 func (a *Array) Hex(val []byte) *Array {
-	a.buf = json.AppendString(append(a.buf, ','), hex.EncodeToString(val))
+	a.buf = json.AppendHex(append(a.buf, ','), val)
 	return a
 }
 
