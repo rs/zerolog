@@ -51,7 +51,7 @@ func main() {
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
 > Note: The default log level for `log.Print` is *debug*
-----
+
 ### Leveled Logging
 
 #### Simple Leveled Logging Example
@@ -84,7 +84,9 @@ func main() {
 You can set the Global logging level to any of these options using the `SetGlobalLevel` function in the zerolog package, passing in one of the given constants above, e.g. `zerolog.InfoLevel` would be the "info" level.  Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the `zerolog.Disabled` constant.
 
 #### Setting Global Log Level
+
 This example uses command-line flags to demonstrate various outputs depending on the chosen log level.
+
 ```go
 package main
 
@@ -158,7 +160,7 @@ func main() {
 //         exit status 1
 ```
 > NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
-----------------
+
 ### Contextual Logging
 
 #### Fields can be added to log messages
@@ -191,8 +193,6 @@ sublogger.Info().Msg("hello world")
 
 // Output: {"level":"info","time":1494567715,"message":"hello world","component":"foo"}
 ```
-
-
 
 ### Pretty logging
 
@@ -244,6 +244,21 @@ log.Log().Str("foo","bar").Msg("")
 ```go
 log.Logger = log.With().Str("foo", "bar").Logger()
 ```
+
+### Thread-safe, lock-free, non-blocking writer
+
+If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follow:
+
+```go
+d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
+    fmt.Printf("Dropped %d messages\n", missed)
+}))
+w := diode.NewWriter(os.Stdout, d, 10*time.Millisecond)
+log := zerolog.New(w)
+log.Print("test")
+```
+
+You will need to install `code.cloudfoundry.org/go-diodes` to use this feature.
 
 ### Log Sampling
 
@@ -461,3 +476,18 @@ Log a static string, without any context or `printf`-style templating:
 | logrus | 1244 ns/op | 1505 B/op | 27 allocs/op |
 | apex/log | 2751 ns/op | 584 B/op | 11 allocs/op |
 | log15 | 5181 ns/op | 1592 B/op | 26 allocs/op |
+
+## Caveats
+
+There is no fields deduplication out-of-the-box.
+Using the same key multiple times creates new key in final JSON each time.
+
+```go
+logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+logger.Info().
+       Timestamp().
+       Msg("dup")
+// Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
+```
+
+However, it’s not a big deal though as JSON accepts dup keys, the last one prevails.

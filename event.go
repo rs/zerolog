@@ -219,6 +219,15 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 	return e
 }
 
+// Hex adds the field key with val as a hex string to the *Event context.
+func (e *Event) Hex(key string, val []byte) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = json.AppendHex(json.AppendKey(e.buf, key), val)
+	return e
+}
+
 // RawJSON adds already encoded JSON to the log line under key.
 //
 // No sanity check is performed on b; it must not contain carriage returns and
@@ -499,6 +508,9 @@ func (e *Event) Floats64(key string, f []float64) *Event {
 
 // Timestamp adds the current local time as UNIX timestamp to the *Event context with the "time" key.
 // To customize the key name, change zerolog.TimestampFieldName.
+//
+// NOTE: It won't dedupe the "time" key if the *Event (or *Context) has one
+// already.
 func (e *Event) Timestamp() *Event {
 	if e == nil {
 		return e

@@ -64,6 +64,12 @@ func (a *Array) Bytes(val []byte) *Array {
 	return a
 }
 
+// Hex append the val as a hex string to the array.
+func (a *Array) Hex(val []byte) *Array {
+	a.buf = json.AppendHex(append(a.buf, ','), val)
+	return a
+}
+
 // Err append the err as a string to the array.
 func (a *Array) Err(err error) *Array {
 	a.buf = json.AppendError(append(a.buf, ','), err)

@@ -53,6 +53,17 @@ var encodeStringTests = []struct {
 	{"emoji \u2764\ufe0f!", `"emoji ❤️!"`},
 }
 
+var encodeHexTests = []struct {
+	in  byte
+	out string
+}{
+	{0x00, `"00"`},
+	{0x0f, `"0f"`},
+	{0x10, `"10"`},
+	{0xf0, `"f0"`},
+	{0xff, `"ff"`},
+}
+
 func TestAppendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
 		b := AppendString([]byte{}, tt.in)
@@ -67,6 +78,15 @@ func TestAppendBytes(t *testing.T) {
 		b := AppendBytes([]byte{}, []byte(tt.in))
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendBytes(%q) = %#q, want %#q", tt.in, got, want)
+		}
+	}
+}
+
+func TestAppendHex(t *testing.T) {
+	for _, tt := range encodeHexTests {
+		b := AppendHex([]byte{}, []byte{tt.in})
+		if got, want := string(b), tt.out; got != want {
+			t.Errorf("appendHex(%x) = %s, want %s", tt.in, got, want)
 		}
 	}
 }
