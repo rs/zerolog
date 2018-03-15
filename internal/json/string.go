@@ -4,6 +4,8 @@ import "unicode/utf8"
 
 const hex = "0123456789abcdef"
 
+// AppendStrings encodes the input strings to json and
+// appends the encoded string list to the input byte slice.
 func AppendStrings(dst []byte, vals []string) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
@@ -120,6 +122,19 @@ func AppendBytes(dst, s []byte) []byte {
 		}
 	}
 	dst = append(dst, s...)
+	return append(dst, '"')
+}
+
+// AppendHex encodes the input bytes to a hex string and appends
+// the encoded string to the input byte slice.
+//
+// The operation loops though each byte and encodes it as hex using
+// the hex lookup table.
+func AppendHex(dst, s []byte) []byte {
+	dst = append(dst, '"')
+	for _, v := range s {
+		dst = append(dst, hex[v>>4], hex[v&0x0f])
+	}
 	return append(dst, '"')
 }
 

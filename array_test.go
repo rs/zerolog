@@ -21,9 +21,11 @@ func TestArray(t *testing.T) {
 		Float32(11).
 		Float64(12).
 		Str("a").
+		Bytes([]byte("b")).
+		Hex([]byte{0x1f}).
 		Time(time.Time{}).
 		Dur(0)
-	want := `[true,1,2,3,4,5,6,7,8,9,10,11,12,"a","0001-01-01T00:00:00Z",0]`
+	want := `[true,1,2,3,4,5,6,7,8,9,10,11,12,"a","b","1f","0001-01-01T00:00:00Z",0]`
 	if got := string(a.write([]byte{})); got != want {
 		t.Errorf("Array.write()\ngot:  %s\nwant: %s", got, want)
 	}
