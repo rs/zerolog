@@ -57,11 +57,11 @@ var encodeHexTests = []struct {
 	in  byte
 	out string
 }{
-	{0x00, "00"},
-	{0x0f, "0f"},
-	{0x10, "10"},
-	{0xf0, "f0"},
-	{0xff, "ff"},
+	{0x00, `"00"`},
+	{0x0f, `"0f"`},
+	{0x10, `"10"`},
+	{0xf0, `"f0"`},
+	{0xff, `"ff"`},
 }
 
 func TestAppendString(t *testing.T) {

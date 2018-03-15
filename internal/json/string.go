@@ -135,7 +135,6 @@ func AppendHex(dst, s []byte) []byte {
 	for _, v := range s {
 		dst = append(dst, hex[v>>4], hex[v&0x0f])
 	}
-	dst = append(dst, s...)
 	return append(dst, '"')
 }
 
