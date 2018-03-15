@@ -102,7 +102,7 @@ func ExampleFatal() {
 
 // This example uses command-line flags to demonstrate various outputs
 // depending on the chosen log level.
-func Example_LevelFlag() {
+func Example() {
 	setup()
 	debug := flag.Bool("debug", false, "sets log level to debug")
 
