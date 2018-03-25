@@ -22,6 +22,7 @@ const (
 	//Tag Sub-types
 	additionalTypeTimestamp    byte = 01
 	additionalTypeEmbeddedJSON byte = 31
+        additionalTypeTagHexString uint16 = 262
 	//Unspecified number of elements
 	additionalTypeInfiniteCount byte = 31
 )

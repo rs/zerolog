@@ -12,6 +12,8 @@ import (
 
 var decodeTimeZone *time.Location
 
+const hexTable = "0123456789abcdef"
+
 func decodeIntAdditonalType(src []byte, minor byte) (int64, uint, error) {
 	val := int64(0)
 	bytesRead := 0
@@ -391,7 +393,17 @@ func decodeTagData(src []byte) ([]byte, uint, error) {
 			return emb, 1 + bc, nil
 		}
 		return nil, 0, fmt.Errorf("Unsupported embedded Type: %d in decodeEmbeddedJSON", dataMajor)
-	}
+	} else if minor == additionalTypeIntUint16 {
+            val,_,_ := decodeIntAdditonalType(src[1:], minor)
+            if uint16(val) == additionalTypeTagHexString {
+                emb, bc, _ := decodeString(src[3:], true)
+                dst := []byte{'"'}
+                for _, v := range emb {
+                        dst = append(dst, hexTable[v>>4], hexTable[v&0x0f])
+                }
+                return append(dst, '"'), 3+bc, nil
+            }
+        }
 	return nil, 0, fmt.Errorf("Unsupported Additional Type: %d in decodeTagData", minor)
 }
 

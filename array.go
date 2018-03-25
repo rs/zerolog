@@ -60,6 +60,12 @@ func (a *Array) Bytes(val []byte) *Array {
 	return a
 }
 
+// Hex append the val as a hex string to the array.
+func (a *Array) Hex(val []byte) *Array {
+	a.buf = appendHex(appendArrayDelim(a.buf), val)
+	return a
+}
+
 // Err append the err as a string to the array.
 func (a *Array) Err(err error) *Array {
 	a.buf = appendError(appendArrayDelim(a.buf), err)

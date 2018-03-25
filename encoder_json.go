@@ -206,3 +206,7 @@ func decodeObjectToStr(in []byte) string {
 func decodeIfBinaryToBytes(in []byte) []byte {
 	return in
 }
+
+func appendHex(in []byte, val []byte) []byte {
+    return json.AppendHex(in, val)
+}

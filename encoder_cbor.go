@@ -195,6 +195,10 @@ func appendNil(dst []byte) []byte {
 	return cbor.AppendNull(dst)
 }
 
+func appendHex(dst []byte, val []byte) []byte {
+	return cbor.AppendHex(dst, val)
+}
+
 //decodeIfBinaryToString - converts a binary formatted log msg to a
 //JSON formatted String Log message - suitable for printing to Console/Syslog etc
 func decodeIfBinaryToString(in []byte) string {

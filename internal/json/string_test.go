@@ -2,7 +2,6 @@ package json
 
 import (
 	"testing"
-	"unicode"
 )
 
 var encodeStringTests = []struct {
@@ -53,7 +52,18 @@ var encodeStringTests = []struct {
 	{"emoji \u2764\ufe0f!", `"emoji ❤️!"`},
 }
 
-func TestappendString(t *testing.T) {
+var encodeHexTests = []struct {
+	in  byte
+	out string
+}{
+	{0x00, `"00"`},
+	{0x0f, `"0f"`},
+	{0x10, `"10"`},
+	{0xf0, `"f0"`},
+	{0xff, `"ff"`},
+}
+
+func TestAppendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
 		b := AppendString([]byte{}, tt.in)
 		if got, want := string(b), tt.out; got != want {
@@ -62,53 +72,7 @@ func TestappendString(t *testing.T) {
 	}
 }
 
-func TestappendBytes(t *testing.T) {
-	for _, tt := range encodeStringTests {
-		b := AppendBytes([]byte{}, []byte(tt.in))
-		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendBytes(%q) = %#q, want %#q", tt.in, got, want)
-		}
-	}
-}
-
-func TestStringBytes(t *testing.T) {
-	t.Parallel()
-	// Test that encodeState.stringBytes and encodeState.string use the same encoding.
-	var r []rune
-	for i := '\u0000'; i <= unicode.MaxRune; i++ {
-		r = append(r, i)
-	}
-	s := string(r) + "\xff\xff\xffhello" // some invalid UTF-8 too
-
-	enc := string(AppendString([]byte{}, s))
-	encBytes := string(AppendBytes([]byte{}, []byte(s)))
-
-	if enc != encBytes {
-		i := 0
-		for i < len(enc) && i < len(encBytes) && enc[i] == encBytes[i] {
-			i++
-		}
-		enc = enc[i:]
-		encBytes = encBytes[i:]
-		i = 0
-		for i < len(enc) && i < len(encBytes) && enc[len(enc)-i-1] == encBytes[len(encBytes)-i-1] {
-			i++
-		}
-		enc = enc[:len(enc)-i]
-		encBytes = encBytes[:len(encBytes)-i]
-
-		if len(enc) > 20 {
-			enc = enc[:20] + "..."
-		}
-		if len(encBytes) > 20 {
-			encBytes = encBytes[:20] + "..."
-		}
-
-		t.Errorf("encodings differ at %#q vs %#q", enc, encBytes)
-	}
-}
-
-func BenchmarkappendString(b *testing.B) {
+func BenchmarkAppendString(b *testing.B) {
 	tests := map[string]string{
 		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 		"EncodingFirst":    `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
@@ -123,27 +87,6 @@ func BenchmarkappendString(b *testing.B) {
 			buf := make([]byte, 0, 100)
 			for i := 0; i < b.N; i++ {
 				_ = AppendString(buf, str)
-			}
-		})
-	}
-}
-
-func BenchmarkappendBytes(b *testing.B) {
-	tests := map[string]string{
-		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
-		"EncodingFirst":    `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
-		"EncodingMiddle":   `aaaaaaaaaaaaaaaaaaaaaaaaa"aaaaaaaaaaaaaaaaaaaaaaaa`,
-		"EncodingLast":     `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`,
-		"MultiBytesFirst":  `❤️aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
-		"MultiBytesMiddle": `aaaaaaaaaaaaaaaaaaaaaaaaa❤️aaaaaaaaaaaaaaaaaaaaaaaa`,
-		"MultiBytesLast":   `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa❤️`,
-	}
-	for name, str := range tests {
-		byt := []byte(str)
-		b.Run(name, func(b *testing.B) {
-			buf := make([]byte, 0, 100)
-			for i := 0; i < b.N; i++ {
-				_ = AppendBytes(buf, byt)
 			}
 		})
 	}

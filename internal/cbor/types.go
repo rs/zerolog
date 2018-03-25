@@ -395,3 +395,10 @@ func AppendArrayDelim(dst []byte) []byte {
 	//No delimiters needed in cbor
 	return dst
 }
+
+func AppendHex (dst []byte, val []byte) []byte {
+    dst = append(dst, byte(majorTypeTags|additionalTypeIntUint16))
+    dst = append(dst, byte(additionalTypeTagHexString>>8))
+    dst = append(dst, byte(additionalTypeTagHexString&0xff))
+    return AppendBytes(dst, val)
+}

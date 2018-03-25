@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// AppendTime formats the input time with the given format
+// and appends the encoded string to the input byte slice.
 func AppendTime(dst []byte, t time.Time, format string) []byte {
 	if format == "" {
 		return AppendInt64(dst, t.Unix())
@@ -12,6 +14,8 @@ func AppendTime(dst []byte, t time.Time, format string) []byte {
 	return append(t.AppendFormat(append(dst, '"'), format), '"')
 }
 
+// AppendTimes converts the input times with the given format
+// and appends the encoded string list to the input byte slice.
 func AppendTimes(dst []byte, vals []time.Time, format string) []byte {
 	if format == "" {
 		return appendUnixTimes(dst, vals)
@@ -45,6 +49,8 @@ func appendUnixTimes(dst []byte, vals []time.Time) []byte {
 	return dst
 }
 
+// AppendDuration formats the input duration with the given unit & format
+// and appends the encoded string to the input byte slice.
 func AppendDuration(dst []byte, d time.Duration, unit time.Duration, useInt bool) []byte {
 	if useInt {
 		return strconv.AppendInt(dst, int64(d/unit), 10)
@@ -52,6 +58,8 @@ func AppendDuration(dst []byte, d time.Duration, unit time.Duration, useInt bool
 	return AppendFloat64(dst, float64(d)/float64(unit))
 }
 
+// AppendDurations formats the input durations with the given unit & format
+// and appends the encoded string list to the input byte slice.
 func AppendDurations(dst []byte, vals []time.Duration, unit time.Duration, useInt bool) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
