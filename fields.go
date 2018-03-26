@@ -54,6 +54,38 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 			dst = json.AppendTime(dst, val, TimeFieldFormat)
 		case time.Duration:
 			dst = json.AppendDuration(dst, val, DurationFieldUnit, DurationFieldInteger)
+		case *string:
+			dst = json.AppendString(dst, *val)
+		case *bool:
+			dst = json.AppendBool(dst, *val)
+		case *int:
+			dst = json.AppendInt(dst, *val)
+		case *int8:
+			dst = json.AppendInt8(dst, *val)
+		case *int16:
+			dst = json.AppendInt16(dst, *val)
+		case *int32:
+			dst = json.AppendInt32(dst, *val)
+		case *int64:
+			dst = json.AppendInt64(dst, *val)
+		case *uint:
+			dst = json.AppendUint(dst, *val)
+		case *uint8:
+			dst = json.AppendUint8(dst, *val)
+		case *uint16:
+			dst = json.AppendUint16(dst, *val)
+		case *uint32:
+			dst = json.AppendUint32(dst, *val)
+		case *uint64:
+			dst = json.AppendUint64(dst, *val)
+		case *float32:
+			dst = json.AppendFloat32(dst, *val)
+		case *float64:
+			dst = json.AppendFloat64(dst, *val)
+		case *time.Time:
+			dst = json.AppendTime(dst, *val, TimeFieldFormat)
+		case *time.Duration:
+			dst = json.AppendDuration(dst, *val, DurationFieldUnit, DurationFieldInteger)
 		case []string:
 			dst = json.AppendStrings(dst, val)
 		case []bool:
