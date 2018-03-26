@@ -12,6 +12,10 @@ To keep the code base and the API simple, zerolog focuses on JSON logging only. 
 
 ![](pretty.png)
 
+## Who uses zerolog
+
+Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog) and add your company / project to the list.
+
 ## Features
 
 * Blazing fast
