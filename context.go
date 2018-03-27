@@ -87,7 +87,7 @@ func (c Context) Hex(key string, val []byte) Context {
 // No sanity check is performed on b; it must not contain carriage returns and
 // be valid JSON.
 func (c Context) RawJSON(key string, b []byte) Context {
-	c.l.context = appendJson(appendKey(c.l.context, key), b)
+	c.l.context = appendJSON(appendKey(c.l.context, key), b)
 	return c
 }
 
@@ -108,7 +108,10 @@ func (c Context) Errs(key string, errs []error) Context {
 // Err adds the field "error" with err as a string to the logger context.
 // To customize the key name, change zerolog.ErrorFieldName.
 func (c Context) Err(err error) Context {
-	return c.AnErr(ErrorFieldName, err)
+	if err != nil {
+		c.l.context = appendError(appendKey(c.l.context, ErrorFieldName), err)
+	}
+	return c
 }
 
 // Bool adds the field key with val as a bool to the logger context.

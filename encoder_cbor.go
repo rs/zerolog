@@ -1,5 +1,7 @@
 // +build enable_binary_log
 
+// This file contains bindings to do binary encoding.
+
 package zerolog
 
 import (
@@ -157,7 +159,7 @@ func appendEndMarker(dst []byte) []byte {
 }
 
 func appendLineBreak(dst []byte) []byte {
-	//No line breaks in binary
+	// No line breaks needed in binary format.
 	return dst
 }
 
@@ -182,12 +184,12 @@ func appendArrayDelim(dst []byte) []byte {
 }
 
 func appendObjectData(dst []byte, src []byte) []byte {
-	//we keep the map begin Character in context - we
-	//don't need to copy that - so skip first char
+        // Map begin character is present in the src, which
+        // should not be copied when appending to existing data.
 	return cbor.AppendObjectData(dst, src[1:])
 }
 
-func appendJson(dst []byte, j []byte) []byte {
+func appendJSON(dst []byte, j []byte) []byte {
 	return cbor.AppendEmbeddedJSON(dst, j)
 }
 
@@ -199,8 +201,8 @@ func appendHex(dst []byte, val []byte) []byte {
 	return cbor.AppendHex(dst, val)
 }
 
-//decodeIfBinaryToString - converts a binary formatted log msg to a
-//JSON formatted String Log message - suitable for printing to Console/Syslog etc
+// decodeIfBinaryToString - converts a binary formatted log msg to a
+// JSON formatted String Log message.
 func decodeIfBinaryToString(in []byte) string {
 	return cbor.DecodeIfBinaryToString(in)
 }
@@ -209,8 +211,8 @@ func decodeObjectToStr(in []byte) string {
 	return cbor.DecodeObjectToStr(in)
 }
 
-//decodeIfBinaryToBytes - converts a binary formatted log msg to a
-//JSON formatted Bytes Log message
+// decodeIfBinaryToBytes - converts a binary formatted log msg to a
+// JSON formatted Bytes Log message.
 func decodeIfBinaryToBytes(in []byte) []byte {
 	return cbor.DecodeIfBinaryToBytes(in)
 }

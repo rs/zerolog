@@ -1,3 +1,5 @@
+// Package cbor provides primitives for storing different data
+// in the CBOR (binary) format. CBOR is defined in RFC7049.
 package cbor
 
 import "time"
@@ -51,7 +53,12 @@ const (
 	float64NegInfinity = "\xfb\xff\xf0\x00\x00\x00\x00\x00\x00"
 )
 
+// IntegerTimeFieldFormat indicates the format of timestamp decoded
+// from an integer (time in seconds).
 var IntegerTimeFieldFormat = time.RFC3339
+
+// NanoTimeFieldFormat indicates the format of timestamp decoded
+// from a float value (time in seconds and nano seconds).
 var NanoTimeFieldFormat = time.RFC3339Nano
 
 func appendCborTypePrefix(dst []byte, major byte, number uint64) []byte {

@@ -1,5 +1,6 @@
 package cbor
 
+// AppendStrings encodes and adds an array of strings to the dst byte array.
 func AppendStrings(dst []byte, vals []string) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -15,6 +16,7 @@ func AppendStrings(dst []byte, vals []string) []byte {
 	return dst
 }
 
+// AppendString encodes and adds a string to the dst byte array.
 func AppendString(dst []byte, s string) []byte {
 	major := majorTypeUtf8String
 
@@ -28,6 +30,7 @@ func AppendString(dst []byte, s string) []byte {
 	return append(dst, s...)
 }
 
+// AppendBytes encodes and adds an array of bytes to the dst byte array.
 func AppendBytes(dst, s []byte) []byte {
 	major := majorTypeByteString
 
@@ -41,6 +44,7 @@ func AppendBytes(dst, s []byte) []byte {
 	return append(dst, s...)
 }
 
+// AppendEmbeddedJSON adds a tag and embeds input JSON as such.
 func AppendEmbeddedJSON(dst, s []byte) []byte {
 	major := majorTypeTags
 	minor := additionalTypeEmbeddedJSON

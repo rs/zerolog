@@ -41,7 +41,6 @@ func decodeIntAdditonalType(src []byte, minor byte) (int64, uint, error) {
 	return val, uint(bytesRead), nil
 }
 
-// decodeInteger
 func decodeInteger(src []byte) (int64, uint, error) {
 	major := src[0] & maskOutAdditionalType
 	minor := src[0] & maskOutMajorType
@@ -58,7 +57,6 @@ func decodeInteger(src []byte) (int64, uint, error) {
 	return (-1 - val), 1 + bytesRead, nil
 }
 
-// decodeInteger
 func decodeFloat(src []byte) (float64, uint, error) {
 	major := (src[0] & maskOutAdditionalType)
 	minor := src[0] & maskOutMajorType
@@ -105,9 +103,6 @@ func decodeFloat(src []byte) (float64, uint, error) {
 	return 0, 0, fmt.Errorf("Invalid Additional Type: %d in decodeFloat", minor)
 }
 
-// appendStringComplex is used by appendString to take over an in
-// progress JSON string encoding that encountered a character that needs
-// to be encoded.
 func decodeStringComplex(dst []byte, s string, pos uint) []byte {
 	i := int(pos)
 	const hex = "0123456789abcdef"
@@ -450,6 +445,10 @@ func decodeSimpleFloat(src []byte) ([]byte, uint, error) {
 	}
 }
 
+// Cbor2JsonOneObject takes in byte array and decodes ONE CBOR Object
+// usually a MAP. Use this when only ONE CBOR object needs decoding.
+// Decoded string is written to the dst.
+// Returns the bytes decoded and if any error was encountered.
 func Cbor2JsonOneObject(src []byte, dst io.Writer) (uint, error) {
 	var err error
 	major := (src[0] & maskOutAdditionalType)
@@ -488,6 +487,11 @@ func Cbor2JsonOneObject(src []byte, dst io.Writer) (uint, error) {
 	return bc, err
 }
 
+// Cbor2JsonManyObjects decodes all the CBOR Objects present in the
+// source byte array. It keeps on decoding until it runs out of bytes.
+// Decoded string is written to the dst. At the end of every CBOR Object
+// newline is written to the output stream.
+// Returns the number of bytes decoded and if any error was encountered.
 func Cbor2JsonManyObjects(src []byte, dst io.Writer) (uint, error) {
 	curPos := uint(0)
 	totalBytes := uint(len(src))
@@ -502,8 +506,7 @@ func Cbor2JsonManyObjects(src []byte, dst io.Writer) (uint, error) {
 	return curPos, nil
 }
 
-//Detect if the bytes to be printed is Binary or not
-//May be more robust method is needed here ?
+// Detect if the bytes to be printed is Binary or not.
 func binaryFmt(p []byte) bool {
 	if len(p) > 0 && p[0] > 0x7F {
 		return true
@@ -511,8 +514,8 @@ func binaryFmt(p []byte) bool {
 	return false
 }
 
-//decodeIfBinaryToString - converts a binary formatted log msg to a
-//JSON formatted String Log message - suitable for printing to Console/Syslog etc
+// DecodeIfBinaryToString converts a binary formatted log msg to a
+// JSON formatted String Log message - suitable for printing to Console/Syslog.
 func DecodeIfBinaryToString(in []byte) string {
 	if binaryFmt(in) {
 		var b bytes.Buffer
@@ -522,6 +525,8 @@ func DecodeIfBinaryToString(in []byte) string {
 	return string(in)
 }
 
+// DecodeObjectToStr checks if the input is a binary format, if so,
+// it will decode a single Object and return the decoded string.
 func DecodeObjectToStr(in []byte) string {
 	if binaryFmt(in) {
 		var b bytes.Buffer
@@ -531,8 +536,8 @@ func DecodeObjectToStr(in []byte) string {
 	return string(in)
 }
 
-//decodeIfBinaryToBytes - converts a binary formatted log msg to a
-//JSON formatted Bytes Log message
+// DecodeIfBinaryToBytes checks if the input is a binary format, if so,
+// it will decode all Objects and return the decoded string as byte array.
 func DecodeIfBinaryToBytes(in []byte) []byte {
 	if binaryFmt(in) {
 		var b bytes.Buffer

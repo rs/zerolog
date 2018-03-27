@@ -13,6 +13,8 @@ var arrayPool = &sync.Pool{
 	},
 }
 
+// Array is used to prepopulate an array of items
+// which can be re-used to add to log messages.
 type Array struct {
 	buf []byte
 }
@@ -24,6 +26,8 @@ func Arr() *Array {
 	return a
 }
 
+// MarshalZerologArray method here is no-op - since data is
+// already in the needed format.
 func (*Array) MarshalZerologArray(*Array) {
 }
 

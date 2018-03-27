@@ -6,18 +6,22 @@ import (
 	"math"
 )
 
+// AppendNull inserts a 'Nil' object into the dst byte array.
 func AppendNull(dst []byte) []byte {
 	return append(dst, byte(majorTypeSimpleAndFloat|additionalTypeNull))
 }
 
+// AppendBeginMarker inserts a map start into the dst byte array.
 func AppendBeginMarker(dst []byte) []byte {
 	return append(dst, byte(majorTypeMap|additionalTypeInfiniteCount))
 }
 
+// AppendEndMarker inserts a map end into the dst byte array.
 func AppendEndMarker(dst []byte) []byte {
 	return append(dst, byte(majorTypeSimpleAndFloat|additionalTypeBreak))
 }
 
+// AppendBool encodes and inserts a boolean value into the dst byte array.
 func AppendBool(dst []byte, val bool) []byte {
 	b := additionalTypeBoolFalse
 	if val {
@@ -26,6 +30,7 @@ func AppendBool(dst []byte, val bool) []byte {
 	return append(dst, byte(majorTypeSimpleAndFloat|b))
 }
 
+// AppendBools encodes and inserts an array of boolean values into the dst byte array.
 func AppendBools(dst []byte, vals []bool) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -44,6 +49,7 @@ func AppendBools(dst []byte, vals []bool) []byte {
 	return dst
 }
 
+// AppendInt encodes and inserts an integer value into the dst byte array.
 func AppendInt(dst []byte, val int) []byte {
 	major := majorTypeUnsignedInt
 	contentVal := val
@@ -60,6 +66,7 @@ func AppendInt(dst []byte, val int) []byte {
 	return dst
 }
 
+// AppendInts encodes and inserts an array of integer values into the dst byte array.
 func AppendInts(dst []byte, vals []int) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -78,10 +85,12 @@ func AppendInts(dst []byte, vals []int) []byte {
 	return dst
 }
 
+// AppendInt8 encodes and inserts an int8 value into the dst byte array.
 func AppendInt8(dst []byte, val int8) []byte {
 	return AppendInt(dst, int(val))
 }
 
+// AppendInts8 encodes and inserts an array of integer values into the dst byte array.
 func AppendInts8(dst []byte, vals []int8) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -100,10 +109,12 @@ func AppendInts8(dst []byte, vals []int8) []byte {
 	return dst
 }
 
+// AppendInt16 encodes and inserts a int16 value into the dst byte array.
 func AppendInt16(dst []byte, val int16) []byte {
 	return AppendInt(dst, int(val))
 }
 
+// AppendInts16 encodes and inserts an array of int16 values into the dst byte array.
 func AppendInts16(dst []byte, vals []int16) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -122,10 +133,12 @@ func AppendInts16(dst []byte, vals []int16) []byte {
 	return dst
 }
 
+// AppendInt32 encodes and inserts a int32 value into the dst byte array.
 func AppendInt32(dst []byte, val int32) []byte {
 	return AppendInt(dst, int(val))
 }
 
+// AppendInts32 encodes and inserts an array of int32 values into the dst byte array.
 func AppendInts32(dst []byte, vals []int32) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -144,6 +157,7 @@ func AppendInts32(dst []byte, vals []int32) []byte {
 	return dst
 }
 
+// AppendInt64 encodes and inserts a int64 value into the dst byte array.
 func AppendInt64(dst []byte, val int64) []byte {
 	major := majorTypeUnsignedInt
 	contentVal := val
@@ -160,6 +174,7 @@ func AppendInt64(dst []byte, val int64) []byte {
 	return dst
 }
 
+// AppendInts64 encodes and inserts an array of int64 values into the dst byte array.
 func AppendInts64(dst []byte, vals []int64) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -178,10 +193,12 @@ func AppendInts64(dst []byte, vals []int64) []byte {
 	return dst
 }
 
+// AppendUint encodes and inserts an unsigned integer value into the dst byte array.
 func AppendUint(dst []byte, val uint) []byte {
 	return AppendInt64(dst, int64(val))
 }
 
+// AppendUints encodes and inserts an array of unsigned integer values into the dst byte array.
 func AppendUints(dst []byte, vals []uint) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -200,10 +217,12 @@ func AppendUints(dst []byte, vals []uint) []byte {
 	return dst
 }
 
+// AppendUint8 encodes and inserts a unsigned int8 value into the dst byte array.
 func AppendUint8(dst []byte, val uint8) []byte {
 	return AppendUint(dst, uint(val))
 }
 
+// AppendUints8 encodes and inserts an array of uint8 values into the dst byte array.
 func AppendUints8(dst []byte, vals []uint8) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -222,10 +241,12 @@ func AppendUints8(dst []byte, vals []uint8) []byte {
 	return dst
 }
 
+// AppendUint16 encodes and inserts a uint16 value into the dst byte array.
 func AppendUint16(dst []byte, val uint16) []byte {
 	return AppendUint(dst, uint(val))
 }
 
+// AppendUints16 encodes and inserts an array of uint16 values into the dst byte array.
 func AppendUints16(dst []byte, vals []uint16) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -244,10 +265,12 @@ func AppendUints16(dst []byte, vals []uint16) []byte {
 	return dst
 }
 
+// AppendUint32 encodes and inserts a uint32 value into the dst byte array.
 func AppendUint32(dst []byte, val uint32) []byte {
 	return AppendUint(dst, uint(val))
 }
 
+// AppendUints32 encodes and inserts an array of uint32 values into the dst byte array.
 func AppendUints32(dst []byte, vals []uint32) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -266,6 +289,7 @@ func AppendUints32(dst []byte, vals []uint32) []byte {
 	return dst
 }
 
+// AppendUint64 encodes and inserts a uint64 value into the dst byte array.
 func AppendUint64(dst []byte, val uint64) []byte {
 	major := majorTypeUnsignedInt
 	contentVal := val
@@ -278,6 +302,7 @@ func AppendUint64(dst []byte, val uint64) []byte {
 	return dst
 }
 
+// AppendUints64 encodes and inserts an array of uint64 values into the dst byte array.
 func AppendUints64(dst []byte, vals []uint64) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -296,6 +321,7 @@ func AppendUints64(dst []byte, vals []uint64) []byte {
 	return dst
 }
 
+// AppendFloat32 encodes and inserts a single precision float value into the dst byte array.
 func AppendFloat32(dst []byte, val float32) []byte {
 	switch {
 	case math.IsNaN(float64(val)):
@@ -315,6 +341,7 @@ func AppendFloat32(dst []byte, val float32) []byte {
 	return append(append(dst, byte(major|subType)), buf[0], buf[1], buf[2], buf[3])
 }
 
+// AppendFloats32 encodes and inserts an array of single precision float value into the dst byte array.
 func AppendFloats32(dst []byte, vals []float32) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -333,6 +360,7 @@ func AppendFloats32(dst []byte, vals []float32) []byte {
 	return dst
 }
 
+// AppendFloat64 encodes and inserts a double precision float value into the dst byte array.
 func AppendFloat64(dst []byte, val float64) []byte {
 	switch {
 	case math.IsNaN(val):
@@ -353,6 +381,7 @@ func AppendFloat64(dst []byte, val float64) []byte {
 	return dst
 }
 
+// AppendFloats64 encodes and inserts an array of double precision float values into the dst byte array.
 func AppendFloats64(dst []byte, vals []float64) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -371,6 +400,7 @@ func AppendFloats64(dst []byte, vals []float64) []byte {
 	return dst
 }
 
+// AppendInterface takes an arbitrary object and converts it to JSON and embeds it dst.
 func AppendInterface(dst []byte, i interface{}) []byte {
 	marshaled, err := json.Marshal(i)
 	if err != nil {
@@ -379,18 +409,22 @@ func AppendInterface(dst []byte, i interface{}) []byte {
 	return AppendEmbeddedJSON(dst, marshaled)
 }
 
+// AppendObjectData takes an object in form of a byte array and appends to dst.
 func AppendObjectData(dst []byte, o []byte) []byte {
 	return append(dst, o...)
 }
 
+// AppendArrayStart adds markers to indicate the start of an array.
 func AppendArrayStart(dst []byte) []byte {
 	return append(dst, byte(majorTypeArray|additionalTypeInfiniteCount))
 }
 
+// AppendArrayEnd adds markers to indicate the end of an array.
 func AppendArrayEnd(dst []byte) []byte {
 	return append(dst, byte(majorTypeSimpleAndFloat|additionalTypeBreak))
 }
 
+// AppendArrayDelim adds markers to indicate end of a particular array element.
 func AppendArrayDelim(dst []byte) []byte {
 	//No delimiters needed in cbor
 	return dst

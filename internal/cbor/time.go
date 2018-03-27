@@ -32,6 +32,7 @@ func appendFloatTimestamp(dst []byte, t time.Time) []byte {
 	return AppendFloat64(dst, val)
 }
 
+// AppendTime encodes and adds a timestamp to the dst byte array.
 func AppendTime(dst []byte, t time.Time, unused string) []byte {
 	utc := t.UTC()
 	if utc.Nanosecond() == 0 {
@@ -40,6 +41,7 @@ func AppendTime(dst []byte, t time.Time, unused string) []byte {
 	return appendFloatTimestamp(dst, utc)
 }
 
+// AppendTimes encodes and adds an array of timestamps to the dst byte array.
 func AppendTimes(dst []byte, vals []time.Time, unused string) []byte {
 	major := majorTypeArray
 	l := len(vals)
@@ -59,6 +61,9 @@ func AppendTimes(dst []byte, vals []time.Time, unused string) []byte {
 	return dst
 }
 
+// AppendDuration encodes and adds a duration to the dst byte array.
+// useInt field indicates whether to store the duration as seconds (integer) or
+// as seconds+nanoseconds (float).
 func AppendDuration(dst []byte, d time.Duration, unit time.Duration, useInt bool) []byte {
 	if useInt {
 		return AppendInt64(dst, int64(d/unit))
@@ -66,6 +71,9 @@ func AppendDuration(dst []byte, d time.Duration, unit time.Duration, useInt bool
 	return AppendFloat64(dst, float64(d)/float64(unit))
 }
 
+// AppendDurations encodes and adds an array of durations to the dst byte array.
+// useInt field indicates whether to store the duration as seconds (integer) or
+// as seconds+nanoseconds (float).
 func AppendDurations(dst []byte, vals []time.Duration, unit time.Duration, useInt bool) []byte {
 	major := majorTypeArray
 	l := len(vals)

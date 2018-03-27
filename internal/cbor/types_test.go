@@ -61,7 +61,7 @@ var integerTestCases = []struct {
 	val    int
 	binary string
 }{
-	//value included in the type
+	// Value included in the type.
 	{0, "\x00"},
 	{1, "\x01"},
 	{2, "\x02"},
@@ -71,27 +71,27 @@ var integerTestCases = []struct {
 	{10, "\x0a"},
 	{22, "\x16"},
 	{23, "\x17"},
-	//Value in 1 byte
+	// Value in 1 byte.
 	{24, "\x18\x18"},
 	{25, "\x18\x19"},
 	{26, "\x18\x1a"},
 	{100, "\x18\x64"},
 	{254, "\x18\xfe"},
 	{255, "\x18\xff"},
-	//Value in 2 bytes
+	// Value in 2 bytes.
 	{256, "\x19\x01\x00"},
 	{257, "\x19\x01\x01"},
 	{1000, "\x19\x03\xe8"},
 	{0xFFFF, "\x19\xff\xff"},
-	//Value in 4 bytes
+	// Value in 4 bytes.
 	{0x10000, "\x1a\x00\x01\x00\x00"},
 	{0xFFFFFFFE, "\x1a\xff\xff\xff\xfe"},
 	{1000000, "\x1a\x00\x0f\x42\x40"},
-	//Value in 8 bytes
+	// Value in 8 bytes.
 	{0xabcd100000000, "\x1b\x00\x0a\xbc\xd1\x00\x00\x00\x00"},
 	{1000000000000, "\x1b\x00\x00\x00\xe8\xd4\xa5\x10\x00"},
-	// Negative number test cases
-	//value included in the type
+	// Negative number test cases.
+	// Value included in the type.
 	{-1, "\x20"},
 	{-2, "\x21"},
 	{-3, "\x22"},
@@ -100,22 +100,22 @@ var integerTestCases = []struct {
 	{-22, "\x35"},
 	{-23, "\x36"},
 	{-24, "\x37"},
-	//Value in 1 byte
+	// Value in 1 byte.
 	{-25, "\x38\x18"},
 	{-26, "\x38\x19"},
 	{-100, "\x38\x63"},
 	{-254, "\x38\xfd"},
 	{-255, "\x38\xfe"},
 	{-256, "\x38\xff"},
-	//Value in 2 bytes
+	// Value in 2 bytes.
 	{-257, "\x39\x01\x00"},
 	{-258, "\x39\x01\x01"},
 	{-1000, "\x39\x03\xe7"},
-	//Value in 4 bytes
+	// Value in 4 bytes.
 	{-0x10001, "\x3a\x00\x01\x00\x00"},
 	{-0xFFFFFFFE, "\x3a\xff\xff\xff\xfd"},
 	{-1000000, "\x3a\x00\x0f\x42\x3f"},
-	//Value in 8 bytes
+	// Value in 8 bytes.
 	{-0xabcd100000001, "\x3b\x00\x0a\xbc\xd1\x00\x00\x00\x00"},
 	{-1000000000001, "\x3b\x00\x00\x00\xe8\xd4\xa5\x10\x00"},
 }

@@ -1,11 +1,15 @@
 // +build !enable_binary_log
 
+// encoder_json.go file contains bindings to generate
+// json encoded byte stream.
+
 package zerolog
 
 import (
-	"github.com/rs/zerolog/internal/json"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog/internal/json"
 )
 
 func appendInterface(dst []byte, i interface{}) []byte {
@@ -157,7 +161,7 @@ func appendEndMarker(dst []byte) []byte {
 }
 
 func appendLineBreak(dst []byte) []byte {
-	return append(dst, byte('\n'))
+	return append(dst, '\n')
 }
 
 func appendBeginMarker(dst []byte) []byte {
@@ -187,7 +191,7 @@ func appendObjectData(dst []byte, src []byte) []byte {
 	return json.AppendObjectData(dst, src)
 }
 
-func appendJson(dst []byte, j []byte) []byte {
+func appendJSON(dst []byte, j []byte) []byte {
 	return append(dst, j...)
 }
 

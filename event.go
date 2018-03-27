@@ -228,7 +228,7 @@ func (e *Event) RawJSON(key string, b []byte) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = appendJson(appendKey(e.buf, key), b)
+	e.buf = appendJSON(appendKey(e.buf, key), b)
 	return e
 }
 
