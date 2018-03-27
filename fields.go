@@ -52,6 +52,38 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 			dst = appendTime(dst, val, TimeFieldFormat)
 		case time.Duration:
 			dst = appendDuration(dst, val, DurationFieldUnit, DurationFieldInteger)
+		case *string:
+			dst = appendString(dst, *val)
+		case *bool:
+			dst = appendBool(dst, *val)
+		case *int:
+			dst = appendInt(dst, *val)
+		case *int8:
+			dst = appendInt8(dst, *val)
+		case *int16:
+			dst = appendInt16(dst, *val)
+		case *int32:
+			dst = appendInt32(dst, *val)
+		case *int64:
+			dst = appendInt64(dst, *val)
+		case *uint:
+			dst = appendUint(dst, *val)
+		case *uint8:
+			dst = appendUint8(dst, *val)
+		case *uint16:
+			dst = appendUint16(dst, *val)
+		case *uint32:
+			dst = appendUint32(dst, *val)
+		case *uint64:
+			dst = appendUint64(dst, *val)
+		case *float32:
+			dst = appendFloat32(dst, *val)
+		case *float64:
+			dst = appendFloat64(dst, *val)
+		case *time.Time:
+			dst = appendTime(dst, *val, TimeFieldFormat)
+		case *time.Duration:
+			dst = appendDuration(dst, *val, DurationFieldUnit, DurationFieldInteger)
 		case []string:
 			dst = appendStrings(dst, val)
 		case []bool:

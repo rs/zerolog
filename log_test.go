@@ -135,6 +135,32 @@ func TestFieldsMap(t *testing.T) {
 	}
 }
 
+func TestFieldsMapPnt(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields(map[string]interface{}{
+		"string":  new(string),
+		"bool":    new(bool),
+		"int":     new(int),
+		"int8":    new(int8),
+		"int16":   new(int16),
+		"int32":   new(int32),
+		"int64":   new(int64),
+		"uint":    new(uint),
+		"uint8":   new(uint8),
+		"uint16":  new(uint16),
+		"uint32":  new(uint32),
+		"uint64":  new(uint64),
+		"float32": new(float32),
+		"float64": new(float64),
+		"dur":     new(time.Duration),
+		"time":    new(time.Time),
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"bool":false,"dur":0,"float32":0,"float64":0,"int":0,"int16":0,"int32":0,"int64":0,"int8":0,"string":"","time":"0001-01-01T00:00:00Z","uint":0,"uint16":0,"uint32":0,"uint64":0,"uint8":0}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestFields(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
