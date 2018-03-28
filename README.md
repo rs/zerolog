@@ -4,11 +4,11 @@
 
 The zerolog package provides a fast and simple logger dedicated to JSON output.
 
-Zerolog's API is designed to provide both a great developer experience and stunning [performance](#benchmarks). Its unique chaining API allows zerolog to write JSON log events by avoiding allocations and reflection.
+Zerolog's API is designed to provide both a great developer experience and stunning [performance](#benchmarks). Its unique chaining API allows zerolog to write JSON (or CBOR) log events by avoiding allocations and reflection.
 
 Uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach. Zerolog is taking this concept to the next level with a simpler to use API and even better performance.
 
-To keep the code base and the API simple, zerolog focuses on JSON logging only. Pretty logging on the console is made possible using the provided (but inefficient) `zerolog.ConsoleWriter`.
+To keep the code base and the API simple, zerolog focuses on efficient structured logging only. Pretty logging on the console is made possible using the provided (but inefficient) `zerolog.ConsoleWriter`.
 
 ![](pretty.png)
 
@@ -26,14 +26,18 @@ Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog)
 * Contextual fields
 * `context.Context` integration
 * `net/http` helpers
+* JSON and CBOR encoding formats
 * Pretty logging for development
 
 ## Installation
+
 ```go
 go get -u github.com/rs/zerolog/log
 ```
 ## Getting Started
+
 ### Simple Logging Example
+
 For simple logging, import the global logger package **github.com/rs/zerolog/log**
 ```go
 package main
@@ -138,6 +142,7 @@ $ ./logLevelExample -debug
 ```
 
 #### Logging Fatal Messages
+
 ```go
 package main
 
@@ -168,6 +173,7 @@ func main() {
 ### Contextual Logging
 
 #### Fields can be added to log messages
+
 ```go
 log.Info().
     Str("foo", "bar").
@@ -422,6 +428,14 @@ Some settings can be changed and will by applied to all loggers:
 * `Dict`: Adds a sub-key/value as a field of the event.
 * `Interface`: Uses reflection to marshal the type.
 
+## Binary Encoding
+
+In addition to the default JSON encoding, `zerolog` can produce binary logs using the [cbor](http://cbor.io) encoding. The choice of encoding can be decided at compile time using the build tag `binary_log` as follow:
+
+```
+go build -tags binary_log .
+```
+
 ## Benchmarks
 
 All operations are allocation free (those numbers *include* JSON encoding):
@@ -483,8 +497,7 @@ Log a static string, without any context or `printf`-style templating:
 
 ## Caveats
 
-There is no fields deduplication out-of-the-box.
-Using the same key multiple times creates new key in final JSON each time.
+Note that zerolog does de-duplication fields. Using the same key multiple times creates multiple keys in final JSON:
 
 ```go
 logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
@@ -494,4 +507,4 @@ logger.Info().
 // Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
 ```
 
-However, it’s not a big deal though as JSON accepts dup keys, the last one prevails.
+However, it’s not a big deal as JSON accepts dup keys; the last one prevails.
