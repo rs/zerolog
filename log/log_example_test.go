@@ -1,4 +1,4 @@
-// +build !enable_binary_log
+// +build !binary_log
 
 package log_test
 

@@ -1,9 +1,9 @@
-// +build !enable_binary_log
-
-// encoder_json.go file contains bindings to generate
-// json encoded byte stream.
+// +build !binary_log
 
 package zerolog
+
+// encoder_json.go file contains bindings to generate
+// JSON encoded byte stream.
 
 import (
 	"strconv"

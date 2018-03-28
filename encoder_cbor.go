@@ -1,8 +1,8 @@
-// +build enable_binary_log
-
-// This file contains bindings to do binary encoding.
+// +build binary_log
 
 package zerolog
+
+// This file contains bindings to do binary encoding.
 
 import (
 	"time"

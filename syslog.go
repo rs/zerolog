@@ -1,5 +1,5 @@
 // +build !windows
-// +build !enable_binary_log
+// +build !binary_log
 
 package zerolog
 
