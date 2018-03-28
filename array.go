@@ -3,8 +3,6 @@ package zerolog
 import (
 	"sync"
 	"time"
-
-	"github.com/rs/zerolog/internal/json"
 )
 
 var arrayPool = &sync.Pool{
@@ -15,6 +13,8 @@ var arrayPool = &sync.Pool{
 	},
 }
 
+// Array is used to prepopulate an array of items
+// which can be re-used to add to log messages.
 type Array struct {
 	buf []byte
 }
@@ -26,16 +26,17 @@ func Arr() *Array {
 	return a
 }
 
+// MarshalZerologArray method here is no-op - since data is
+// already in the needed format.
 func (*Array) MarshalZerologArray(*Array) {
 }
 
 func (a *Array) write(dst []byte) []byte {
-	if len(a.buf) == 0 {
-		dst = append(dst, `[]`...)
-	} else {
-		a.buf[0] = '['
-		dst = append(append(dst, a.buf...), ']')
+	dst = appendArrayStart(dst)
+	if len(a.buf) > 0 {
+		dst = append(append(dst, a.buf...))
 	}
+	dst = appendArrayEnd(dst)
 	arrayPool.Put(a)
 	return dst
 }
@@ -43,126 +44,125 @@ func (a *Array) write(dst []byte) []byte {
 // Object marshals an object that implement the LogObjectMarshaler
 // interface and append it to the array.
 func (a *Array) Object(obj LogObjectMarshaler) *Array {
-	a.buf = append(a.buf, ',')
 	e := Dict()
 	obj.MarshalZerologObject(e)
-	e.buf = append(e.buf, '}')
-	a.buf = append(a.buf, e.buf...)
+	e.buf = appendEndMarker(e.buf)
+	a.buf = append(appendArrayDelim(a.buf), e.buf...)
 	eventPool.Put(e)
 	return a
 }
 
 // Str append the val as a string to the array.
 func (a *Array) Str(val string) *Array {
-	a.buf = json.AppendString(append(a.buf, ','), val)
+	a.buf = appendString(appendArrayDelim(a.buf), val)
 	return a
 }
 
 // Bytes append the val as a string to the array.
 func (a *Array) Bytes(val []byte) *Array {
-	a.buf = json.AppendBytes(append(a.buf, ','), val)
+	a.buf = appendBytes(appendArrayDelim(a.buf), val)
 	return a
 }
 
 // Hex append the val as a hex string to the array.
 func (a *Array) Hex(val []byte) *Array {
-	a.buf = json.AppendHex(append(a.buf, ','), val)
+	a.buf = appendHex(appendArrayDelim(a.buf), val)
 	return a
 }
 
 // Err append the err as a string to the array.
 func (a *Array) Err(err error) *Array {
-	a.buf = json.AppendError(append(a.buf, ','), err)
+	a.buf = appendError(appendArrayDelim(a.buf), err)
 	return a
 }
 
 // Bool append the val as a bool to the array.
 func (a *Array) Bool(b bool) *Array {
-	a.buf = json.AppendBool(append(a.buf, ','), b)
+	a.buf = appendBool(appendArrayDelim(a.buf), b)
 	return a
 }
 
 // Int append i as a int to the array.
 func (a *Array) Int(i int) *Array {
-	a.buf = json.AppendInt(append(a.buf, ','), i)
+	a.buf = appendInt(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Int8 append i as a int8 to the array.
 func (a *Array) Int8(i int8) *Array {
-	a.buf = json.AppendInt8(append(a.buf, ','), i)
+	a.buf = appendInt8(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Int16 append i as a int16 to the array.
 func (a *Array) Int16(i int16) *Array {
-	a.buf = json.AppendInt16(append(a.buf, ','), i)
+	a.buf = appendInt16(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Int32 append i as a int32 to the array.
 func (a *Array) Int32(i int32) *Array {
-	a.buf = json.AppendInt32(append(a.buf, ','), i)
+	a.buf = appendInt32(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Int64 append i as a int64 to the array.
 func (a *Array) Int64(i int64) *Array {
-	a.buf = json.AppendInt64(append(a.buf, ','), i)
+	a.buf = appendInt64(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Uint append i as a uint to the array.
 func (a *Array) Uint(i uint) *Array {
-	a.buf = json.AppendUint(append(a.buf, ','), i)
+	a.buf = appendUint(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Uint8 append i as a uint8 to the array.
 func (a *Array) Uint8(i uint8) *Array {
-	a.buf = json.AppendUint8(append(a.buf, ','), i)
+	a.buf = appendUint8(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Uint16 append i as a uint16 to the array.
 func (a *Array) Uint16(i uint16) *Array {
-	a.buf = json.AppendUint16(append(a.buf, ','), i)
+	a.buf = appendUint16(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Uint32 append i as a uint32 to the array.
 func (a *Array) Uint32(i uint32) *Array {
-	a.buf = json.AppendUint32(append(a.buf, ','), i)
+	a.buf = appendUint32(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Uint64 append i as a uint64 to the array.
 func (a *Array) Uint64(i uint64) *Array {
-	a.buf = json.AppendUint64(append(a.buf, ','), i)
+	a.buf = appendUint64(appendArrayDelim(a.buf), i)
 	return a
 }
 
 // Float32 append f as a float32 to the array.
 func (a *Array) Float32(f float32) *Array {
-	a.buf = json.AppendFloat32(append(a.buf, ','), f)
+	a.buf = appendFloat32(appendArrayDelim(a.buf), f)
 	return a
 }
 
 // Float64 append f as a float64 to the array.
 func (a *Array) Float64(f float64) *Array {
-	a.buf = json.AppendFloat64(append(a.buf, ','), f)
+	a.buf = appendFloat64(appendArrayDelim(a.buf), f)
 	return a
 }
 
 // Time append t formated as string using zerolog.TimeFieldFormat.
 func (a *Array) Time(t time.Time) *Array {
-	a.buf = json.AppendTime(append(a.buf, ','), t, TimeFieldFormat)
+	a.buf = appendTime(appendArrayDelim(a.buf), t, TimeFieldFormat)
 	return a
 }
 
 // Dur append d to the array.
 func (a *Array) Dur(d time.Duration) *Array {
-	a.buf = json.AppendDuration(append(a.buf, ','), d, DurationFieldUnit, DurationFieldInteger)
+	a.buf = appendDuration(appendArrayDelim(a.buf), d, DurationFieldUnit, DurationFieldInteger)
 	return a
 }
 
@@ -171,6 +171,6 @@ func (a *Array) Interface(i interface{}) *Array {
 	if obj, ok := i.(LogObjectMarshaler); ok {
 		return a.Object(obj)
 	}
-	a.buf = json.AppendInterface(append(a.buf, ','), i)
+	a.buf = appendInterface(appendArrayDelim(a.buf), i)
 	return a
 }

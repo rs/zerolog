@@ -332,3 +332,16 @@ func AppendInterface(dst []byte, i interface{}) []byte {
 	}
 	return append(dst, marshaled...)
 }
+
+func AppendObjectData(dst []byte, o []byte) []byte {
+	// Two conditions we want to put a ',' between existing content and
+	// new content:
+	// 1. new content starts with '{' - which shd be dropped   OR
+	// 2. existing content has already other fields
+	if o[0] == '{' {
+		o[0] = ','
+	} else if len(dst) > 1 {
+		dst = append(dst, ',')
+	}
+	return append(dst, o...)
+}

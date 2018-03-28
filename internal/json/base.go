@@ -2,7 +2,7 @@ package json
 
 // AppendKey appends a new key to the output JSON.
 func AppendKey(dst []byte, key string) []byte {
-	if len(dst) > 1 {
+	if len(dst) > 1 && dst[len(dst)-1] != '{' {
 		dst = append(dst, ',')
 	}
 	dst = AppendString(dst, key)

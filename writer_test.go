@@ -1,3 +1,4 @@
+// +build !binary_log
 // +build !windows
 
 package zerolog

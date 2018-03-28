@@ -1,3 +1,5 @@
+// +build !binary_log
+
 package zerolog
 
 import (

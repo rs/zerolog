@@ -358,11 +358,8 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	if level != NoLevel {
 		e.Str(LevelFieldName, level.String())
 	}
-	if len(l.context) > 0 {
-		if len(e.buf) > 1 {
-			e.buf = append(e.buf, ',')
-		}
-		e.buf = append(e.buf, l.context...)
+	if l.context != nil && len(l.context) > 0 {
+		e.buf = appendObjectData(e.buf, l.context)
 	}
 	return e
 }
