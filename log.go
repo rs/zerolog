@@ -148,6 +148,27 @@ func (l Level) String() string {
 	return ""
 }
 
+// LvlFromString returns the log level that corresponds to the supplied string value. The values are the same as returned by Level's String() method.
+func LvlFromString(l string) Level {
+	switch l {
+	case "debug":
+		return DebugLevel
+	case "info":
+		return InfoLevel
+	case "warn":
+		return WarnLevel
+	case "error":
+		return ErrorLevel
+	case "fatal":
+		return FatalLevel
+	case "panic":
+		return PanicLevel
+	case "":
+		return NoLevel
+	}
+	return NoLevel
+}
+
 // A Logger represents an active logging object that generates lines
 // of JSON output to an io.Writer. Each logging operation makes a single
 // call to the Writer's Write method. There is no guaranty on access
