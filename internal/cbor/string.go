@@ -48,8 +48,13 @@ func AppendBytes(dst, s []byte) []byte {
 func AppendEmbeddedJSON(dst, s []byte) []byte {
 	major := majorTypeTags
 	minor := additionalTypeEmbeddedJSON
-	dst = append(dst, byte(major|minor))
 
+	// Append the TAG to indicate this is Embedded JSON.
+	dst = append(dst, byte(major|additionalTypeIntUint16))
+	dst = append(dst, byte(minor>>8))
+	dst = append(dst, byte(minor&0xff))
+
+	// Append the JSON Object as Byte String.
 	major = majorTypeByteString
 
 	l := len(s)

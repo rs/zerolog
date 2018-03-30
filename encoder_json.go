@@ -6,6 +6,7 @@ package zerolog
 // JSON encoded byte stream.
 
 import (
+	"net"
 	"strconv"
 	"time"
 
@@ -211,6 +212,18 @@ func decodeIfBinaryToBytes(in []byte) []byte {
 	return in
 }
 
+func appendIPAddr(dst []byte, ip net.IP) []byte {
+	return json.AppendIPAddr(dst, ip)
+}
+
+func appendIPPrefix(dst []byte, pfx net.IPNet) []byte {
+	return json.AppendIPPrefix(dst, pfx)
+}
+
+func appendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
+	return json.AppendMACAddr(dst, ha)
+}
+
 func appendHex(in []byte, val []byte) []byte {
-    return json.AppendHex(in, val)
+	return json.AppendHex(in, val)
 }

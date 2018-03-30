@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"net"
 	"sort"
 	"time"
 )
@@ -118,6 +119,12 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 			dst = appendDurations(dst, val, DurationFieldUnit, DurationFieldInteger)
 		case nil:
 			dst = appendNil(dst)
+		case net.IP:
+			dst = appendIPAddr(dst, val)
+		case net.IPNet:
+			dst = appendIPPrefix(dst, val)
+		case net.HardwareAddr:
+			dst = appendMACAddr(dst, val)
 		default:
 			dst = appendInterface(dst, val)
 		}

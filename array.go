@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"net"
 	"sync"
 	"time"
 )
@@ -172,5 +173,23 @@ func (a *Array) Interface(i interface{}) *Array {
 		return a.Object(obj)
 	}
 	a.buf = appendInterface(appendArrayDelim(a.buf), i)
+	return a
+}
+
+// IPAddr adds IPv4 or IPv6 address to the array
+func (a *Array) IPAddr(ip net.IP) *Array {
+	a.buf = appendIPAddr(appendArrayDelim(a.buf), ip)
+	return a
+}
+
+// IPPrefix adds IPv4 or IPv6 Prefix (IP + mask) to the array
+func (a *Array) IPPrefix(pfx net.IPNet) *Array {
+	a.buf = appendIPPrefix(appendArrayDelim(a.buf), pfx)
+	return a
+}
+
+// MACAddr adds a MAC (Ethernet) address to the array
+func (a *Array) MACAddr(ha net.HardwareAddr) *Array {
+	a.buf = appendMACAddr(appendArrayDelim(a.buf), ha)
 	return a
 }

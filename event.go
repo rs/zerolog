@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"runtime"
 	"strconv"
@@ -595,5 +596,32 @@ func (e *Event) caller(skip int) *Event {
 		return e
 	}
 	e.buf = appendString(appendKey(e.buf, CallerFieldName), file+":"+strconv.Itoa(line))
+	return e
+}
+
+// IPAddr adds IPv4 or IPv6 Address to the event
+func (e *Event) IPAddr(key string, ip net.IP) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = appendIPAddr(appendKey(e.buf, key), ip)
+	return e
+}
+
+// IPPrefix adds IPv4 or IPv6 Prefix (address and mask) to the event
+func (e *Event) IPPrefix(key string, pfx net.IPNet) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = appendIPPrefix(appendKey(e.buf, key), pfx)
+	return e
+}
+
+// MACAddr adds MAC address to the event
+func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = appendMACAddr(appendKey(e.buf, key), ha)
 	return e
 }

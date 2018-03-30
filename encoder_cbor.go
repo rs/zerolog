@@ -5,6 +5,7 @@ package zerolog
 // This file contains bindings to do binary encoding.
 
 import (
+	"net"
 	"time"
 
 	"github.com/rs/zerolog/internal/cbor"
@@ -209,6 +210,18 @@ func decodeIfBinaryToString(in []byte) string {
 
 func decodeObjectToStr(in []byte) string {
 	return cbor.DecodeObjectToStr(in)
+}
+
+func appendIPAddr(dst []byte, ip net.IP) []byte {
+	return cbor.AppendIPAddr(dst, ip)
+}
+
+func appendIPPrefix(dst []byte, pfx net.IPNet) []byte {
+	return cbor.AppendIPPrefix(dst, pfx)
+}
+
+func appendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
+	return cbor.AppendMACAddr(dst, ha)
 }
 
 // decodeIfBinaryToBytes - converts a binary formatted log msg to a

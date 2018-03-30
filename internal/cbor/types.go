@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 )
 
 // AppendNull inserts a 'Nil' object into the dst byte array.
@@ -430,9 +431,40 @@ func AppendArrayDelim(dst []byte) []byte {
 	return dst
 }
 
-func AppendHex (dst []byte, val []byte) []byte {
-    dst = append(dst, byte(majorTypeTags|additionalTypeIntUint16))
-    dst = append(dst, byte(additionalTypeTagHexString>>8))
-    dst = append(dst, byte(additionalTypeTagHexString&0xff))
-    return AppendBytes(dst, val)
+// AppendIPAddr encodes and inserts an IP Address (IPv4 or IPv6).
+func AppendIPAddr(dst []byte, ip net.IP) []byte {
+	dst = append(dst, byte(majorTypeTags|additionalTypeIntUint16))
+	dst = append(dst, byte(additionalTypeTagNetworkAddr>>8))
+	dst = append(dst, byte(additionalTypeTagNetworkAddr&0xff))
+	return AppendBytes(dst, ip)
+}
+
+// AppendIPPrefix encodes and inserts an IP Address Prefix (Address + Mask Length).
+func AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
+	dst = append(dst, byte(majorTypeTags|additionalTypeIntUint16))
+	dst = append(dst, byte(additionalTypeTagNetworkPrefix>>8))
+	dst = append(dst, byte(additionalTypeTagNetworkPrefix&0xff))
+
+	// Prefix is a tuple (aka MAP of 1 pair of elements) -
+	// first element is prefix, second is mask length.
+	dst = append(dst, byte(majorTypeMap|0x1))
+	dst = AppendBytes(dst, pfx.IP)
+	maskLen, _ := pfx.Mask.Size()
+	return AppendUint8(dst, uint8(maskLen))
+}
+
+// AppendMACAddr encodes and inserts an Hardware (MAC) address.
+func AppendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
+	dst = append(dst, byte(majorTypeTags|additionalTypeIntUint16))
+	dst = append(dst, byte(additionalTypeTagNetworkAddr>>8))
+	dst = append(dst, byte(additionalTypeTagNetworkAddr&0xff))
+	return AppendBytes(dst, ha)
+}
+
+// AppendHex adds a TAG and inserts a hex bytes as a string.
+func AppendHex(dst []byte, val []byte) []byte {
+	dst = append(dst, byte(majorTypeTags|additionalTypeIntUint16))
+	dst = append(dst, byte(additionalTypeTagHexString>>8))
+	dst = append(dst, byte(additionalTypeTagHexString&0xff))
+	return AppendBytes(dst, val)
 }

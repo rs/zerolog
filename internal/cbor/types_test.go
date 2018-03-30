@@ -2,6 +2,7 @@ package cbor
 
 import (
 	"encoding/hex"
+	"net"
 	"testing"
 )
 
@@ -177,6 +178,72 @@ func TestAppendFloat32(t *testing.T) {
 		if got != tc.binary {
 			t.Errorf("AppendFloat32(%f)=0x%s, want: 0x%s",
 				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+
+var ipAddrTestCases = []struct {
+	ipaddr net.IP
+	text   string // ASCII representation of ipaddr
+	binary string // CBOR representation of ipaddr
+}{
+	{net.IP{10, 0, 0, 1}, "\"10.0.0.1\"", "\xd9\x01\x04\x44\x0a\x00\x00\x01"},
+	{net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x0, 0x0, 0x0, 0x0, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
+		"\"2001:db8:85a3::8a2e:370:7334\"",
+		"\xd9\x01\x04\x50\x20\x01\x0d\xb8\x85\xa3\x00\x00\x00\x00\x8a\x2e\x03\x70\x73\x34"},
+}
+
+func TestAppendNetworkAddr(t *testing.T) {
+	for _, tc := range ipAddrTestCases {
+		s := AppendIPAddr([]byte{}, tc.ipaddr)
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendIPAddr(%s)=0x%s, want: 0x%s",
+				tc.ipaddr, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+
+var macAddrTestCases = []struct {
+	macaddr net.HardwareAddr
+	text    string // ASCII representation of macaddr
+	binary  string // CBOR representation of macaddr
+}{
+	{net.HardwareAddr{0x12, 0x34, 0x56, 0x78, 0x90, 0xab}, "\"12:34:56:78:90:ab\"", "\xd9\x01\x04\x46\x12\x34\x56\x78\x90\xab"},
+	{net.HardwareAddr{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3}, "\"20:01:0d:b8:85:a3\"", "\xd9\x01\x04\x46\x20\x01\x0d\xb8\x85\xa3"},
+}
+
+func TestAppendMacAddr(t *testing.T) {
+	for _, tc := range macAddrTestCases {
+		s := AppendMACAddr([]byte{}, tc.macaddr)
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendMACAddr(%s)=0x%s, want: 0x%s",
+				tc.macaddr.String(), hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+
+var IPPrefixTestCases = []struct {
+	pfx    net.IPNet
+	text   string // ASCII representation of pfx
+	binary string // CBOR representation of pfx
+}{
+	{net.IPNet{IP: net.IP{0, 0, 0, 0}, Mask: net.CIDRMask(0, 32)}, "\"0.0.0.0/0\"", "\xd9\x01\x05\xa1\x44\x00\x00\x00\x00\x00"},
+	{net.IPNet{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}, "\"192.168.0.100/24\"",
+		"\xd9\x01\x05\xa1\x44\xc0\xa8\x00\x64\x18\x18"},
+}
+
+func TestAppendIPPrefix(t *testing.T) {
+	for _, tc := range IPPrefixTestCases {
+		s := AppendIPPrefix([]byte{}, tc.pfx)
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendIPPrefix(%s)=0x%s, want: 0x%s",
+				tc.pfx.String(), hex.EncodeToString(s),
 				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}

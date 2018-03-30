@@ -5,6 +5,7 @@ package zerolog_test
 import (
 	"errors"
 	stdlog "log"
+	"net"
 	"os"
 	"time"
 
@@ -394,4 +395,37 @@ func ExampleContext_Durs() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+}
+
+func ExampleContext_IPAddr() {
+	hostIP := net.IP{192, 168, 0, 100}
+	log := zerolog.New(os.Stdout).With().
+		IPAddr("HostIP", hostIP).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"HostIP":"192.168.0.100","message":"hello world"}
+}
+
+func ExampleContext_IPPrefix() {
+	route := net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(24, 32)}
+	log := zerolog.New(os.Stdout).With().
+		IPPrefix("Route", route).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"Route":"192.168.0.0/24","message":"hello world"}
+}
+
+func ExampleContext_MacAddr() {
+	mac := net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45}
+	log := zerolog.New(os.Stdout).With().
+		MACAddr("hostMAC", mac).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"hostMAC":"00:14:22:01:23:45","message":"hello world"}
 }
