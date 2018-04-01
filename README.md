@@ -436,6 +436,9 @@ In addition to the default JSON encoding, `zerolog` can produce binary logs usin
 go build -tags binary_log .
 ```
 
+To Decode binary encoded log files you can use any CBOR decoder. One has been tested to work
+with zerolog library is CSD(https://github.com/toravir/csd/).
+
 ## Benchmarks
 
 All operations are allocation free (those numbers *include* JSON encoding):
