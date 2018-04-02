@@ -50,7 +50,7 @@ Results for 10,000 log messages:
 
 | Log Format |  Plain File Size (in KB) | Compressed File Size (in KB) |
 | :--- | :---: | :---: |
-| JSON | 840 | 29 |
-| CBOR | 470 | 28 |
+| JSON | 920 | 28 |
+| CBOR | 550 | 28 |
 
 The example used to calculate the above data is available in [Examples](examples).

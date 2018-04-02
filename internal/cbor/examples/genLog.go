@@ -40,7 +40,7 @@ func writeLog(fname string, count int, useCompress bool) {
 		Logger()
 	for i := 0; i < count; i++ {
 		log.Error().
-			Int("Fault", 41650+i).Msg("TCA:")
+			Int("Fault", 41650+i).Msg("Some Message")
 	}
 }
 
