@@ -43,9 +43,14 @@ Assuming this log message (with an Integer, timestamp and string, in addition to
 
 `{"level":"error","Fault":41650,"time":"2018-04-01T15:18:19-07:00","message":"Some Message"}`
 
-Sizes of the files containing 10,000 of the same log messages are:
+Two measurements were done for the log file sizes - one without any compression, second
+using [compress/zlib](https://golang.org/pkg/compress/zlib/). 
 
-```
-JSON: 920,000 KB
-CBOR: 550,000 KB
-```
+Results for 10,000 log messages:
+
+| Log Format |  Plain File Size (in KB) | Compressed File Size (in KB) |
+| :--- | :---: | :---: |
+| JSON | 840 | 29 |
+| CBOR | 470 | 28 |
+
+The example used to calculate the above data is available in [Examples](examples).
