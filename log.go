@@ -149,24 +149,24 @@ func (l Level) String() string {
 }
 
 // LvlFromString returns the log level that corresponds to the supplied string value. The values are the same as returned by Level's String() method.
-func LvlFromString(l string) Level {
+func LvlFromString(l string) (Level, error) {
 	switch l {
 	case "debug":
-		return DebugLevel
+		return DebugLevel, nil
 	case "info":
-		return InfoLevel
+		return InfoLevel, nil
 	case "warn":
-		return WarnLevel
+		return WarnLevel, nil
 	case "error":
-		return ErrorLevel
+		return ErrorLevel, nil
 	case "fatal":
-		return FatalLevel
+		return FatalLevel, nil
 	case "panic":
-		return PanicLevel
+		return PanicLevel, nil
 	case "":
-		return NoLevel
+		return NoLevel, nil
 	}
-	return NoLevel
+	return NoLevel, fmt.Errorf("unknown level: '%s'", l)
 }
 
 // A Logger represents an active logging object that generates lines
