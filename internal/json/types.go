@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"strconv"
 )
 
@@ -333,6 +334,8 @@ func AppendInterface(dst []byte, i interface{}) []byte {
 	return append(dst, marshaled...)
 }
 
+// AppendObjectData takes in an object that is already in a byte array
+// and adds it to the dst.
 func AppendObjectData(dst []byte, o []byte) []byte {
 	// Two conditions we want to put a ',' between existing content and
 	// new content:
@@ -344,4 +347,20 @@ func AppendObjectData(dst []byte, o []byte) []byte {
 		dst = append(dst, ',')
 	}
 	return append(dst, o...)
+}
+
+// AppendIPAddr adds IPv4 or IPv6 address to dst.
+func AppendIPAddr(dst []byte, ip net.IP) []byte {
+	return AppendString(dst, ip.String())
+}
+
+// AppendIPPrefix adds IPv4 or IPv6 Prefix (address & mask) to dst.
+func AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
+	return AppendString(dst, pfx.String())
+
+}
+
+// AppendMACAddr adds MAC address to dst.
+func AppendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
+	return AppendString(dst, ha.String())
 }

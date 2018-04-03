@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"io/ioutil"
+	"net"
 	"time"
 )
 
@@ -328,5 +329,23 @@ var ch = callerHook{}
 // Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
 func (c Context) Caller() Context {
 	c.l = c.l.Hook(ch)
+	return c
+}
+
+// IPAddr adds IPv4 or IPv6 Address to the context
+func (c Context) IPAddr(key string, ip net.IP) Context {
+	c.l.context = appendIPAddr(appendKey(c.l.context, key), ip)
+	return c
+}
+
+// IPPrefix adds IPv4 or IPv6 Prefix (address and mask) to the context
+func (c Context) IPPrefix(key string, pfx net.IPNet) Context {
+	c.l.context = appendIPPrefix(appendKey(c.l.context, key), pfx)
+	return c
+}
+
+// MACAddr adds MAC address to the context
+func (c Context) MACAddr(key string, ha net.HardwareAddr) Context {
+	c.l.context = appendMACAddr(appendKey(c.l.context, key), ha)
 	return c
 }
