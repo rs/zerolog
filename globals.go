@@ -49,7 +49,8 @@ func SetGlobalLevel(l Level) {
 	atomic.StoreUint32(gLevel, uint32(l))
 }
 
-func globalLevel() Level {
+// GlobalLevel returns the current global log level
+func GlobalLevel() Level {
 	return Level(atomic.LoadUint32(gLevel))
 }
 
