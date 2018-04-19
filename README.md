@@ -10,7 +10,7 @@ Uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach.
 
 To keep the code base and the API simple, zerolog focuses on efficient structured logging only. Pretty logging on the console is made possible using the provided (but inefficient) `zerolog.ConsoleWriter`.
 
-![](pretty.png)
+![Pretty Logging Image](pretty.png)
 
 ## Who uses zerolog
 
@@ -34,30 +34,33 @@ Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog)
 ```go
 go get -u github.com/rs/zerolog/log
 ```
+
 ## Getting Started
 
 ### Simple Logging Example
 
 For simple logging, import the global logger package **github.com/rs/zerolog/log**
+
 ```go
 package main
 
 import (
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
-	// UNIX Time is faster and smaller than most timestamps
-	// If you set zerolog.TimeFieldFormat to an empty string,
-	// logs will write with UNIX time
-	zerolog.TimeFieldFormat = ""
+    // UNIX Time is faster and smaller than most timestamps
+    // If you set zerolog.TimeFieldFormat to an empty string,
+    // logs will write with UNIX time
+    zerolog.TimeFieldFormat = ""
 
-	log.Print("hello world")
+    log.Print("hello world")
 }
 
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
+
 > Note: The default log level for `log.Print` is *debug*
 
 ### Leveled Logging
@@ -68,26 +71,55 @@ func main() {
 package main
 
 import (
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
-	zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = ""
 
-	log.Info().Msg("hello world")
+    log.Info().Msg("hello world")
 }
 
 // Output: {"time":1516134303,"level":"info","message":"hello world"}
 ```
 
+> It is very important to note that when using the **zerolog** chaining API, as is shown above (`log.Info().Msg("hello world"`), the chain must have either the `Msg` or `Msgf` method call. If you forget to add either of these, the log will not occur and there is no compile time error to alert you of this.
+
+### Contextual Logging
+
+**zerolog** allows data to be added to log messages in the form of key:value pairs. The data added to the message adds "context" about the log event that can be critical for debugging as well as myriad other purposes. An example of this is below:
+
+```go
+package main
+
+import (
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
+)
+
+func main() {
+    zerolog.TimeFieldFormat = ""
+
+    log.Debug().
+        Str("Scale", "833 cents").
+        Float64("Interval", 833.09).
+        Msg("Fibonacci is everywhere")
+}
+
+// Output: {"time":1524103768,"level":"debug","Scale":"833 cents","Interval":833.09}
+```
+
+> You'll note in the above example that when adding contextual fields, the fields are strongly typed. You can find the full list of supported fields [here](#standard-types)
+
 **zerolog** allows for logging at the following levels (from highest to lowest):
-- panic (`zerolog.PanicLevel`, 5)
-- fatal (`zerolog.FatalLevel`, 4)
-- error (`zerolog.ErrorLevel`, 3)
-- warn (`zerolog.WarnLevel`, 2)
-- info (`zerolog.InfoLevel`, 1)
-- debug (`zerolog.DebugLevel`, 0)
+
+* panic (`zerolog.PanicLevel`, 5)
+* fatal (`zerolog.FatalLevel`, 4)
+* error (`zerolog.ErrorLevel`, 3)
+* warn (`zerolog.WarnLevel`, 2)
+* info (`zerolog.InfoLevel`, 1)
+* debug (`zerolog.DebugLevel`, 0)
 
 You can set the Global logging level to any of these options using the `SetGlobalLevel` function in the zerolog package, passing in one of the given constants above, e.g. `zerolog.InfoLevel` would be the "info" level.  Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the `zerolog.Disabled` constant.
 
@@ -99,46 +131,72 @@ This example uses command-line flags to demonstrate various outputs depending on
 package main
 
 import (
-	"flag"
+    "flag"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
-	zerolog.TimeFieldFormat = ""
-	debug := flag.Bool("debug", false, "sets log level to debug")
+    zerolog.TimeFieldFormat = ""
+    debug := flag.Bool("debug", false, "sets log level to debug")
 
-	flag.Parse()
+    flag.Parse()
 
-	// Default level for this example is info, unless debug flag is present
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if *debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	}
+    // Default level for this example is info, unless debug flag is present
+    zerolog.SetGlobalLevel(zerolog.InfoLevel)
+    if *debug {
+        zerolog.SetGlobalLevel(zerolog.DebugLevel)
+    }
 
-	log.Debug().Msg("This message appears only when log level set to Debug")
-	log.Info().Msg("This message appears when log level set to Debug or Info")
+    log.Debug().Msg("This message appears only when log level set to Debug")
+    log.Info().Msg("This message appears when log level set to Debug or Info")
 
-	if e := log.Debug(); e.Enabled() {
-		// Compute log output only if enabled.
-		value := "bar"
-		e.Str("foo", value).Msg("some debug message")
-	}
+    if e := log.Debug(); e.Enabled() {
+        // Compute log output only if enabled.
+        value := "bar"
+        e.Str("foo", value).Msg("some debug message")
+    }
 }
 ```
+
 Info Output (no flag)
+
 ```bash
 $ ./logLevelExample
 {"time":1516387492,"level":"info","message":"This message appears when log level set to Debug or Info"}
 ```
 
 Debug Output (debug flag set)
+
 ```bash
 $ ./logLevelExample -debug
 {"time":1516387573,"level":"debug","message":"This message appears only when log level set to Debug"}
 {"time":1516387573,"level":"info","message":"This message appears when log level set to Debug or Info"}
 {"time":1516387573,"level":"debug","foo":"bar","message":"some debug message"}
+```
+
+#### Logging without Level or Message
+
+You may choose to log without a specific level by using the `Log` method. You may also write without a message by setting an empty string in the `msg string` parameter of the `Msg` method. Both are demonstrated in the example below.
+
+```go
+package main
+
+import (
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
+)
+
+func main() {
+    zerolog.TimeFieldFormat = ""
+
+    log.Log().
+        Str("foo", "bar").
+        Msg("")
+}
+
+// Output: {"time":1494567715,"foo":"bar"}
 ```
 
 #### Logging Fatal Messages
@@ -147,41 +205,29 @@ $ ./logLevelExample -debug
 package main
 
 import (
-	"errors"
+    "errors"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
-	err := errors.New("A repo man spends his life getting into tense situations")
-	service := "myservice"
+    err := errors.New("A repo man spends his life getting into tense situations")
+    service := "myservice"
 
-	zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = ""
 
-	log.Fatal().
-		Err(err).
-		Str("service", service).
-		Msgf("Cannot start %s", service)
+    log.Fatal().
+        Err(err).
+        Str("service", service).
+        Msgf("Cannot start %s", service)
 }
 
 // Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
 //         exit status 1
 ```
+
 > NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
-
-### Contextual Logging
-
-#### Fields can be added to log messages
-
-```go
-log.Info().
-    Str("foo", "bar").
-    Int("n", 123).
-    Msg("hello world")
-
-// Output: {"level":"info","time":1494567715,"foo":"bar","n":123,"message":"hello world"}
-```
 
 ### Create logger instance to manage different outputs
 
@@ -239,14 +285,6 @@ zerolog.MessageFieldName = "m"
 log.Info().Msg("hello world")
 
 // Output: {"l":"info","t":1494567715,"m":"hello world"}
-```
-
-### Log with no level nor message
-
-```go
-log.Log().Str("foo","bar").Msg("")
-
-// Output: {"time":1494567715,"foo":"bar"}
 ```
 
 ### Add contextual fields to the global logger
@@ -404,8 +442,8 @@ Some settings can be changed and will by applied to all loggers:
 * `zerolog.MessageFieldName`: Can be set to customize message field name.
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
 * `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with an empty string, times are formated as UNIX timestamp.
-	// DurationFieldUnit defines the unit for time.Duration type fields added
-	// using the Dur method.
+    // DurationFieldUnit defines the unit for time.Duration type fields added
+    // using the Dur method.
 * `DurationFieldUnit`: Sets the unit of the fields added by `Dur` (default: `time.Millisecond`).
 * `DurationFieldInteger`: If set to true, `Dur` fields are formatted as integers instead of floats.
 
@@ -430,31 +468,31 @@ Some settings can be changed and will by applied to all loggers:
 
 ## Binary Encoding
 
-In addition to the default JSON encoding, `zerolog` can produce binary logs using the [cbor](http://cbor.io) encoding. The choice of encoding can be decided at compile time using the build tag `binary_log` as follow:
+In addition to the default JSON encoding, `zerolog` can produce binary logs using [CBOR](http://cbor.io) encoding. The choice of encoding can be decided at compile time using the build tag `binary_log` as follows:
 
-```
+```bash
 go build -tags binary_log .
 ```
 
 To Decode binary encoded log files you can use any CBOR decoder. One has been tested to work
-with zerolog library is CSD(https://github.com/toravir/csd/).
+with zerolog library is [CSD](https://github.com/toravir/csd/).
 
 ## Benchmarks
 
 All operations are allocation free (those numbers *include* JSON encoding):
 
-```
-BenchmarkLogEmpty-8        100000000    19.1 ns/op	   0 B/op       0 allocs/op
-BenchmarkDisabled-8        500000000     4.07 ns/op	   0 B/op       0 allocs/op
-BenchmarkInfo-8            30000000	    42.5 ns/op	   0 B/op       0 allocs/op
-BenchmarkContextFields-8   30000000	    44.9 ns/op	   0 B/op       0 allocs/op
-BenchmarkLogFields-8       10000000	   184 ns/op	   0 B/op       0 allocs/op
+```text
+BenchmarkLogEmpty-8        100000000    19.1 ns/op     0 B/op       0 allocs/op
+BenchmarkDisabled-8        500000000    4.07 ns/op     0 B/op       0 allocs/op
+BenchmarkInfo-8            30000000     42.5 ns/op     0 B/op       0 allocs/op
+BenchmarkContextFields-8   30000000     44.9 ns/op     0 B/op       0 allocs/op
+BenchmarkLogFields-8       10000000     184 ns/op      0 B/op       0 allocs/op
 ```
 
 There are a few Go logging benchmarks and comparisons that include zerolog.
 
-- [imkira/go-loggers-bench](https://github.com/imkira/go-loggers-bench)
-- [uber-common/zap](https://github.com/uber-go/zap#performance)
+* [imkira/go-loggers-bench](https://github.com/imkira/go-loggers-bench)
+* [uber-common/zap](https://github.com/uber-go/zap#performance)
 
 Using Uber's zap comparison benchmark:
 
