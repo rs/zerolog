@@ -84,7 +84,7 @@ func main() {
 // Output: {"time":1516134303,"level":"info","message":"hello world"}
 ```
 
-> It is very important to note that when using the **zerolog** chaining API, as is shown above (`log.Info().Msg("hello world"`), the chain must have either the `Msg` or `Msgf` method call. If you forget to add either of these, the log will not occur and there is no compile time error to alert you of this.
+> It is very important to note that when using the **zerolog** chaining API, as shown above (`log.Info().Msg("hello world"`), the chain must have either the `Msg` or `Msgf` method call. If you forget to add either of these, the log will not occur and there is no compile time error to alert you of this.
 
 ### Contextual Logging
 
