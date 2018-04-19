@@ -1,0 +1,99 @@
+package zerolog
+
+// This file provides a zerolog writer so that logs printed
+// using zerolog library can be sent to a journalD.
+// Zerolog's Top level key/Value Pairs are translated to
+// journald's args - all Values are sent to journald as strings.
+// And all key strings are converted to uppercase before sending
+// to journald (as required by journald).
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/coreos/go-systemd/journal"
+	"io"
+	"strings"
+)
+
+const defaultJournalDPrio = journal.PriNotice
+
+// NewJournalDWriter returns a zerolog log destination
+// to be used as parameter to New() calls. Writing logs
+// to this writer will send the log messages to journalD
+// running in this system.
+func NewJournalDWriter() io.Writer {
+	return journalWriter{}
+}
+
+type journalWriter struct {
+}
+
+// levelToJPrio converts zerolog Level string into
+// journalD's priority values. JournalD has more
+// priorities than zerolog.
+func levelToJPrio(zLevel string) journal.Priority {
+	lvl := levelStringToLevel(zLevel)
+	switch lvl {
+	case DebugLevel:
+		return journal.PriDebug
+	case InfoLevel:
+		return journal.PriInfo
+	case WarnLevel:
+		return journal.PriWarning
+	case ErrorLevel:
+		return journal.PriErr
+	case FatalLevel:
+		return journal.PriCrit
+	case PanicLevel:
+		return journal.PriEmerg
+	case NoLevel:
+		return journal.PriNotice
+	}
+	return defaultJournalDPrio
+}
+
+func (w journalWriter) Write(p []byte) (n int, err error) {
+	if !journal.Enabled() {
+		err = fmt.Errorf("Cannot connect to journalD!!")
+		return
+	}
+	var event map[string]interface{}
+	p = decodeIfBinaryToBytes(p)
+	err = json.Unmarshal(p, &event)
+	jPrio := defaultJournalDPrio
+	args := make(map[string]string, 0)
+	if err != nil {
+		return
+	}
+	if l, ok := event[LevelFieldName].(string); ok {
+		jPrio = levelToJPrio(l)
+	}
+
+	msg := ""
+	for key, value := range event {
+		jKey := strings.ToUpper(key)
+		switch key {
+		case LevelFieldName, TimestampFieldName:
+			continue
+		case MessageFieldName:
+			msg, _ = value.(string)
+			continue
+		}
+
+		switch value.(type) {
+		case string:
+			args[jKey], _ = value.(string)
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			args[jKey] = fmt.Sprint(value)
+		default:
+			b, err := json.Marshal(value)
+			if err != nil {
+				args[jKey] = fmt.Sprintf("[error: %v]", err)
+			} else {
+				args[jKey] = string(b)
+			}
+		}
+	}
+	err = journal.Send(msg, jPrio, args)
+	return
+}

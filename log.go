@@ -148,6 +148,24 @@ func (l Level) String() string {
 	return ""
 }
 
+func levelStringToLevel(levelStr string) Level {
+	switch levelStr {
+	case "debug":
+		return DebugLevel
+	case "info":
+		return InfoLevel
+	case "warn":
+		return WarnLevel
+	case "error":
+		return ErrorLevel
+	case "fatal":
+		return FatalLevel
+	case "panic":
+		return PanicLevel
+	}
+	return NoLevel
+}
+
 // A Logger represents an active logging object that generates lines
 // of JSON output to an io.Writer. Each logging operation makes a single
 // call to the Writer's Write method. There is no guaranty on access
