@@ -366,7 +366,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 
 // should returns true if the log event should be logged.
 func (l *Logger) should(lvl Level) bool {
-	if lvl < l.level || lvl < globalLevel() {
+	if lvl < l.level || lvl < GlobalLevel() {
 		return false
 	}
 	if l.sampler != nil && !samplingDisabled() {
