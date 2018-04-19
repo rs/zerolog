@@ -63,6 +63,32 @@ func main() {
 
 > Note: The default log level for `log.Print` is *debug*
 
+### Contextual Logging
+
+**zerolog** allows data to be added to log messages in the form of key:value pairs. The data added to the message adds "context" about the log event that can be critical for debugging as well as myriad other purposes. An example of this is below:
+
+```go
+package main
+
+import (
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
+)
+
+func main() {
+    zerolog.TimeFieldFormat = ""
+
+    log.Debug().
+        Str("Scale", "833 cents").
+        Float64("Interval", 833.09).
+        Msg("Fibonacci is everywhere")
+}
+
+// Output: {"time":1524104936,"level":"debug","Scale":"833 cents","Interval":833.09,"message":"Fibonacci is everywhere"}
+```
+
+> You'll note in the above example that when adding contextual fields, the fields are strongly typed. You can find the full list of supported fields [here](#standard-types)
+
 ### Leveled Logging
 
 #### Simple Leveled Logging Example
@@ -85,32 +111,6 @@ func main() {
 ```
 
 > It is very important to note that when using the **zerolog** chaining API, as shown above (`log.Info().Msg("hello world"`), the chain must have either the `Msg` or `Msgf` method call. If you forget to add either of these, the log will not occur and there is no compile time error to alert you of this.
-
-### Contextual Logging
-
-**zerolog** allows data to be added to log messages in the form of key:value pairs. The data added to the message adds "context" about the log event that can be critical for debugging as well as myriad other purposes. An example of this is below:
-
-```go
-package main
-
-import (
-    "github.com/rs/zerolog"
-    "github.com/rs/zerolog/log"
-)
-
-func main() {
-    zerolog.TimeFieldFormat = ""
-
-    log.Debug().
-        Str("Scale", "833 cents").
-        Float64("Interval", 833.09).
-        Msg("Fibonacci is everywhere")
-}
-
-// Output: {"time":1524103768,"level":"debug","Scale":"833 cents","Interval":833.09}
-```
-
-> You'll note in the above example that when adding contextual fields, the fields are strongly typed. You can find the full list of supported fields [here](#standard-types)
 
 **zerolog** allows for logging at the following levels (from highest to lowest):
 
