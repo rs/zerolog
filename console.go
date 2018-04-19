@@ -40,7 +40,9 @@ type ConsoleWriter struct {
 func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	var event map[string]interface{}
 	p = decodeIfBinaryToBytes(p)
-	err = json.Unmarshal(p, &event)
+	d := json.NewDecoder(bytes.NewReader(p))
+	d.UseNumber()
+	err = d.Decode(&event)
 	if err != nil {
 		return
 	}
@@ -76,7 +78,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 			} else {
 				buf.WriteString(value)
 			}
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		case json.Number:
 			fmt.Fprint(buf, value)
 		default:
 			b, err := json.Marshal(value)
