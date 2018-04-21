@@ -148,7 +148,9 @@ func (l Level) String() string {
 	return ""
 }
 
-func levelStringToLevel(levelStr string) Level {
+// LevelStringToLevel converts a level string into
+// a zerolog Level value.
+func LevelStringToLevel(levelStr string) Level {
 	switch levelStr {
 	case "debug":
 		return DebugLevel

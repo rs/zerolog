@@ -1,4 +1,4 @@
-package zerolog
+package journald
 
 // This file provides a zerolog writer so that logs printed
 // using zerolog library can be sent to a journalD.
@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/coreos/go-systemd/journal"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/internal/cbor"
 	"io"
 	"strings"
 )
@@ -32,21 +34,21 @@ type journalWriter struct {
 // journalD's priority values. JournalD has more
 // priorities than zerolog.
 func levelToJPrio(zLevel string) journal.Priority {
-	lvl := levelStringToLevel(zLevel)
+	lvl := zerolog.LevelStringToLevel(zLevel)
 	switch lvl {
-	case DebugLevel:
+	case zerolog.DebugLevel:
 		return journal.PriDebug
-	case InfoLevel:
+	case zerolog.InfoLevel:
 		return journal.PriInfo
-	case WarnLevel:
+	case zerolog.WarnLevel:
 		return journal.PriWarning
-	case ErrorLevel:
+	case zerolog.ErrorLevel:
 		return journal.PriErr
-	case FatalLevel:
+	case zerolog.FatalLevel:
 		return journal.PriCrit
-	case PanicLevel:
+	case zerolog.PanicLevel:
 		return journal.PriEmerg
-	case NoLevel:
+	case zerolog.NoLevel:
 		return journal.PriNotice
 	}
 	return defaultJournalDPrio
@@ -58,14 +60,14 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 		return
 	}
 	var event map[string]interface{}
-	p = decodeIfBinaryToBytes(p)
+	p = cbor.DecodeIfBinaryToBytes(p)
 	err = json.Unmarshal(p, &event)
 	jPrio := defaultJournalDPrio
 	args := make(map[string]string, 0)
 	if err != nil {
 		return
 	}
-	if l, ok := event[LevelFieldName].(string); ok {
+	if l, ok := event[zerolog.LevelFieldName].(string); ok {
 		jPrio = levelToJPrio(l)
 	}
 
@@ -73,9 +75,9 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 	for key, value := range event {
 		jKey := strings.ToUpper(key)
 		switch key {
-		case LevelFieldName, TimestampFieldName:
+		case zerolog.LevelFieldName, zerolog.TimestampFieldName:
 			continue
-		case MessageFieldName:
+		case zerolog.MessageFieldName:
 			msg, _ = value.(string)
 			continue
 		}
