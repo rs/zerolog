@@ -5,17 +5,17 @@ package journald_test
 import "github.com/rs/zerolog"
 import "github.com/rs/zerolog/journald"
 
-func ExampleJournalDWriter () {
+func ExampleJournalDWriter() {
 	log := zerolog.New(journald.NewJournalDWriter())
 	log.Info().Str("foo", "bar").Msg("Journal Test")
-	// Output: 
+	// Output:
 }
 
 /*
 
 There is no automated way to verify the output - since the output is sent
 to journald process and method to retrieve is journalctl. Will find a way
-to automate the process and fix this test 
+to automate the process and fix this test.
 
 $ journalctl -a -o verbose -f
 
@@ -37,4 +37,3 @@ Mon 2018-04-23 07:12:26.635654 PDT [s=349577f78be941179a3aa5d849b2cefa;i=cdc;b=3
     _PID=21466
     _SOURCE_REALTIME_TIMESTAMP=1524492746635654
 */
-
