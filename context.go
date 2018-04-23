@@ -59,6 +59,15 @@ func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 	return c
 }
 
+// EmbedObject marshals and Embeds an object that implement the LogObjectMarshaler interface.
+func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
+	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
+	e.EmbedObject(obj)
+	c.l.context = appendObjectData(c.l.context, e.buf)
+	eventPool.Put(e)
+	return c
+}
+
 // Str adds the field key with val as a string to the logger context.
 func (c Context) Str(key, val string) Context {
 	c.l.context = appendString(appendKey(c.l.context, key), val)

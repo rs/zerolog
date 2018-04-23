@@ -182,6 +182,15 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 	return e
 }
 
+// Object marshals an object that implement the LogObjectMarshaler interface.
+func (e *Event) EmbedObject(obj LogObjectMarshaler) *Event {
+	if e == nil {
+		return e
+	}
+	obj.MarshalZerologObject(e)
+	return e
+}
+
 // Str adds the field key with val as a string to the *Event context.
 func (e *Event) Str(key, val string) *Event {
 	if e == nil {
