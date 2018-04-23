@@ -1,3 +1,5 @@
+// +build !windows
+
 package journald
 
 // This file provides a zerolog writer so that logs printed
@@ -101,7 +103,7 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 			}
 		}
 	}
-	args["JSON"] = p
+	args["JSON"] = string(p)
 	err = journal.Send(msg, jPrio, args)
 	return
 }
