@@ -148,24 +148,26 @@ func (l Level) String() string {
 	return ""
 }
 
-// LevelStringToLevel converts a level string into
-// a zerolog Level value.
-func LevelStringToLevel(levelStr string) Level {
+// ParseLevel converts a level string into a zerolog Level value.
+// returns an error if the input string does not match known values.
+func ParseLevel(levelStr string) (Level, error) {
 	switch levelStr {
 	case "debug":
-		return DebugLevel
+		return DebugLevel, nil
 	case "info":
-		return InfoLevel
+		return InfoLevel, nil
 	case "warn":
-		return WarnLevel
+		return WarnLevel, nil
 	case "error":
-		return ErrorLevel
+		return ErrorLevel, nil
 	case "fatal":
-		return FatalLevel
+		return FatalLevel, nil
 	case "panic":
-		return PanicLevel
+		return PanicLevel, nil
+	case "":
+		return NoLevel, nil
 	}
-	return NoLevel
+    return NoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
 }
 
 // A Logger represents an active logging object that generates lines

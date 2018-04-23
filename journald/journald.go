@@ -2,10 +2,14 @@ package journald
 
 // This file provides a zerolog writer so that logs printed
 // using zerolog library can be sent to a journalD.
+
 // Zerolog's Top level key/Value Pairs are translated to
 // journald's args - all Values are sent to journald as strings.
 // And all key strings are converted to uppercase before sending
 // to journald (as required by journald).
+
+// In addition, entire log message (all Key Value Pairs), is also
+// sent to journald under the key "JSON".
 
 import (
 	"encoding/json"
@@ -34,7 +38,8 @@ type journalWriter struct {
 // journalD's priority values. JournalD has more
 // priorities than zerolog.
 func levelToJPrio(zLevel string) journal.Priority {
-	lvl := zerolog.LevelStringToLevel(zLevel)
+	lvl, _ := zerolog.ParseLevel(zLevel)
+
 	switch lvl {
 	case zerolog.DebugLevel:
 		return journal.PriDebug
@@ -96,6 +101,7 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 			}
 		}
 	}
+	args["JSON"] = p
 	err = journal.Send(msg, jPrio, args)
 	return
 }
