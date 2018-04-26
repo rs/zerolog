@@ -477,6 +477,10 @@ go build -tags binary_log .
 To Decode binary encoded log files you can use any CBOR decoder. One has been tested to work
 with zerolog library is [CSD](https://github.com/toravir/csd/).
 
+## Related Projects
+
+* [grpc-zerolog](https://github.com/cheapRoc/grpc-zerolog): Implementation of `grpclog.LoggerV2` interface using `zerolog`
+
 ## Benchmarks
 
 All operations are allocation free (those numbers *include* JSON encoding):
