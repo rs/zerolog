@@ -148,6 +148,28 @@ func (l Level) String() string {
 	return ""
 }
 
+// ParseLevel converts a level string into a zerolog Level value.
+// returns an error if the input string does not match known values.
+func ParseLevel(levelStr string) (Level, error) {
+	switch levelStr {
+	case DebugLevel.String():
+		return DebugLevel, nil
+	case InfoLevel.String():
+		return InfoLevel, nil
+	case WarnLevel.String():
+		return WarnLevel, nil
+	case ErrorLevel.String():
+		return ErrorLevel, nil
+	case FatalLevel.String():
+		return FatalLevel, nil
+	case PanicLevel.String():
+		return PanicLevel, nil
+	case NoLevel.String():
+		return NoLevel, nil
+	}
+	return NoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
+}
+
 // A Logger represents an active logging object that generates lines
 // of JSON output to an io.Writer. Each logging operation makes a single
 // call to the Writer's Write method. There is no guaranty on access

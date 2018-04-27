@@ -185,8 +185,8 @@ func appendArrayDelim(dst []byte) []byte {
 }
 
 func appendObjectData(dst []byte, src []byte) []byte {
-        // Map begin character is present in the src, which
-        // should not be copied when appending to existing data.
+	// Map begin character is present in the src, which
+	// should not be copied when appending to existing data.
 	return cbor.AppendObjectData(dst, src[1:])
 }
 
