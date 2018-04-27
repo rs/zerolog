@@ -5,9 +5,9 @@ package journald_test
 import "github.com/rs/zerolog"
 import "github.com/rs/zerolog/journald"
 
-func ExampleJournalDWriter() {
+func ExampleNewJournalDWriter() {
 	log := zerolog.New(journald.NewJournalDWriter())
-	log.Info().Str("foo", "bar").Msg("Journal Test")
+	log.Info().Str("foo", "bar").Uint64("small", 123).Float64("float", 3.14).Uint64("big", 1152921504606846976).Msg("Journal Test")
 	// Output:
 }
 
@@ -17,23 +17,28 @@ There is no automated way to verify the output - since the output is sent
 to journald process and method to retrieve is journalctl. Will find a way
 to automate the process and fix this test.
 
-$ journalctl -a -o verbose -f
+$ journalctl -o verbose -f
 
-Mon 2018-04-23 07:12:26.635654 PDT [s=349577f78be941179a3aa5d849b2cefa;i=cdc;b=30c80d57c6b7443fb0481ba66e9b7a62;m=9412558ee4;t=56a84a0a03a5f;x=2ba55bfcdc33820f]
+Thu 2018-04-26 22:30:20.768136 PDT [s=3284d695bde946e4b5017c77a399237f;i=329f0;b=98c0dca0debc4b98a5b9534e910e7dd6;m=7a702e35dd4;t=56acdccd2ed0a;x=4690034cf0348614]
     PRIORITY=6
-    _BOOT_ID=30c80d57c6b7443fb0481ba66e9b7a62
-    _MACHINE_ID=4acf281d5c48d411a26b176659c09a09
-    _HOSTNAME=minion1
-    _CAP_EFFECTIVE=0
     _AUDIT_LOGINUID=1000
-    _TRANSPORT=journal
-    _GID=1000
+    _BOOT_ID=98c0dca0debc4b98a5b9534e910e7dd6
+    _MACHINE_ID=926ed67eb4744580948de70fb474975e
+    _HOSTNAME=sprint
     _UID=1000
-    _AUDIT_SESSION=622
+    _GID=1000
+    _CAP_EFFECTIVE=0
+    _SYSTEMD_SLICE=-.slice
+    _TRANSPORT=journal
+    _SYSTEMD_CGROUP=/
+    _AUDIT_SESSION=2945
     MESSAGE=Journal Test
     FOO=bar
-    JSON={"level":"info","foo":"bar","message":"Journal Test"}
-    _COMM=j2
-    _PID=21466
-    _SOURCE_REALTIME_TIMESTAMP=1524492746635654
+    BIG=1152921504606846976
+    _COMM=journald.test
+    SMALL=123
+    FLOAT=3.14
+    JSON={"level":"info","foo":"bar","small":123,"float":3.14,"big":1152921504606846976,"message":"Journal Test"}
+    _PID=27103
+    _SOURCE_REALTIME_TIMESTAMP=1524807020768136
 */

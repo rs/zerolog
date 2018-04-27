@@ -14,6 +14,7 @@ package journald
 // sent to journald under the key "JSON".
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/coreos/go-systemd/journal"
@@ -68,7 +69,9 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 	}
 	var event map[string]interface{}
 	p = cbor.DecodeIfBinaryToBytes(p)
-	err = json.Unmarshal(p, &event)
+	d := json.NewDecoder(bytes.NewReader(p))
+	d.UseNumber()
+	err = d.Decode(&event)
 	jPrio := defaultJournalDPrio
 	args := make(map[string]string, 0)
 	if err != nil {
@@ -92,7 +95,7 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 		switch value.(type) {
 		case string:
 			args[jKey], _ = value.(string)
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		case json.Number:
 			args[jKey] = fmt.Sprint(value)
 		default:
 			b, err := json.Marshal(value)
