@@ -593,7 +593,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 
 // Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
 func (e *Event) Caller() *Event {
-	return e.caller(2)
+	return e.caller(CallerSkipFrameCount)
 }
 
 func (e *Event) caller(skip int) *Event {

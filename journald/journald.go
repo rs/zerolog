@@ -1,5 +1,8 @@
 // +build !windows
 
+// Package journald provides a io.Writer to send the logs
+// to journalD component of systemd.
+
 package journald
 
 // This file provides a zerolog writer so that logs printed
