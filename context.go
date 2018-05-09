@@ -52,7 +52,7 @@ func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (c Context) Object(key string, obj LogObjectMarshaler) Context {
-	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0, true)
+	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0)
 	e.Object(key, obj)
 	c.l.context = appendObjectData(c.l.context, e.buf)
 	eventPool.Put(e)

@@ -14,7 +14,16 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 	sort.Strings(keys)
 	for _, key := range keys {
 		dst = appendKey(dst, key)
-		switch val := fields[key].(type) {
+		val := fields[key]
+		if val, ok := val.(LogObjectMarshaler); ok {
+			e := newEvent(nil, 0)
+			e.buf = e.buf[:0]
+			e.appendObject(val)
+			dst = append(dst, e.buf...)
+			eventPool.Put(e)
+			continue
+		}
+		switch val := val.(type) {
 		case string:
 			dst = appendString(dst, val)
 		case []byte:
