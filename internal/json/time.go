@@ -42,7 +42,7 @@ func appendUnixTimes(dst []byte, vals []time.Time) []byte {
 	dst = strconv.AppendInt(dst, vals[0].Unix(), 10)
 	if len(vals) > 1 {
 		for _, t := range vals[1:] {
-			dst = strconv.AppendInt(dst, t.Unix(), 10)
+			dst = strconv.AppendInt(append(dst, ','), t.Unix(), 10)
 		}
 	}
 	dst = append(dst, ']')
