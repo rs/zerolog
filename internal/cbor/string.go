@@ -45,7 +45,7 @@ func (Encoder) AppendBytes(dst, s []byte) []byte {
 }
 
 // AppendEmbeddedJSON adds a tag and embeds input JSON as such.
-func (Encoder) AppendEmbeddedJSON(dst, s []byte) []byte {
+func AppendEmbeddedJSON(dst, s []byte) []byte {
 	major := majorTypeTags
 	minor := additionalTypeEmbeddedJSON
 

@@ -24,7 +24,9 @@ func (Encoder) AppendEndMarker(dst []byte) []byte {
 
 // AppendObjectData takes an object in form of a byte array and appends to dst.
 func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
-	return append(dst, o...)
+        // BeginMarker is present in the dst, which
+        // should not be copied when appending to existing data.
+        return append(dst, o[1:]...)
 }
 
 // AppendArrayStart adds markers to indicate the start of an array.
@@ -434,7 +436,7 @@ func (e Encoder) AppendInterface(dst []byte, i interface{}) []byte {
 	if err != nil {
 		return e.AppendString(dst, fmt.Sprintf("marshaling error: %v", err))
 	}
-	return e.AppendEmbeddedJSON(dst, marshaled)
+	return AppendEmbeddedJSON(dst, marshaled)
 }
 
 // AppendIPAddr encodes and inserts an IP Address (IPv4 or IPv6).
