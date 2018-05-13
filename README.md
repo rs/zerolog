@@ -269,7 +269,7 @@ log.Info().
     Str("foo", "bar").
     Dict("dict", zerolog.Dict().
         Str("bar", "baz").
-        Int("n", 1)
+        Int("n", 1),
     ).Msg("hello world")
 
 // Output: {"level":"info","time":1494567715,"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
