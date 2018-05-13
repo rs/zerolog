@@ -374,14 +374,14 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	if !enabled {
 		return nil
 	}
-	e := newEvent(l.w, level, true)
+	e := newEvent(l.w, level)
 	e.done = done
 	e.ch = l.hooks
 	if level != NoLevel {
 		e.Str(LevelFieldName, level.String())
 	}
 	if l.context != nil && len(l.context) > 0 {
-		e.buf = appendObjectData(e.buf, l.context)
+		e.buf = enc.AppendObjectData(e.buf, l.context)
 	}
 	return e
 }

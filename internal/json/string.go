@@ -14,15 +14,15 @@ func init() {
 
 // AppendStrings encodes the input strings to json and
 // appends the encoded string list to the input byte slice.
-func AppendStrings(dst []byte, vals []string) []byte {
+func (e Encoder) AppendStrings(dst []byte, vals []string) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = AppendString(dst, vals[0])
+	dst = e.AppendString(dst, vals[0])
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
-			dst = AppendString(append(dst, ','), val)
+			dst = e.AppendString(append(dst, ','), val)
 		}
 	}
 	dst = append(dst, ']')
@@ -38,7 +38,7 @@ func AppendStrings(dst []byte, vals []string) []byte {
 // entirety to the byte slice.
 // If we encounter a byte that does need encoding, switch up
 // the operation and perform a byte-by-byte read-encode-append.
-func AppendString(dst []byte, s string) []byte {
+func (Encoder) AppendString(dst []byte, s string) []byte {
 	// Start with a double quote.
 	dst = append(dst, '"')
 	// Loop through each character in the string.

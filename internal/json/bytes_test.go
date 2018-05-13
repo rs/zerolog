@@ -5,9 +5,11 @@ import (
 	"unicode"
 )
 
+var enc = Encoder{}
+
 func TestAppendBytes(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		b := AppendBytes([]byte{}, []byte(tt.in))
+		b := enc.AppendBytes([]byte{}, []byte(tt.in))
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendBytes(%q) = %#q, want %#q", tt.in, got, want)
 		}
@@ -16,7 +18,7 @@ func TestAppendBytes(t *testing.T) {
 
 func TestAppendHex(t *testing.T) {
 	for _, tt := range encodeHexTests {
-		b := AppendHex([]byte{}, []byte{tt.in})
+		b := enc.AppendHex([]byte{}, []byte{tt.in})
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendHex(%x) = %s, want %s", tt.in, got, want)
 		}
@@ -32,31 +34,31 @@ func TestStringBytes(t *testing.T) {
 	}
 	s := string(r) + "\xff\xff\xffhello" // some invalid UTF-8 too
 
-	enc := string(AppendString([]byte{}, s))
-	encBytes := string(AppendBytes([]byte{}, []byte(s)))
+	encStr := string(enc.AppendString([]byte{}, s))
+	encBytes := string(enc.AppendBytes([]byte{}, []byte(s)))
 
-	if enc != encBytes {
+	if encStr != encBytes {
 		i := 0
-		for i < len(enc) && i < len(encBytes) && enc[i] == encBytes[i] {
+		for i < len(encStr) && i < len(encBytes) && encStr[i] == encBytes[i] {
 			i++
 		}
-		enc = enc[i:]
+		encStr = encStr[i:]
 		encBytes = encBytes[i:]
 		i = 0
-		for i < len(enc) && i < len(encBytes) && enc[len(enc)-i-1] == encBytes[len(encBytes)-i-1] {
+		for i < len(encStr) && i < len(encBytes) && encStr[len(encStr)-i-1] == encBytes[len(encBytes)-i-1] {
 			i++
 		}
-		enc = enc[:len(enc)-i]
+		encStr = encStr[:len(encStr)-i]
 		encBytes = encBytes[:len(encBytes)-i]
 
-		if len(enc) > 20 {
-			enc = enc[:20] + "..."
+		if len(encStr) > 20 {
+			encStr = encStr[:20] + "..."
 		}
 		if len(encBytes) > 20 {
 			encBytes = encBytes[:20] + "..."
 		}
 
-		t.Errorf("encodings differ at %#q vs %#q", enc, encBytes)
+		t.Errorf("encodings differ at %#q vs %#q", encStr, encBytes)
 	}
 }
 
@@ -75,7 +77,7 @@ func BenchmarkAppendBytes(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			buf := make([]byte, 0, 100)
 			for i := 0; i < b.N; i++ {
-				_ = AppendBytes(buf, byt)
+				_ = enc.AppendBytes(buf, byt)
 			}
 		})
 	}
