@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"encoding/json"
 )
 
 var eventPool = &sync.Pool{
@@ -233,6 +234,19 @@ func (e *Event) RawJSON(key string, b []byte) *Event {
 	return e
 }
 
+// Struct marshal provided struct to JSON and adds encoded JSON to the log line under key.
+//
+// No sanity check is performed on i; it must not contain carriage returns and
+// be valid JSON.
+func (e *Event) Struct(key string, i interface{}) *Event {
+	if e == nil {
+		return e
+	}
+	j, _ := json.Marshal(i)
+	e.buf = appendJSON(appendKey(e.buf, key), j)
+
+	return e
+}
 // AnErr adds the field key with err as a string to the *Event context.
 // If err is nil, no field is added.
 func (e *Event) AnErr(key string, err error) *Event {

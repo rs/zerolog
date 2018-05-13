@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net"
 	"time"
+	"encoding/json"
 )
 
 // Context configures a new sub-logger with contextual fields.
@@ -89,6 +90,16 @@ func (c Context) Hex(key string, val []byte) Context {
 // be valid JSON.
 func (c Context) RawJSON(key string, b []byte) Context {
 	c.l.context = appendJSON(appendKey(c.l.context, key), b)
+	return c
+}
+
+// Struct marshal provided struct to JSON and adds encoded JSON to the log line under key.
+//
+// No sanity check is performed on i; it must not contain carriage returns and
+// be valid JSON.
+func (c Context) Struct(key string, i interface{}) Context {
+	j, _ := json.Marshal(i)
+	c.l.context = appendJSON(appendKey(c.l.context, key), j)
 	return c
 }
 
