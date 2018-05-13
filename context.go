@@ -99,7 +99,7 @@ func (c Context) RawJSON(key string, b []byte) Context {
 // be valid JSON.
 func (c Context) Struct(key string, i interface{}) Context {
 	j, _ := json.Marshal(i)
-	c.l.context = appendJSON(appendKey(c.l.context, key), j)
+	c.l.context = appendJSON(enc.AppendKey(c.l.context, key), j)
 	return c
 }
 

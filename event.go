@@ -240,7 +240,7 @@ func (e *Event) Struct(key string, i interface{}) *Event {
 		return e
 	}
 	j, _ := json.Marshal(i)
-	e.buf = appendJSON(appendKey(e.buf, key), j)
+	e.buf = appendJSON(enc.AppendKey(e.buf, key), j)
 
 	return e
 }
