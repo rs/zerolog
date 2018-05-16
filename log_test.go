@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"reflect"
 	"runtime"
 	"testing"
@@ -520,4 +521,137 @@ func TestOutputWithTimestamp(t *testing.T) {
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"foo":"bar","time":"2001-02-03T04:05:06Z","message":"hello world"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
+}
+
+func TestSection(t *testing.T) {
+	t.Run("no-section", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Info().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("no-matching-section", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section-x")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Info().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("no-matching-section-multiple", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section-x,section-y,section-z")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Info().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("matching-section-no-regex", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section-1")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Info().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("matching-section-regex", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section.+")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Info().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("matching-section-multiple", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "a.+,b.+,c.+")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("b-section")
+		log.Info().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("matching-section-level-equal", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section.+=info")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Info().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("matching-section-level-lower", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section.+=info")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Warn().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"warn"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("matching-section-level-higher", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section.+=info")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Debug().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("matching-section-custom-provider", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section.+=error")
+		SectionsProviderFunc = func() string { return "section.+=debug" }
+		log := New(out).Section("section-1")
+		log.Debug().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"debug"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("pathological-section-1", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "=")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Debug().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("pathological-section-2", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, ",,")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Debug().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+	t.Run("pathological-section-3", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		os.Setenv(SectionsEnvironmentVariableName, "section-1=badlevel")
+		SectionsProviderFunc = envVariableSectionProvider
+		log := New(out).Section("section-1")
+		log.Debug().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"debug"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
 }

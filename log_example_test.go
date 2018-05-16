@@ -39,6 +39,32 @@ func ExampleLogger_Level() {
 	// Output: {"level":"error","message":"kept message"}
 }
 
+func ExampleLogger_Section() {
+	log := zerolog.New(os.Stdout).Section("section-1")
+
+	// Set environment by code. Environment can also be configured by adding
+	// an environment variable, for instance on linux (bash):
+	// $> export ZEROLOG_SECTION="section-1=warn"
+	os.Setenv(zerolog.SectionsEnvironmentVariableName, "section-1=warn")
+
+	log.Info().Msg("filtered out message")
+	log.Error().Msg("kept message")
+
+	// Output: {"level":"error","message":"kept message"}
+}
+
+func ExampleLogger_Section_Custom() {
+	log := zerolog.New(os.Stdout).Section("section-1")
+
+	// Set a custom provider for sections
+	zerolog.SectionsProviderFunc = func() string { return "section-1=warn" }
+
+	log.Info().Msg("filtered out message")
+	log.Error().Msg("kept message")
+
+	// Output: {"level":"error","message":"kept message"}
+}
+
 func ExampleLogger_Sample() {
 	log := zerolog.New(os.Stdout).Sample(&zerolog.BasicSampler{N: 2})
 
