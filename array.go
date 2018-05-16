@@ -53,12 +53,6 @@ func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	return a
 }
 
-// EmbedObject is same as Object for array - provided
-// to be on par with EmbedObject() available for event/log objects.
-func (a *Array) EmbedObject(obj LogObjectMarshaler) *Array {
-	return a.Object(obj)
-}
-
 // Str enc.Append the val as a string to the array.
 func (a *Array) Str(val string) *Array {
 	a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), val)
