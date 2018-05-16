@@ -6,8 +6,10 @@ import (
 	"testing"
 )
 
-func TestAppendNull(t *testing.T) {
-	s := AppendNull([]byte{})
+var enc = Encoder{}
+
+func TestAppendNil(t *testing.T) {
+	s := enc.AppendNil([]byte{})
 	got := string(s)
 	want := "\xf6"
 	if got != want {
@@ -27,7 +29,7 @@ var booleanTestCases = []struct {
 
 func TestAppendBool(t *testing.T) {
 	for _, tc := range booleanTestCases {
-		s := AppendBool([]byte{}, tc.val)
+		s := enc.AppendBool([]byte{}, tc.val)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendBool(%s)=0x%s, want: 0x%s",
@@ -48,7 +50,7 @@ var booleanArrayTestCases = []struct {
 
 func TestAppendBoolArray(t *testing.T) {
 	for _, tc := range booleanArrayTestCases {
-		s := AppendBools([]byte{}, tc.val)
+		s := enc.AppendBools([]byte{}, tc.val)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendBools(%s)=0x%s, want: 0x%s",
@@ -123,7 +125,7 @@ var integerTestCases = []struct {
 
 func TestAppendInt(t *testing.T) {
 	for _, tc := range integerTestCases {
-		s := AppendInt([]byte{}, tc.val)
+		s := enc.AppendInt([]byte{}, tc.val)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendInt(0x%x)=0x%s, want: 0x%s",
@@ -148,7 +150,7 @@ var integerArrayTestCases = []struct {
 
 func TestAppendIntArray(t *testing.T) {
 	for _, tc := range integerArrayTestCases {
-		s := AppendInts([]byte{}, tc.val)
+		s := enc.AppendInts([]byte{}, tc.val)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendInts(%s)=0x%s, want: 0x%s",
@@ -173,7 +175,7 @@ var float32TestCases = []struct {
 
 func TestAppendFloat32(t *testing.T) {
 	for _, tc := range float32TestCases {
-		s := AppendFloat32([]byte{}, tc.val)
+		s := enc.AppendFloat32([]byte{}, tc.val)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendFloat32(%f)=0x%s, want: 0x%s",
@@ -196,7 +198,7 @@ var ipAddrTestCases = []struct {
 
 func TestAppendNetworkAddr(t *testing.T) {
 	for _, tc := range ipAddrTestCases {
-		s := AppendIPAddr([]byte{}, tc.ipaddr)
+		s := enc.AppendIPAddr([]byte{}, tc.ipaddr)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendIPAddr(%s)=0x%s, want: 0x%s",
@@ -217,7 +219,7 @@ var macAddrTestCases = []struct {
 
 func TestAppendMacAddr(t *testing.T) {
 	for _, tc := range macAddrTestCases {
-		s := AppendMACAddr([]byte{}, tc.macaddr)
+		s := enc.AppendMACAddr([]byte{}, tc.macaddr)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendMACAddr(%s)=0x%s, want: 0x%s",
@@ -239,7 +241,7 @@ var IPPrefixTestCases = []struct {
 
 func TestAppendIPPrefix(t *testing.T) {
 	for _, tc := range IPPrefixTestCases {
-		s := AppendIPPrefix([]byte{}, tc.pfx)
+		s := enc.AppendIPPrefix([]byte{}, tc.pfx)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendIPPrefix(%s)=0x%s, want: 0x%s",
@@ -272,23 +274,23 @@ func BenchmarkAppendInt(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				switch str.sz {
 				case 0:
-					_ = AppendInt(buf, int(str.val))
+					_ = enc.AppendInt(buf, int(str.val))
 				case 1:
-					_ = AppendUint8(buf, uint8(str.val))
+					_ = enc.AppendUint8(buf, uint8(str.val))
 				case 2:
-					_ = AppendUint16(buf, uint16(str.val))
+					_ = enc.AppendUint16(buf, uint16(str.val))
 				case 4:
-					_ = AppendUint32(buf, uint32(str.val))
+					_ = enc.AppendUint32(buf, uint32(str.val))
 				case 8:
-					_ = AppendUint64(buf, uint64(str.val))
+					_ = enc.AppendUint64(buf, uint64(str.val))
 				case 21:
-					_ = AppendInt8(buf, int8(str.val))
+					_ = enc.AppendInt8(buf, int8(str.val))
 				case 22:
-					_ = AppendInt16(buf, int16(str.val))
+					_ = enc.AppendInt16(buf, int16(str.val))
 				case 23:
-					_ = AppendInt32(buf, int32(str.val))
+					_ = enc.AppendInt32(buf, int32(str.val))
 				case 24:
-					_ = AppendInt64(buf, int64(str.val))
+					_ = enc.AppendInt64(buf, int64(str.val))
 				}
 			}
 		})
@@ -310,9 +312,9 @@ func BenchmarkAppendFloat(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				switch str.sz {
 				case 4:
-					_ = AppendFloat32(buf, float32(str.val))
+					_ = enc.AppendFloat32(buf, float32(str.val))
 				case 8:
-					_ = AppendFloat64(buf, str.val)
+					_ = enc.AppendFloat64(buf, str.val)
 				}
 			}
 		})

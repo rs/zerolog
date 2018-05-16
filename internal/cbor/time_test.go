@@ -10,7 +10,7 @@ import (
 
 func TestAppendTimeNow(t *testing.T) {
 	tm := time.Now()
-	s := AppendTime([]byte{}, tm, "unused")
+	s := enc.AppendTime([]byte{}, tm, "unused")
 	got := string(s)
 
 	tm1 := float64(tm.Unix()) + float64(tm.Nanosecond())*1E-9
@@ -43,7 +43,7 @@ func TestAppendTimePastPresentInteger(t *testing.T) {
 			fmt.Println("Cannot parse input", tt.txt, ".. Skipping!", err)
 			continue
 		}
-		b := AppendTime([]byte{}, tin, "unused")
+		b := enc.AppendTime([]byte{}, tin, "unused")
 		if got, want := string(b), tt.binary; got != want {
 			t.Errorf("appendString(%s) = 0x%s, want 0x%s", tt.txt,
 				hex.EncodeToString(b),
@@ -68,7 +68,7 @@ func TestAppendTimePastPresentFloat(t *testing.T) {
 			fmt.Println("Cannot parse input", tt.rfcStr, ".. Skipping!")
 			continue
 		}
-		b := AppendTime([]byte{}, tin, "unused")
+		b := enc.AppendTime([]byte{}, tin, "unused")
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendString(%s) = 0x%s, want 0x%s", tt.rfcStr,
 				hex.EncodeToString(b),
@@ -92,7 +92,7 @@ func BenchmarkAppendTime(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			buf := make([]byte, 0, 100)
 			for i := 0; i < b.N; i++ {
-				_ = AppendTime(buf, t, "unused")
+				_ = enc.AppendTime(buf, t, "unused")
 			}
 		})
 	}
