@@ -59,6 +59,15 @@ func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 	return c
 }
 
+// EmbedObject marshals and Embeds an object that implement the LogObjectMarshaler interface.
+func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
+	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0)
+	e.EmbedObject(obj)
+	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
+	eventPool.Put(e)
+	return c
+}
+
 // Str adds the field key with val as a string to the logger context.
 func (c Context) Str(key, val string) Context {
 	c.l.context = enc.AppendString(enc.AppendKey(c.l.context, key), val)
@@ -321,7 +330,8 @@ func (c Context) Interface(key string, i interface{}) Context {
 type callerHook struct{}
 
 func (ch callerHook) Run(e *Event, level Level, msg string) {
-	e.caller(4)
+        //Two extra frames to skip (added by hook infra).
+	e.caller(CallerSkipFrameCount+2)
 }
 
 var ch = callerHook{}

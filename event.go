@@ -179,6 +179,15 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 	return e
 }
 
+// Object marshals an object that implement the LogObjectMarshaler interface.
+func (e *Event) EmbedObject(obj LogObjectMarshaler) *Event {
+	if e == nil {
+		return e
+	}
+	obj.MarshalZerologObject(e)
+	return e
+}
+
 // Str adds the field key with val as a string to the *Event context.
 func (e *Event) Str(key, val string) *Event {
 	if e == nil {
@@ -581,7 +590,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 
 // Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
 func (e *Event) Caller() *Event {
-	return e.caller(2)
+	return e.caller(CallerSkipFrameCount)
 }
 
 func (e *Event) caller(skip int) *Event {

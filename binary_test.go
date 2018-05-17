@@ -283,6 +283,21 @@ func ExampleEvent_Object() {
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
 
+func ExampleEvent_EmbedObject() {
+	price := Price{val: 6449, prec: 2, unit: "$"}
+
+	dst := bytes.Buffer{}
+	log := New(&dst)
+
+	log.Log().
+		Str("foo", "bar").
+		EmbedObject(price).
+		Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
+}
+
 func ExampleEvent_Interface() {
 	dst := bytes.Buffer{}
 	log := New(&dst)
@@ -384,6 +399,36 @@ func ExampleContext_Array_object() {
 	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
 }
 
+type Price struct {
+	val  uint64
+	prec int
+	unit string
+}
+
+func (p Price) MarshalZerologObject(e *Event) {
+	denom := uint64(1)
+	for i := 0; i < p.prec; i++ {
+		denom *= 10
+	}
+	result := []byte(p.unit)
+	result = append(result, fmt.Sprintf("%d.%d", p.val/denom, p.val%denom)...)
+	e.Str("price", string(result))
+}
+
+func ExampleContext_EmbedObject() {
+	price := Price{val: 6449, prec: 2, unit: "$"}
+
+	dst := bytes.Buffer{}
+	log := New(&dst).With().
+		Str("foo", "bar").
+		EmbedObject(price).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
+}
 func ExampleContext_Object() {
 	// User implements LogObjectMarshaler
 	u := User{"John", 35, time.Time{}}
