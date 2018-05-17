@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -57,7 +58,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		level = strings.ToUpper(l)[0:4]
 	}
 	fmt.Fprintf(buf, "%s |%s| %s",
-		colorize(event[TimestampFieldName], cDarkGray, !w.NoColor),
+		colorize(formatTime(event[TimestampFieldName]), cDarkGray, !w.NoColor),
 		colorize(level, lvlColor, !w.NoColor),
 		colorize(event[MessageFieldName], cReset, !w.NoColor))
 	fields := make([]string, 0, len(event))
@@ -93,6 +94,17 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	buf.WriteTo(w.Out)
 	n = len(p)
 	return
+}
+
+func formatTime(t interface{}) string {
+	switch t := t.(type) {
+	case string:
+		return t
+	case json.Number:
+		u, _ := t.Int64()
+		return time.Unix(u, 0).Format(time.RFC3339)
+	}
+	return ""
 }
 
 func colorize(s interface{}, color int, enabled bool) string {
