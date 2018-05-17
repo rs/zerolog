@@ -104,7 +104,7 @@ func formatTime(t interface{}) string {
 		u, _ := t.Int64()
 		return time.Unix(u, 0).Format(time.RFC3339)
 	}
-	return ""
+	return "<nil>"
 }
 
 func colorize(s interface{}, color int, enabled bool) string {
