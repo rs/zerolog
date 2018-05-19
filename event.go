@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 )
 
 var eventPool = &sync.Pool{
@@ -600,6 +601,10 @@ func (e *Event) caller(skip int) *Event {
 	_, file, line, ok := runtime.Caller(skip)
 	if !ok {
 		return e
+	}
+	slash := strings.LastIndex(file, "/")
+	if slash >= 0 {
+		file = file[slash+1:]
 	}
 	e.buf = enc.AppendString(enc.AppendKey(e.buf, CallerFieldName), file+":"+strconv.Itoa(line))
 	return e
