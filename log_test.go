@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"testing"
 	"time"
+	"strings"
 )
 
 func TestLog(t *testing.T) {
@@ -99,7 +100,11 @@ func TestWith(t *testing.T) {
 		Float64("float64", 12.30303).
 		Time("time", time.Time{})
 	_, file, line, _ := runtime.Caller(0)
-	caller := fmt.Sprintf("%s:%d", file, line+3)
+	slash := strings.LastIndex(file, "/")
+	if slash >= 0 {
+		file = file[slash+1:]
+	}
+	caller := fmt.Sprintf("%s:%d", file, line+7)
 	log := ctx.Caller().Logger()
 	log.Log().Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":"foo","bytes":"bar","hex":"12ef","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11.101,"float64":12.30303,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
@@ -169,7 +174,11 @@ func TestFields(t *testing.T) {
 	log := New(out)
 	now := time.Now()
 	_, file, line, _ := runtime.Caller(0)
-	caller := fmt.Sprintf("%s:%d", file, line+3)
+	slash := strings.LastIndex(file, "/")
+	if slash >= 0 {
+		file = file[slash+1:]
+	}
+	caller := fmt.Sprintf("%s:%d", file, line+7)
 	log.Log().
 		Caller().
 		Str("string", "foo").
