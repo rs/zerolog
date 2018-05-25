@@ -35,10 +35,11 @@ type Writer struct {
 //
 // Use a diode.Writer when
 //
-//     w := diode.NewWriter(w, 1000, 10 * time.Millisecond, func(missed int) {
+//     wr := diode.NewWriter(w, 1000, 10 * time.Millisecond, func(missed int) {
 //         log.Printf("Dropped %d messages", missed)
 //     })
-//     log := zerolog.New(w)
+//     log := zerolog.New(wr)
+//
 //
 // See code.cloudfoundry.org/go-diodes for more info on diode.
 func NewWriter(w io.Writer, size int, poolInterval time.Duration, f Alerter) Writer {
