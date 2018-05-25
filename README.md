@@ -298,10 +298,9 @@ log.Logger = log.With().Str("foo", "bar").Logger()
 If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follow:
 
 ```go
-d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
-    fmt.Printf("Dropped %d messages\n", missed)
-}))
-w := diode.NewWriter(os.Stdout, d, 10*time.Millisecond)
+wr := diode.NewWriter(os.Stdout, 1000, 10*time.Millisecond, func(missed int) {
+		fmt.Printf("Logger Dropped %d messages", missed)
+	})
 log := zerolog.New(w)
 log.Print("test")
 ```
