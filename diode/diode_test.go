@@ -9,18 +9,16 @@ import (
 	"testing"
 	"time"
 
-	diodes "code.cloudfoundry.org/go-diodes"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
 	"github.com/rs/zerolog/internal/cbor"
 )
 
 func TestNewWriter(t *testing.T) {
-	d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
-		fmt.Printf("Dropped %d messages\n", missed)
-	}))
 	buf := bytes.Buffer{}
-	w := diode.NewWriter(&buf, d, 10*time.Millisecond)
+	w := diode.NewWriter(&buf, 1000, 10*time.Millisecond, func(missed int) {
+		fmt.Printf("Dropped %d messages\n", missed)
+	})
 	log := zerolog.New(w)
 	log.Print("test")
 
@@ -35,8 +33,7 @@ func TestNewWriter(t *testing.T) {
 func Benchmark(b *testing.B) {
 	log.SetOutput(ioutil.Discard)
 	defer log.SetOutput(os.Stderr)
-	d := diodes.NewManyToOne(100000, nil)
-	w := diode.NewWriter(ioutil.Discard, d, 10*time.Millisecond)
+	w := diode.NewWriter(ioutil.Discard, 100000, 10*time.Millisecond, nil)
 	log := zerolog.New(w)
 	defer w.Close()
 
