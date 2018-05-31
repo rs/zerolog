@@ -243,7 +243,7 @@ logger.Info().Str("foo", "bar").Msg("hello world")
 
 ```go
 sublogger := log.With().
-                 Str("component": "foo").
+                 Str("component", "foo").
                  Logger()
 sublogger.Info().Msg("hello world")
 
