@@ -293,6 +293,15 @@ log.Info().Msg("hello world")
 log.Logger = log.With().Str("foo", "bar").Logger()
 ```
 
+### Add file and line number to log
+
+```go
+log.Info().Caller().Msg("hello world")
+
+// Output: {"level": "info", "message": "hello world", "caller": "/go/src/your_project/some_file:21"}
+```
+
+
 ### Thread-safe, lock-free, non-blocking writer
 
 If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follow:
