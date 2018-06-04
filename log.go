@@ -103,7 +103,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 )
 
 // Level defines log levels.
@@ -178,6 +180,7 @@ func ParseLevel(levelStr string) (Level, error) {
 type Logger struct {
 	w       LevelWriter
 	level   Level
+	section string
 	sampler Sampler
 	context []byte
 	hooks   []Hook
@@ -210,6 +213,7 @@ func Nop() Logger {
 func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
+	l2.section = l.section
 	l2.sampler = l.sampler
 	if len(l.hooks) > 0 {
 		l2.hooks = append(l2.hooks, l.hooks...)
@@ -248,6 +252,12 @@ func (l *Logger) UpdateContext(update func(c Context) Context) {
 // Level creates a child logger with the minimum accepted level set to level.
 func (l Logger) Level(lvl Level) Logger {
 	l.level = lvl
+	return l
+}
+
+// Section creates a child logger filtering messages based on the existence of the provided section.
+func (l Logger) Section(section string) Logger {
+	l.section = section
 	return l
 }
 
@@ -394,5 +404,26 @@ func (l *Logger) should(lvl Level) bool {
 	if l.sampler != nil && !samplingDisabled() {
 		return l.sampler.Sample(lvl)
 	}
+
+	if l.section != "" {
+		enabledSections := SectionsProviderFunc()
+
+		for _, entry := range strings.Split(enabledSections, ",") {
+			section := strings.Split(entry, "=")
+			sectionName := section[0]
+			sectionLevel := NoLevel
+
+			if sectionName != "" {
+				if len(section) > 1 {
+					sectionLevel, _ = ParseLevel(section[1])
+				}
+				if matched, _ := regexp.MatchString(sectionName, l.section); matched {
+					return (sectionLevel == NoLevel) || sectionLevel <= lvl
+				}
+			}
+		}
+		return false
+	}
+
 	return true
 }

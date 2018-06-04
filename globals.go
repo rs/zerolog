@@ -1,7 +1,10 @@
 package zerolog
 
-import "time"
-import "sync/atomic"
+import (
+	"os"
+	"sync/atomic"
+	"time"
+)
 
 var (
 	// TimestampFieldName is the field name used for the timestamp field.
@@ -37,6 +40,14 @@ var (
 	// DurationFieldInteger renders Dur fields as integer instead of float if
 	// set to true.
 	DurationFieldInteger = false
+
+	// SectionsEnvironmentVariableName defines the name of the environment variable
+	// used to retrieve the enabled log sections.
+	SectionsEnvironmentVariableName = "ZEROLOG_SECTIONS"
+
+	// SectionsProviderFunc defines the function called to retrieve the configured sections (if any).
+	// By default, the value is retrieved from the environment variable "ZEROLOG_SECTIONS".
+	SectionsProviderFunc = envVariableSectionProvider
 )
 
 var (
@@ -68,4 +79,8 @@ func DisableSampling(v bool) {
 
 func samplingDisabled() bool {
 	return atomic.LoadUint32(disableSampling) == 1
+}
+
+func envVariableSectionProvider() string {
+	return os.Getenv(SectionsEnvironmentVariableName)
 }
