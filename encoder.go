@@ -16,8 +16,6 @@ type encoder interface {
 	AppendDuration(dst []byte, d time.Duration, unit time.Duration, useInt bool) []byte
 	AppendDurations(dst []byte, vals []time.Duration, unit time.Duration, useInt bool) []byte
 	AppendEndMarker(dst []byte) []byte
-	AppendError(dst []byte, err error) []byte
-	AppendErrors(dst []byte, errs []error) []byte
 	AppendFloat32(dst []byte, val float32) []byte
 	AppendFloat64(dst []byte, val float64) []byte
 	AppendFloats32(dst []byte, vals []float32) []byte

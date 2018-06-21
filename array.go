@@ -71,9 +71,24 @@ func (a *Array) Hex(val []byte) *Array {
 	return a
 }
 
-// Err append append the err as a string to the array.
+// Err serializes and appends the err to the array.
 func (a *Array) Err(err error) *Array {
-	a.buf = enc.AppendError(enc.AppendArrayDelim(a.buf), err)
+	marshaled := ErrorMarshalFunc(err)
+	switch m := marshaled.(type) {
+	case LogObjectMarshaler:
+		e := newEvent(nil, 0)
+		e.buf = e.buf[:0]
+		e.appendObject(m)
+		a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
+		eventPool.Put(e)
+	case string:
+		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m)
+	case error:
+		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
+	default:
+		a.buf = enc.AppendInterface(enc.AppendArrayDelim(a.buf), m)
+	}
+
 	return a
 }
 
