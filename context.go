@@ -101,27 +101,47 @@ func (c Context) RawJSON(key string, b []byte) Context {
 	return c
 }
 
-// AnErr adds the field key with err as a string to the logger context.
+// AnErr adds the field key with serialized err to the logger context.
 func (c Context) AnErr(key string, err error) Context {
-	if err != nil {
-		c.l.context = enc.AppendError(enc.AppendKey(c.l.context, key), err)
+	marshaled := ErrorMarshalFunc(err)
+	switch m := marshaled.(type) {
+	case nil:
+		return c
+	case LogObjectMarshaler:
+		return c.Object(key,m)
+	case error:
+		return c.Str(key, m.Error())
+	case string:
+		return c.Str(key, m)
+	default:
+		return c.Interface(key, m)
 	}
-	return c
 }
 
-// Errs adds the field key with errs as an array of strings to the logger context.
+// Errs adds the field key with errs as an array of serialized errors to the
+// logger context.
 func (c Context) Errs(key string, errs []error) Context {
-	c.l.context = enc.AppendErrors(enc.AppendKey(c.l.context, key), errs)
-	return c
+	arr := Arr()
+	for _, err := range errs {
+		marshaled := ErrorMarshalFunc(err)
+		switch m := marshaled.(type) {
+		case LogObjectMarshaler:
+			arr = arr.Object(m)
+		case error:
+			arr = arr.Str(m.Error())
+		case string:
+			arr = arr.Str(m)
+		default:
+			arr = arr.Interface(m)
+		}
+	}
+
+	return c.Array(key, arr)
 }
 
-// Err adds the field "error" with err as a string to the logger context.
-// To customize the key name, change zerolog.ErrorFieldName.
+// Err adds the field "error" with serialized err to the logger context.
 func (c Context) Err(err error) Context {
-	if err != nil {
-		c.l.context = enc.AppendError(enc.AppendKey(c.l.context, ErrorFieldName), err)
-	}
-	return c
+	return c.AnErr(ErrorFieldName, err)
 }
 
 // Bool adds the field key with val as a bool to the logger context.
