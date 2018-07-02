@@ -521,3 +521,61 @@ func TestOutputWithTimestamp(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+type loggableError struct {
+	error
+}
+
+func (l loggableError) MarshalZerologObject(e *Event) {
+	e.Str("message", l.error.Error() + ": loggableError")
+}
+
+func TestErrorMarshalFunc(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+
+	// test default behaviour
+	log.Log().Err(errors.New("err")).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err","message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+	out.Reset()
+
+	log.Log().Err(loggableError{errors.New("err")}).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":{"message":"err: loggableError"},"message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+	out.Reset()
+
+	// test overriding the ErrorMarshalFunc
+	originalErrorMarshalFunc := ErrorMarshalFunc
+	defer func(){
+		ErrorMarshalFunc = originalErrorMarshalFunc
+	}()
+
+	ErrorMarshalFunc = func(err error) interface{} {
+		return err.Error() + ": marshaled string"
+	}
+	log.Log().Err(errors.New("err")).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err: marshaled string","message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+
+	out.Reset()
+	ErrorMarshalFunc = func(err error) interface{} {
+		return errors.New(err.Error() + ": new error")
+	}
+	log.Log().Err(errors.New("err")).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err: new error","message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+
+	out.Reset()
+	ErrorMarshalFunc = func(err error) interface{} {
+		return loggableError{err}
+	}
+	log.Log().Err(errors.New("err")).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":{"message":"err: loggableError"},"message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}

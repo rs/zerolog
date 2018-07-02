@@ -109,10 +109,10 @@ func (c Context) AnErr(key string, err error) Context {
 		return c
 	case LogObjectMarshaler:
 		return c.Object(key,m)
-	case string:
-		return c.Str(key, m)
 	case error:
 		return c.Str(key, m.Error())
+	case string:
+		return c.Str(key, m)
 	default:
 		return c.Interface(key, m)
 	}
@@ -127,10 +127,10 @@ func (c Context) Errs(key string, errs []error) Context {
 		switch m := marshaled.(type) {
 		case LogObjectMarshaler:
 			arr = arr.Object(m)
-		case string:
-			arr = arr.Str(m)
 		case error:
 			arr = arr.Str(m.Error())
+		case string:
+			arr = arr.Str(m)
 		default:
 			arr = arr.Interface(m)
 		}

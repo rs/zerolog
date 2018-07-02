@@ -253,10 +253,10 @@ func (e *Event) AnErr(key string, err error) *Event {
 		return e
 	case LogObjectMarshaler:
 		return e.Object(key, m)
-	case string:
-		return e.Str(key, m)
 	case error:
 		return e.Str(key, m.Error())
+	case string:
+		return e.Str(key, m)
 	default:
 		return e.Interface(key, m)
 	}
@@ -274,10 +274,10 @@ func (e *Event) Errs(key string, errs []error) *Event {
 		switch m := marshaled.(type) {
 		case LogObjectMarshaler:
 			arr = arr.Object(m)
-		case string:
-			arr = arr.Str(m)
 		case error:
 			arr = arr.Err(m)
+		case string:
+			arr = arr.Str(m)
 		default:
 			arr = arr.Interface(m)
 		}

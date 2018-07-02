@@ -37,10 +37,10 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 				e.appendObject(m)
 				dst = append(dst, e.buf...)
 				eventPool.Put(e)
-			case string:
-				dst = enc.AppendString(dst, m)
 			case error:
 				dst = enc.AppendString(dst, m.Error())
+			case string:
+				dst = enc.AppendString(dst, m)
 			default:
 				dst = enc.AppendInterface(dst, m)
 			}
@@ -55,10 +55,10 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 					e.appendObject(m)
 					dst = append(dst, e.buf...)
 					eventPool.Put(e)
-				case string:
-					dst = enc.AppendString(dst, m)
 				case error:
 					dst = enc.AppendString(dst, m.Error())
+				case string:
+					dst = enc.AppendString(dst, m)
 				default:
 					dst = enc.AppendInterface(dst, m)
 				}

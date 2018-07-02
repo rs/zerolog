@@ -81,10 +81,10 @@ func (a *Array) Err(err error) *Array {
 		e.appendObject(m)
 		a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
 		eventPool.Put(e)
-	case string:
-		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m)
 	case error:
 		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
+	case string:
+		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m)
 	default:
 		a.buf = enc.AppendInterface(enc.AppendArrayDelim(a.buf), m)
 	}
