@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type encoder interface {
+type Encoder interface {
 	AppendArrayDelim(dst []byte) []byte
 	AppendArrayEnd(dst []byte) []byte
 	AppendArrayStart(dst []byte) []byte

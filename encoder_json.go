@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	_ encoder = (*json.Encoder)(nil)
+	_ Encoder = (*json.Encoder)(nil)
 
 	enc = json.Encoder{}
 )

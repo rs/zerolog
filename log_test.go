@@ -547,35 +547,17 @@ func TestErrorMarshalFunc(t *testing.T) {
 	}
 	out.Reset()
 
-	// test overriding the ErrorMarshalFunc
-	originalErrorMarshalFunc := ErrorMarshalFunc
+	// test overriding the AppendErrorFunc
+	originalAppendErrorFunc := AppendErrorFunc
 	defer func(){
-		ErrorMarshalFunc = originalErrorMarshalFunc
+		AppendErrorFunc = originalAppendErrorFunc
 	}()
 
-	ErrorMarshalFunc = func(err error) interface{} {
-		return err.Error() + ": marshaled string"
+	AppendErrorFunc = func(encoder Encoder, buf []byte, err error) []byte {
+		return encoder.AppendString(buf, err.Error() + ": marshaled string")
 	}
 	log.Log().Err(errors.New("err")).Msg("msg")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err: marshaled string","message":"msg"}`+"\n"; got != want {
-		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-	}
-
-	out.Reset()
-	ErrorMarshalFunc = func(err error) interface{} {
-		return errors.New(err.Error() + ": new error")
-	}
-	log.Log().Err(errors.New("err")).Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err: new error","message":"msg"}`+"\n"; got != want {
-		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-	}
-
-	out.Reset()
-	ErrorMarshalFunc = func(err error) interface{} {
-		return loggableError{err}
-	}
-	log.Log().Err(errors.New("err")).Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":{"message":"err: loggableError"},"message":"msg"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }

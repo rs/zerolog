@@ -29,39 +29,11 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case []byte:
 			dst = enc.AppendBytes(dst, val)
 		case error:
-			marshaled := ErrorMarshalFunc(val)
-			switch m := marshaled.(type) {
-			case LogObjectMarshaler:
-				e := newEvent(nil, 0)
-				e.buf = e.buf[:0]
-				e.appendObject(m)
-				dst = append(dst, e.buf...)
-				eventPool.Put(e)
-			case error:
-				dst = enc.AppendString(dst, m.Error())
-			case string:
-				dst = enc.AppendString(dst, m)
-			default:
-				dst = enc.AppendInterface(dst, m)
-			}
+			dst = AppendErrorFunc(enc, dst, val)
 		case []error:
 			dst = enc.AppendArrayStart(dst)
 			for i, err := range val {
-				marshaled := ErrorMarshalFunc(err)
-				switch m := marshaled.(type) {
-				case LogObjectMarshaler:
-					e := newEvent(nil, 0)
-					e.buf = e.buf[:0]
-					e.appendObject(m)
-					dst = append(dst, e.buf...)
-					eventPool.Put(e)
-				case error:
-					dst = enc.AppendString(dst, m.Error())
-				case string:
-					dst = enc.AppendString(dst, m)
-				default:
-					dst = enc.AppendInterface(dst, m)
-				}
+				dst = AppendErrorFunc(enc, dst, err)
 
 				if i < (len(val) - 1) {
 					enc.AppendArrayDelim(dst)
