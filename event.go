@@ -18,7 +18,8 @@ var eventPool = &sync.Pool{
 	},
 }
 
-// AppendErrorFunc allows customization of global error marshaling
+// AppendErrorFunc allows customization of global error marshaling. It deals
+// with the Encoder directly to minimize the performance impact of this.
 var AppendErrorFunc = func(encoder Encoder, buf []byte, err error) []byte {
 	switch m := err.(type) {
 	case nil:
