@@ -83,6 +83,26 @@ func (e *Event) Discard() *Event {
 	return nil
 }
 
+// Category assigns a category to the *Event.
+//
+// If the log level associated to this category allows this event to be logged, a
+// 'category' key will be added with the category name as value; however if the log
+// level doesn't allow this event to be logged, Category will return a nil *Event.
+func (e *Event) Category(cat Category) *Event {
+	if e == nil {
+		return e
+	}
+
+	ok, catname := shouldCategory(cat, e.level)
+	if !ok {
+		e = nil
+		return nil
+	}
+	// category enabled for current event, adds it.
+	e.buf = enc.AppendString(enc.AppendKey(e.buf, CategoryFieldName), catname)
+	return e
+}
+
 // Msg sends the *Event with msg added as the message field if not empty.
 //
 // NOTICE: once this method is called, the *Event should be disposed.
