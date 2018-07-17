@@ -84,6 +84,18 @@ func BenchmarkLogFields(b *testing.B) {
 	})
 }
 
+func BenchmarkLogCategory(b *testing.B) {
+	logger := New(ioutil.Discard)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().
+				Category(2).
+				Msg(fakeMessage)
+		}
+	})
+}
+
 type obj struct {
 	Pub  string
 	Tag  string `json:"tag"`
@@ -159,6 +171,7 @@ func BenchmarkLogFieldType(b *testing.B) {
 		obj{"a", "a", 0},
 	}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
+	var category Category = 1
 	types := map[string]func(e *Event) *Event{
 		"Bool": func(e *Event) *Event {
 			return e.Bool("k", bools[0])
@@ -216,6 +229,9 @@ func BenchmarkLogFieldType(b *testing.B) {
 		},
 		"Object": func(e *Event) *Event {
 			return e.Object("k", objects[0])
+		},
+		"Category": func(e *Event) *Event {
+			return e.Category(category)
 		},
 	}
 	logger := New(ioutil.Discard)
