@@ -5,7 +5,9 @@ import (
 	"time"
 )
 
-type encoder interface {
+// Encoder encodes data into byte slices. It's methods accept destination slice,
+// append the result of the serialization to it and return the slice.
+type Encoder interface {
 	AppendArrayDelim(dst []byte) []byte
 	AppendArrayEnd(dst []byte) []byte
 	AppendArrayStart(dst []byte) []byte

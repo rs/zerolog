@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	_ encoder = (*cbor.Encoder)(nil)
+	_ Encoder = (*cbor.Encoder)(nil)
 
 	enc = cbor.Encoder{}
 )
