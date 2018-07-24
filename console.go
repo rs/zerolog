@@ -31,6 +31,9 @@ var consoleBufPool = sync.Pool{
 	},
 }
 
+// Define the width of the level column, either trim or pad to width, 0 - don't trim or pad.
+var LevelWidth = 4
+
 // ConsoleWriter reads a JSON object per write operation and output an
 // optionally colored human readable version on the Out writer.
 type ConsoleWriter struct {
@@ -55,7 +58,13 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		if !w.NoColor {
 			lvlColor = levelColor(l)
 		}
-		level = strings.ToUpper(l)[0:4]
+		level = strings.ToUpper(l)
+		if LevelWidth > 0 {
+			for i := len(level); i < LevelWidth; i++ {
+				level += ` `
+			}
+			level = level[0:LevelWidth]
+		}
 	}
 	fmt.Fprintf(buf, "%s |%s| %s",
 		colorize(formatTime(event[TimestampFieldName]), cDarkGray, !w.NoColor),
