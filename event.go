@@ -19,7 +19,7 @@ var eventPool = &sync.Pool{
 }
 
 // ErrorMarshalFunc allows customization of global error marshaling
-var ErrorMarshalFunc = func (err error) interface{} {
+var ErrorMarshalFunc = func(err error) interface{} {
 	return err
 }
 
@@ -83,6 +83,21 @@ func (e *Event) Msg(msg string) {
 	if e == nil {
 		return
 	}
+	e.msg(msg)
+}
+
+// Msgf sends the event with formated msg added as the message field if not empty.
+//
+// NOTICE: once this methid is called, the *Event should be disposed.
+// Calling Msg twice can have unexpected result.
+func (e *Event) Msgf(format string, v ...interface{}) {
+	if e == nil {
+		return
+	}
+	e.msg(fmt.Sprintf(format, v...))
+}
+
+func (e *Event) msg(msg string) {
 	if len(e.ch) > 0 {
 		e.ch[0].Run(e, e.level, msg)
 		if len(e.ch) > 1 {
@@ -108,17 +123,6 @@ func (e *Event) Msg(msg string) {
 	if err := e.write(); err != nil {
 		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
 	}
-}
-
-// Msgf sends the event with formated msg added as the message field if not empty.
-//
-// NOTICE: once this methid is called, the *Event should be disposed.
-// Calling Msg twice can have unexpected result.
-func (e *Event) Msgf(format string, v ...interface{}) {
-	if e == nil {
-		return
-	}
-	e.Msg(fmt.Sprintf(format, v...))
 }
 
 // Fields is a helper function to use a map to set fields using type assertion.
@@ -261,6 +265,7 @@ func (e *Event) AnErr(key string, err error) *Event {
 		return e.Interface(key, m)
 	}
 }
+
 // Errs adds the field key with errs as an array of serialized errors to the
 // *Event context.
 func (e *Event) Errs(key string, errs []error) *Event {
