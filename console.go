@@ -31,8 +31,9 @@ var consoleBufPool = sync.Pool{
 	},
 }
 
-// Define the width of the level column, either trim or pad to width, 0 - don't trim or pad.
-var LevelWidth = 4
+// LevelWidth defines the desired character width of the log level column.
+// Default 0 does not trim or pad (variable width based level text, e.g. "INFO" or "ERROR")
+var LevelWidth = 0
 
 // ConsoleWriter reads a JSON object per write operation and output an
 // optionally colored human readable version on the Out writer.
@@ -60,10 +61,11 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		}
 		level = strings.ToUpper(l)
 		if LevelWidth > 0 {
-			for i := len(level); i < LevelWidth; i++ {
-				level += ` `
+			if padding := LevelWidth - len(level); padding > 0 {
+				level += strings.Repeat(" ", padding)
+			} else {
+				level = level[0:LevelWidth]
 			}
-			level = level[0:LevelWidth]
 		}
 	}
 	fmt.Fprintf(buf, "%s |%s| %s",
