@@ -60,10 +60,12 @@ func (e *Event) write() (err error) {
 	if e == nil {
 		return nil
 	}
-	e.buf = enc.AppendEndMarker(e.buf)
-	e.buf = enc.AppendLineBreak(e.buf)
-	if e.w != nil {
-		_, err = e.w.WriteLevel(e.level, e.buf)
+	if e.level != Disabled {
+		e.buf = enc.AppendEndMarker(e.buf)
+		e.buf = enc.AppendLineBreak(e.buf)
+		if e.w != nil {
+			_, err = e.w.WriteLevel(e.level, e.buf)
+		}
 	}
 	eventPool.Put(e)
 	return
@@ -72,7 +74,13 @@ func (e *Event) write() (err error) {
 // Enabled return false if the *Event is going to be filtered out by
 // log level or sampling.
 func (e *Event) Enabled() bool {
-	return e != nil
+	return e != nil && e.level != Disabled
+}
+
+// Discard disables the event so Msg(f) won't print it.
+func (e *Event) Discard() *Event {
+	e.level = Disabled
+	return nil
 }
 
 // Msg sends the *Event with msg added as the message field if not empty.

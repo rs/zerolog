@@ -6,6 +6,15 @@ type Hook interface {
 	Run(e *Event, level Level, message string)
 }
 
+// HookFunc is an adaptor to allow the use of an ordinary function
+// as a Hook.
+type HookFunc func(e *Event, level Level, message string)
+
+// Run implements the Hook interface.
+func (h HookFunc) Run(e *Event, level Level, message string) {
+	h(e, level, message)
+}
+
 // LevelHook applies a different hook for each level.
 type LevelHook struct {
 	NoLevelHook, DebugHook, InfoHook, WarnHook, ErrorHook, FatalHook, PanicHook Hook
