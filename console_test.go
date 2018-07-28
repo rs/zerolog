@@ -2,6 +2,7 @@ package zerolog_test
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -26,5 +27,18 @@ func TestConsoleWriterNumbers(t *testing.T) {
 		Msg("msg")
 	if got, want := strings.TrimSpace(buf.String()), "<nil> |INFO| msg big=1152921504606846976 float=1.23 small=123"; got != want {
 		t.Errorf("\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func BenchmarkConsoleWriter(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	var msg = []byte(`{"level" : "info", "foo" : "bar", "message" : "HELLO", "time" : "1990-01-01"}`)
+
+	w := zerolog.ConsoleWriter{Out: ioutil.Discard, NoColor: true}
+
+	for i := 0; i < b.N; i++ {
+		w.Write(msg)
 	}
 }
