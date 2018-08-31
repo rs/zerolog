@@ -1,7 +1,10 @@
 package zerolog
 
-import "time"
-import "sync/atomic"
+import (
+	"math"
+	"sync/atomic"
+	"time"
+)
 
 var (
 	// TimestampFieldName is the field name used for the timestamp field.
@@ -15,6 +18,9 @@ var (
 
 	// ErrorFieldName is the field name used for error fields.
 	ErrorFieldName = "error"
+
+	// CategoryFieldName is the field name used for category fields.
+	CategoryFieldName = "category"
 
 	// CallerFieldName is the field name used for caller field.
 	CallerFieldName = "caller"
@@ -48,8 +54,16 @@ var (
 // values is raised, all Loggers will use at least this value.
 //
 // To globally disable logs, set GlobalLevel to Disabled.
+// Note: also set the category-based level, for all log categories.
 func SetGlobalLevel(l Level) {
 	atomic.StoreUint32(gLevel, uint32(l))
+
+	// set all categories at once.
+	catmx.Lock()
+	for i := 0; i < math.MaxUint8; i++ {
+		categories[i].lvl = l
+	}
+	catmx.Unlock()
 }
 
 // GlobalLevel returns the current global log level

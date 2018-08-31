@@ -2,12 +2,12 @@
 //
 // A global Logger can be use for simple logging:
 //
-//     import "github.com/rs/zerolog/log"
+//     import "github.com/arl/zerolog/log"
 //
 //     log.Info().Msg("hello world")
 //     // Output: {"time":1494567715,"level":"info","message":"hello world"}
 //
-// NOTE: To import the global logger, import the "log" subpackage "github.com/rs/zerolog/log".
+// NOTE: To import the global logger, import the "log" subpackage "github.com/arl/zerolog/log".
 //
 // Fields can be added to log messages:
 //

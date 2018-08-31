@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/diode"
+	"github.com/arl/zerolog"
+	"github.com/arl/zerolog/diode"
 )
 
 func ExampleNewWriter() {

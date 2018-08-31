@@ -20,11 +20,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/coreos/go-systemd/journal"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/cbor"
 	"io"
 	"strings"
+
+	"github.com/arl/zerolog"
+	"github.com/arl/zerolog/internal/cbor"
+	"github.com/coreos/go-systemd/journal"
 )
 
 const defaultJournalDPrio = journal.PriNotice
