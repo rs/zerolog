@@ -54,18 +54,20 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	buf := consoleBufPool.Get().(*bytes.Buffer)
 	defer consoleBufPool.Put(buf)
 	lvlColor := cReset
-	level := "????"
-	if l, ok := event[LevelFieldName].(string); ok {
-		if !w.NoColor {
-			lvlColor = levelColor(l)
-		}
-		level = strings.ToUpper(l)
-		if LevelWidth > 0 {
-			if padding := LevelWidth - len(level); padding > 0 {
-				level += strings.Repeat(" ", padding)
-			} else {
-				level = level[0:LevelWidth]
-			}
+
+	level, ok := event[LevelFieldName].(string)
+	if !ok {
+		level = GlobalLevel().String()
+	}
+	if !w.NoColor {
+		lvlColor = levelColor(level)
+	}
+	level = strings.ToUpper(level)
+	if LevelWidth > 0 {
+		if padding := LevelWidth - len(level); padding > 0 {
+			level += strings.Repeat(" ", padding)
+		} else {
+			level = level[0:LevelWidth]
 		}
 	}
 	fmt.Fprintf(buf, "%s |%s| %s",
