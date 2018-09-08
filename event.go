@@ -102,6 +102,7 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	if e == nil {
 		return
 	}
+	CallerSkipFrameCount++
 	e.msg(fmt.Sprintf(format, v...))
 }
 
