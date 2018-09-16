@@ -398,7 +398,7 @@ func TestSampling(t *testing.T) {
 	log.Log().Int("i", 2).Msg("")
 	log.Log().Int("i", 3).Msg("")
 	log.Log().Int("i", 4).Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), "{\"i\":2}\n{\"i\":4}\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), "{\"i\":1}\n{\"i\":3}\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -527,7 +527,7 @@ type loggableError struct {
 }
 
 func (l loggableError) MarshalZerologObject(e *Event) {
-	e.Str("message", l.error.Error() + ": loggableError")
+	e.Str("message", l.error.Error()+": loggableError")
 }
 
 func TestErrorMarshalFunc(t *testing.T) {
@@ -549,7 +549,7 @@ func TestErrorMarshalFunc(t *testing.T) {
 
 	// test overriding the ErrorMarshalFunc
 	originalErrorMarshalFunc := ErrorMarshalFunc
-	defer func(){
+	defer func() {
 		ErrorMarshalFunc = originalErrorMarshalFunc
 	}()
 
