@@ -48,8 +48,8 @@ func ExampleLogger_Sample() {
 	log.Info().Msg("message 3")
 	log.Info().Msg("message 4")
 
-	// Output: {"level":"info","message":"message 2"}
-	// {"level":"info","message":"message 4"}
+	// Output: {"level":"info","message":"message 1"}
+	// {"level":"info","message":"message 3"}
 }
 
 type LevelNameHook struct{}
