@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	//	"io/ioutil"
 	stdlog "log"
 	"time"
@@ -54,8 +55,8 @@ func ExampleLogger_Sample() {
 	log.Info().Msg("message 4")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
-	// Output: {"level":"info","message":"message 2"}
-	// {"level":"info","message":"message 4"}
+	// Output: {"level":"info","message":"message 1"}
+	// {"level":"info","message":"message 3"}
 }
 
 type LevelNameHook1 struct{}
