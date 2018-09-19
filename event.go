@@ -31,7 +31,6 @@ type Event struct {
 	level Level
 	done  func(msg string)
 	ch    []Hook // hooks from context
-	h     []Hook
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -49,7 +48,7 @@ type LogArrayMarshaler interface {
 func newEvent(w LevelWriter, level Level) *Event {
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:0]
-	e.h = e.h[:0]
+	e.ch = nil
 	e.buf = enc.AppendBeginMarker(e.buf)
 	e.w = w
 	e.level = level
@@ -110,14 +109,6 @@ func (e *Event) msg(msg string) {
 		e.ch[0].Run(e, e.level, msg)
 		if len(e.ch) > 1 {
 			for _, hook := range e.ch[1:] {
-				hook.Run(e, e.level, msg)
-			}
-		}
-	}
-	if len(e.h) > 0 {
-		e.h[0].Run(e, e.level, msg)
-		if len(e.h) > 1 {
-			for _, hook := range e.h[1:] {
 				hook.Run(e, e.level, msg)
 			}
 		}
