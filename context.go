@@ -26,7 +26,7 @@ func (c Context) Fields(fields map[string]interface{}) Context {
 func (c Context) Dict(key string, dict *Event) Context {
 	dict.buf = enc.AppendEndMarker(dict.buf)
 	c.l.context = append(enc.AppendKey(c.l.context, key), dict.buf...)
-	eventPool.Put(dict)
+	putEvent(dict)
 	return c
 }
 
@@ -55,7 +55,7 @@ func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0)
 	e.Object(key, obj)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
-	eventPool.Put(e)
+	putEvent(e)
 	return c
 }
 
@@ -64,7 +64,7 @@ func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
 	e := newEvent(levelWriterAdapter{ioutil.Discard}, 0)
 	e.EmbedObject(obj)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
-	eventPool.Put(e)
+	putEvent(e)
 	return c
 }
 

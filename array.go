@@ -20,6 +20,20 @@ type Array struct {
 	buf []byte
 }
 
+func putArray(a *Array) {
+	// Proper usage of a sync.Pool requires each entry to have approximately
+	// the same memory cost. To obtain this property when the stored type
+	// contains a variably-sized buffer, we add a hard limit on the maximum buffer
+	// to place back in the pool.
+	//
+	// See https://golang.org/issue/23199
+	const maxSize = 1 << 16 // 64KiB
+	if cap(a.buf) > maxSize {
+		return
+	}
+	arrayPool.Put(a)
+}
+
 // Arr creates an array to be added to an Event or Context.
 func Arr() *Array {
 	a := arrayPool.Get().(*Array)
@@ -38,7 +52,7 @@ func (a *Array) write(dst []byte) []byte {
 		dst = append(append(dst, a.buf...))
 	}
 	dst = enc.AppendArrayEnd(dst)
-	arrayPool.Put(a)
+	putArray(a)
 	return dst
 }
 
@@ -49,7 +63,7 @@ func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	obj.MarshalZerologObject(e)
 	e.buf = enc.AppendEndMarker(e.buf)
 	a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
-	eventPool.Put(e)
+	putEvent(e)
 	return a
 }
 
@@ -80,7 +94,7 @@ func (a *Array) Err(err error) *Array {
 		e.buf = e.buf[:0]
 		e.appendObject(m)
 		a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
-		eventPool.Put(e)
+		putEvent(e)
 	case error:
 		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
 	case string:
