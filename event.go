@@ -155,7 +155,7 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	}
 	dict.buf = enc.AppendEndMarker(dict.buf)
 	e.buf = append(enc.AppendKey(e.buf, key), dict.buf...)
-	putEvent(e)
+	putEvent(dict)
 	return e
 }
 
