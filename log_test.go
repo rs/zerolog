@@ -403,6 +403,21 @@ func TestSampling(t *testing.T) {
 	}
 }
 
+func TestDiscard(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Discard().Str("a", "b").Msgf("one %s %.1f %d %v", "two", 3.4, 5, errors.New("six"))
+	if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+
+	// Double call
+	log.Log().Discard().Discard().Str("a", "b").Msgf("one %s %.1f %d %v", "two", 3.4, 5, errors.New("six"))
+	if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 type levelWriter struct {
 	ops []struct {
 		l Level

@@ -92,6 +92,9 @@ func (e *Event) Enabled() bool {
 
 // Discard disables the event so Msg(f) won't print it.
 func (e *Event) Discard() *Event {
+	if e == nil {
+		return e
+	}
 	e.level = Disabled
 	return nil
 }
