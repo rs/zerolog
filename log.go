@@ -321,9 +321,9 @@ func (l *Logger) WithLevel(level Level) *Event {
 	case ErrorLevel:
 		return l.Error()
 	case FatalLevel:
-		return l.Fatal()
+		return l.newEvent(FatalLevel, nil)
 	case PanicLevel:
-		return l.Panic()
+		return l.newEvent(PanicLevel, nil)
 	case NoLevel:
 		return l.Log()
 	case Disabled:
