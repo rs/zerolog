@@ -12,18 +12,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ExampleConsoleWriter_Write() {
+func ExampleConsoleWriter() {
 	log := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, NoColor: true})
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
 	// Output: <nil> INF Hello World foo=bar
 }
 
-func ExampleConsoleWriter_SetFormatter() {
+func ExampleConsoleWriter_customFormatters() {
 	out := zerolog.ConsoleWriter{Out: os.Stdout, NoColor: true}
-	out.SetFormatter(zerolog.LevelFieldName, func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("%-6s|", i)) })
-	out.SetFormatter("field_name", func(i interface{}) string { return fmt.Sprintf("%s:", i) })
-	out.SetFormatter("field_value", func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("%s", i)) })
+	out.FormatLevel = func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("%-6s|", i)) }
+	out.FormatFieldName = func(i interface{}) string { return fmt.Sprintf("%s:", i) }
+	out.FormatFieldValue = func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("%s", i)) }
 	log := zerolog.New(out)
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
@@ -32,7 +32,6 @@ func ExampleConsoleWriter_SetFormatter() {
 
 func ExampleNewConsoleWriter() {
 	out := zerolog.NewConsoleWriter()
-	out.Reset()        // For testing purposes only
 	out.NoColor = true // For testing purposes only
 	log := zerolog.New(out)
 
@@ -40,18 +39,16 @@ func ExampleNewConsoleWriter() {
 	// Output: <nil> DBG Hello World foo=bar
 }
 
-func ExampleNewConsoleWriter_customized() {
+func ExampleNewConsoleWriter_customFormatters() {
 	out := zerolog.NewConsoleWriter(
 		func(w *zerolog.ConsoleWriter) {
 			// Customize time format
 			w.TimeFormat = time.RFC822
 			// Customize level formatting
-			w.SetFormatter(
-				zerolog.LevelFieldName,
-				func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("[%-5s]", i)) })
+			w.FormatLevel = func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("[%-5s]", i)) }
 		},
 	)
-	out.NoColor = true
+	out.NoColor = true // For testing purposes only
 
 	log := zerolog.New(out)
 
