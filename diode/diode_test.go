@@ -16,7 +16,7 @@ import (
 
 func TestNewWriter(t *testing.T) {
 	buf := bytes.Buffer{}
-	w := diode.NewWriter(&buf, 1000, 10*time.Millisecond, func(missed int) {
+	w := diode.NewWriter(&buf, 1000, 0, func(missed int) {
 		fmt.Printf("Dropped %d messages\n", missed)
 	})
 	log := zerolog.New(w)
@@ -33,15 +33,22 @@ func TestNewWriter(t *testing.T) {
 func Benchmark(b *testing.B) {
 	log.SetOutput(ioutil.Discard)
 	defer log.SetOutput(os.Stderr)
-	w := diode.NewWriter(ioutil.Discard, 100000, 10*time.Millisecond, nil)
-	log := zerolog.New(w)
-	defer w.Close()
+	benchs := map[string]time.Duration{
+		"Waiter": 0,
+		"Pooler": 10 * time.Millisecond,
+	}
+	for name, interval := range benchs {
+		b.Run(name, func(b *testing.B) {
+			w := diode.NewWriter(ioutil.Discard, 100000, interval, nil)
+			log := zerolog.New(w)
+			defer w.Close()
 
-	b.SetParallelism(1000)
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			log.Print("test")
-		}
-	})
-
+			b.SetParallelism(1000)
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					log.Print("test")
+				}
+			})
+		})
+	}
 }
