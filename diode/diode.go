@@ -44,7 +44,7 @@ type Writer struct {
 //     })
 //     log := zerolog.New(wr)
 //
-// If poolInterval is greater than 0, a poller is used otherwise a waiter is
+// If pollInterval is greater than 0, a poller is used otherwise a waiter is
 // used.
 //
 // See code.cloudfoundry.org/go-diodes for more info on diode.
