@@ -60,7 +60,7 @@ func main() {
 
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
-> Note: By default log writes to `os.Stderr`  
+> Note: By default log writes to `os.Stderr`
 > Note: The default log level for `log.Print` is *debug*
 
 ### Contextual Logging
@@ -265,19 +265,19 @@ log.Info().Str("foo", "bar").Msg("Hello world")
 To customize the configuration and formatting:
 
 ```go
-output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}.Reset()
-output.SetFormatter(zerolog.LevelFieldName, func(i interface{}) string {
+output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+output.FormatLevel = func(i interface{}) string {
     return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
-})
-output.SetFormatter(zerolog.MessageFieldName, func(i interface{}) string {
+}
+output.FormatMessage = func(i interface{}) string {
     return fmt.Sprintf("***%s****", i)
-})
-output.SetFormatter("field_name", func(i interface{}) string {
+}
+output.FormatFieldName = func(i interface{}) string {
     return fmt.Sprintf("%s:", i)
-})
-output.SetFormatter("field_value", func(i interface{}) string {
+}
+output.FormatFieldValue = func(i interface{}) string {
     return strings.ToUpper(fmt.Sprintf("%s", i))
-})
+}
 
 log := zerolog.New(output).With().Timestamp().Logger()
 
