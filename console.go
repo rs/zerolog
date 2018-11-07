@@ -38,11 +38,13 @@ var (
 
 	consoleDefaultTimeFormat = time.Kitchen
 	consoleDefaultFormatter  = func(i interface{}) string { return fmt.Sprintf("%s", i) }
-	consoleDefaultPartsOrder = []string{
-		TimestampFieldName,
-		LevelFieldName,
-		CallerFieldName,
-		MessageFieldName,
+	consoleDefaultPartsOrder = func() []string {
+		return []string{
+			TimestampFieldName,
+			LevelFieldName,
+			CallerFieldName,
+			MessageFieldName,
+		}
 	}
 
 	consoleNoColor    = false
@@ -82,7 +84,7 @@ func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 	w := ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: consoleDefaultTimeFormat,
-		PartsOrder: consoleDefaultPartsOrder,
+		PartsOrder: consoleDefaultPartsOrder(),
 	}
 
 	for _, opt := range options {
@@ -95,7 +97,7 @@ func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 // Write transforms the JSON input with formatters and appends to w.Out.
 func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	if w.PartsOrder == nil {
-		w.PartsOrder = consoleDefaultPartsOrder
+		w.PartsOrder = consoleDefaultPartsOrder()
 	}
 	if w.TimeFormat == "" && consoleTimeFormat != consoleDefaultTimeFormat {
 		consoleTimeFormat = consoleDefaultTimeFormat
