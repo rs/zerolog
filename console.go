@@ -292,13 +292,16 @@ func colorize(s interface{}, c int, disabled bool) string {
 var (
 	consoleDefaultFormatTimestamp = func(i interface{}) string {
 		t := "<nil>"
-		if tt, ok := i.(string); ok {
+		switch tt := i.(type) {
+		case string:
 			ts, err := time.Parse(time.RFC3339, tt)
 			if err != nil {
 				t = tt
 			} else {
 				t = ts.Format(consoleTimeFormat)
 			}
+		case json.Number:
+			t = tt.String()
 		}
 		return colorize(t, colorFaint, consoleNoColor)
 	}
