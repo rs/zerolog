@@ -137,7 +137,7 @@ func (e *Event) msg(msg string) {
 		defer e.done(msg)
 	}
 	if err := e.write(); err != nil {
-		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
+		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v\n", err)
 	}
 }
 
