@@ -479,6 +479,7 @@ Some settings can be changed and will by applied to all loggers:
     // using the Dur method.
 * `DurationFieldUnit`: Sets the unit of the fields added by `Dur` (default: `time.Millisecond`).
 * `DurationFieldInteger`: If set to true, `Dur` fields are formatted as integers instead of floats.
+* `ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
 
 ## Field Types
 

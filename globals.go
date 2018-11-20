@@ -37,6 +37,11 @@ var (
 	// DurationFieldInteger renders Dur fields as integer instead of float if
 	// set to true.
 	DurationFieldInteger = false
+
+	// ErrorHandler is called whenever zerolog fails to write an event on its
+	// output. If not set, an error is printed on the stderr. This handler must
+	// be thread safe and non-blocking.
+	ErrorHandler func(err error)
 )
 
 var (

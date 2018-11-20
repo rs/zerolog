@@ -640,3 +640,24 @@ func TestErrorMarshalFunc(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+type errWriter struct {
+	error
+}
+
+func (w errWriter) Write(p []byte) (n int, err error) {
+	return 0, w.error
+}
+
+func TestErrorHandler(t *testing.T) {
+	var got error
+	want := errors.New("write error")
+	ErrorHandler = func(err error) {
+		got = err
+	}
+	log := New(errWriter{want})
+	log.Log().Msg("test")
+	if got != want {
+		t.Errorf("ErrorHandler err = %#v, want %#v", got, want)
+	}
+}
