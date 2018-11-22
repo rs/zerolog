@@ -63,7 +63,7 @@ func Example_handler() {
 		hlog.FromRequest(r).Info().
 			Str("user", "current user").
 			Str("status", "ok").
-			Msg("Something happend")
+			Msg("Something happened")
 	}))
 	http.Handle("/", h)
 
