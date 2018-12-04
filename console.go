@@ -36,6 +36,7 @@ var (
 		},
 	}
 
+	mu                       sync.Mutex
 	consoleDefaultTimeFormat = time.Kitchen
 	consoleDefaultFormatter  = func(i interface{}) string { return fmt.Sprintf("%s", i) }
 	consoleDefaultPartsOrder = func() []string {
@@ -96,6 +97,7 @@ func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 
 // Write transforms the JSON input with formatters and appends to w.Out.
 func (w ConsoleWriter) Write(p []byte) (n int, err error) {
+	mu.Lock()
 	if w.PartsOrder == nil {
 		w.PartsOrder = consoleDefaultPartsOrder()
 	}
@@ -111,6 +113,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	if w.NoColor == true && consoleNoColor != w.NoColor {
 		consoleNoColor = w.NoColor
 	}
+	mu.Unlock()
 
 	var buf = consoleBufPool.Get().(*bytes.Buffer)
 	defer consoleBufPool.Put(buf)
