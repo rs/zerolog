@@ -37,7 +37,6 @@ var (
 	}
 
 	consoleDefaultTimeFormat = time.Kitchen
-	consoleDefaultFormatter  = func(i interface{}) string { return fmt.Sprintf("%s", i) }
 	consoleDefaultPartsOrder = func() []string {
 		return []string{
 			TimestampFieldName,
@@ -113,7 +112,10 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	}
 
 	var buf = consoleBufPool.Get().(*bytes.Buffer)
-	defer consoleBufPool.Put(buf)
+	defer func() {
+		buf.Reset()
+		consoleBufPool.Put(buf)
+	}()
 
 	var evt map[string]interface{}
 	p = decodeIfBinaryToBytes(p)
@@ -130,9 +132,12 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 
 	w.writeFields(evt, buf)
 
-	buf.WriteByte('\n')
-	buf.WriteTo(w.Out)
-	return len(p), nil
+	err = buf.WriteByte('\n')
+	if err != nil {
+		return n, err
+	}
+	_, err = buf.WriteTo(w.Out)
+	return len(p), err
 }
 
 // writeFields appends formatted key-value pairs to buf.
