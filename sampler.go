@@ -47,7 +47,7 @@ type BasicSampler struct {
 // Sample implements the Sampler interface.
 func (s *BasicSampler) Sample(lvl Level) bool {
 	c := atomic.AddUint32(&s.counter, 1)
-	return c%s.N == 0
+	return c%s.N == s.N-1
 }
 
 // BurstSampler lets Burst events pass per Period then pass the decision to

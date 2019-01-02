@@ -1,11 +1,9 @@
 package pkgerrors
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/internal/json"
 )
 
 var (
@@ -17,7 +15,7 @@ var (
 // MarshalStack implements pkg/errors stack trace marshaling.
 //
 //   zerolog.ErrorStackMarshaler = MarshalStack
-func MarshalStack(err error) []byte {
+func MarshalStack(err error) interface{} {
 	type stackTracer interface {
 		StackTrace() errors.StackTrace
 	}
@@ -27,40 +25,13 @@ func MarshalStack(err error) []byte {
 	} else {
 		return nil
 	}
-	return appendJSONStack(make([]byte, 0, 500), st)
-}
-
-func appendJSONStack(dst []byte, st errors.StackTrace) []byte {
-	buf := bytes.NewBuffer(make([]byte, 0, 100))
-	dst = append(dst, '[')
-	for i, frame := range st {
-		if i > 0 {
-			dst = append(dst, ',')
-		}
-
-		dst = append(dst, '{')
-
-		fmt.Fprintf(buf, "%s", frame)
-		dst = json.AppendString(dst, StackSourceFileName)
-		dst = append(dst, ':')
-		dst = json.AppendBytes(dst, buf.Bytes())
-		dst = append(dst, ',')
-		buf.Reset()
-
-		fmt.Fprintf(buf, "%d", frame)
-		dst = json.AppendString(dst, StackSourceLineName)
-		dst = append(dst, ':')
-		dst = json.AppendBytes(dst, buf.Bytes())
-		dst = append(dst, ',')
-		buf.Reset()
-
-		fmt.Fprintf(buf, "%n", frame)
-		dst = json.AppendString(dst, StackSourceFunctionName)
-		dst = append(dst, ':')
-		dst = json.AppendBytes(dst, buf.Bytes())
-
-		dst = append(dst, '}')
+	out := make([]map[string]string, 0, len(st))
+	for _, frame := range st {
+		out = append(out, map[string]string{
+			StackSourceFileName:     fmt.Sprintf("%s", frame),
+			StackSourceLineName:     fmt.Sprintf("%d", frame),
+			StackSourceFunctionName: fmt.Sprintf("%n", frame),
+		})
 	}
-	dst = append(dst, ']')
-	return dst
+	return out
 }

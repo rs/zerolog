@@ -1,8 +1,12 @@
+// +build !binary_log
+
 package zerolog_test
 
 import (
 	"errors"
+	"fmt"
 	stdlog "log"
+	"net"
 	"os"
 	"time"
 
@@ -13,7 +17,6 @@ func ExampleNew() {
 	log := zerolog.New(os.Stdout)
 
 	log.Info().Msg("hello world")
-
 	// Output: {"level":"info","message":"hello world"}
 }
 
@@ -45,8 +48,8 @@ func ExampleLogger_Sample() {
 	log.Info().Msg("message 3")
 	log.Info().Msg("message 4")
 
-	// Output: {"level":"info","message":"message 2"}
-	// {"level":"info","message":"message 4"}
+	// Output: {"level":"info","message":"message 1"}
+	// {"level":"info","message":"message 3"}
 }
 
 type LevelNameHook struct{}
@@ -193,6 +196,22 @@ func (u User) MarshalZerologObject(e *zerolog.Event) {
 		Time("created", u.Created)
 }
 
+type Price struct {
+	val  uint64
+	prec int
+	unit string
+}
+
+func (p Price) MarshalZerologObject(e *zerolog.Event) {
+	denom := uint64(1)
+	for i := 0; i < p.prec; i++ {
+		denom *= 10
+	}
+	result := []byte(p.unit)
+	result = append(result, fmt.Sprintf("%d.%d", p.val/denom, p.val%denom)...)
+	e.Str("price", string(result))
+}
+
 type Users []User
 
 func (uu Users) MarshalZerologArray(a *zerolog.Array) {
@@ -244,6 +263,19 @@ func ExampleEvent_Object() {
 		Msg("hello world")
 
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
+}
+
+func ExampleEvent_EmbedObject() {
+	log := zerolog.New(os.Stdout)
+
+	price := Price{val: 6449, prec: 2, unit: "$"}
+
+	log.Log().
+		Str("foo", "bar").
+		EmbedObject(price).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
 }
 
 func ExampleEvent_Interface() {
@@ -349,6 +381,20 @@ func ExampleContext_Object() {
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
 
+func ExampleContext_EmbedObject() {
+
+	price := Price{val: 6449, prec: 2, unit: "$"}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		EmbedObject(price).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
+}
+
 func ExampleContext_Interface() {
 	obj := struct {
 		Name string `json:"name"`
@@ -393,4 +439,37 @@ func ExampleContext_Durs() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+}
+
+func ExampleContext_IPAddr() {
+	hostIP := net.IP{192, 168, 0, 100}
+	log := zerolog.New(os.Stdout).With().
+		IPAddr("HostIP", hostIP).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"HostIP":"192.168.0.100","message":"hello world"}
+}
+
+func ExampleContext_IPPrefix() {
+	route := net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(24, 32)}
+	log := zerolog.New(os.Stdout).With().
+		IPPrefix("Route", route).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"Route":"192.168.0.0/24","message":"hello world"}
+}
+
+func ExampleContext_MacAddr() {
+	mac := net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45}
+	log := zerolog.New(os.Stdout).With().
+		MACAddr("hostMAC", mac).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"hostMAC":"00:14:22:01:23:45","message":"hello world"}
 }

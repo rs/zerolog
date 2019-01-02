@@ -1,8 +1,11 @@
 // +build !windows
+// +build !binary_log
 
 package zerolog
 
-import "io"
+import (
+	"io"
+)
 
 // SyslogWriter is an interface matching a syslog.Writer struct.
 type SyslogWriter interface {

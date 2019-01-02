@@ -1,3 +1,5 @@
+// +build !binary_log
+
 package pkgerrors
 
 import (
@@ -19,7 +21,7 @@ func TestLogStack(t *testing.T) {
 	log.Log().Stack().Err(err).Msg("")
 
 	got := out.String()
-	want := `\{"stack":\[\{"source":"stacktrace_test.go","line":"18","func":"TestLogStack"\},.*\],"error":"from error: error message"\}\n`
+	want := `\{"stack":\[\{"func":"TestLogStack","line":"20","source":"stacktrace_test.go"\},.*\],"error":"from error: error message"\}\n`
 	if ok, _ := regexp.MatchString(want, got); !ok {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}

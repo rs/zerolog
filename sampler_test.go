@@ -1,3 +1,5 @@
+// +build !binary_log
+
 package zerolog
 
 import (
@@ -13,7 +15,14 @@ var samplers = []struct {
 	wantMax int
 }{
 	{
-		"BasicSampler",
+		"BasicSampler_1",
+		func() Sampler {
+			return &BasicSampler{N: 1}
+		},
+		100, 100, 100,
+	},
+	{
+		"BasicSampler_5",
 		func() Sampler {
 			return &BasicSampler{N: 5}
 		},

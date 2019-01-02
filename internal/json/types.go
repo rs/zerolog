@@ -4,14 +4,57 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"strconv"
 )
 
-func AppendBool(dst []byte, val bool) []byte {
+// AppendNil inserts a 'Nil' object into the dst byte array.
+func (Encoder) AppendNil(dst []byte) []byte {
+	return append(dst, "null"...)
+}
+
+// AppendBeginMarker inserts a map start into the dst byte array.
+func (Encoder) AppendBeginMarker(dst []byte) []byte {
+	return append(dst, '{')
+}
+
+// AppendEndMarker inserts a map end into the dst byte array.
+func (Encoder) AppendEndMarker(dst []byte) []byte {
+	return append(dst, '}')
+}
+
+// AppendLineBreak appends a line break.
+func (Encoder) AppendLineBreak(dst []byte) []byte {
+	return append(dst, '\n')
+}
+
+// AppendArrayStart adds markers to indicate the start of an array.
+func (Encoder) AppendArrayStart(dst []byte) []byte {
+	return append(dst, '[')
+}
+
+// AppendArrayEnd adds markers to indicate the end of an array.
+func (Encoder) AppendArrayEnd(dst []byte) []byte {
+	return append(dst, ']')
+}
+
+// AppendArrayDelim adds markers to indicate end of a particular array element.
+func (Encoder) AppendArrayDelim(dst []byte) []byte {
+	if len(dst) > 0 {
+		return append(dst, ',')
+	}
+	return dst
+}
+
+// AppendBool converts the input bool to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendBool(dst []byte, val bool) []byte {
 	return strconv.AppendBool(dst, val)
 }
 
-func AppendBools(dst []byte, vals []bool) []byte {
+// AppendBools encodes the input bools to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendBools(dst []byte, vals []bool) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -26,11 +69,15 @@ func AppendBools(dst []byte, vals []bool) []byte {
 	return dst
 }
 
-func AppendInt(dst []byte, val int) []byte {
+// AppendInt converts the input int to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendInt(dst []byte, val int) []byte {
 	return strconv.AppendInt(dst, int64(val), 10)
 }
 
-func AppendInts(dst []byte, vals []int) []byte {
+// AppendInts encodes the input ints to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendInts(dst []byte, vals []int) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -45,11 +92,15 @@ func AppendInts(dst []byte, vals []int) []byte {
 	return dst
 }
 
-func AppendInt8(dst []byte, val int8) []byte {
+// AppendInt8 converts the input []int8 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendInt8(dst []byte, val int8) []byte {
 	return strconv.AppendInt(dst, int64(val), 10)
 }
 
-func AppendInts8(dst []byte, vals []int8) []byte {
+// AppendInts8 encodes the input int8s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendInts8(dst []byte, vals []int8) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -64,11 +115,15 @@ func AppendInts8(dst []byte, vals []int8) []byte {
 	return dst
 }
 
-func AppendInt16(dst []byte, val int16) []byte {
+// AppendInt16 converts the input int16 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendInt16(dst []byte, val int16) []byte {
 	return strconv.AppendInt(dst, int64(val), 10)
 }
 
-func AppendInts16(dst []byte, vals []int16) []byte {
+// AppendInts16 encodes the input int16s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendInts16(dst []byte, vals []int16) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -83,11 +138,15 @@ func AppendInts16(dst []byte, vals []int16) []byte {
 	return dst
 }
 
-func AppendInt32(dst []byte, val int32) []byte {
+// AppendInt32 converts the input int32 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendInt32(dst []byte, val int32) []byte {
 	return strconv.AppendInt(dst, int64(val), 10)
 }
 
-func AppendInts32(dst []byte, vals []int32) []byte {
+// AppendInts32 encodes the input int32s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendInts32(dst []byte, vals []int32) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -102,11 +161,15 @@ func AppendInts32(dst []byte, vals []int32) []byte {
 	return dst
 }
 
-func AppendInt64(dst []byte, val int64) []byte {
+// AppendInt64 converts the input int64 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendInt64(dst []byte, val int64) []byte {
 	return strconv.AppendInt(dst, val, 10)
 }
 
-func AppendInts64(dst []byte, vals []int64) []byte {
+// AppendInts64 encodes the input int64s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendInts64(dst []byte, vals []int64) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -121,11 +184,15 @@ func AppendInts64(dst []byte, vals []int64) []byte {
 	return dst
 }
 
-func AppendUint(dst []byte, val uint) []byte {
+// AppendUint converts the input uint to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendUint(dst []byte, val uint) []byte {
 	return strconv.AppendUint(dst, uint64(val), 10)
 }
 
-func AppendUints(dst []byte, vals []uint) []byte {
+// AppendUints encodes the input uints to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendUints(dst []byte, vals []uint) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -140,11 +207,15 @@ func AppendUints(dst []byte, vals []uint) []byte {
 	return dst
 }
 
-func AppendUint8(dst []byte, val uint8) []byte {
+// AppendUint8 converts the input uint8 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendUint8(dst []byte, val uint8) []byte {
 	return strconv.AppendUint(dst, uint64(val), 10)
 }
 
-func AppendUints8(dst []byte, vals []uint8) []byte {
+// AppendUints8 encodes the input uint8s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendUints8(dst []byte, vals []uint8) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -159,11 +230,15 @@ func AppendUints8(dst []byte, vals []uint8) []byte {
 	return dst
 }
 
-func AppendUint16(dst []byte, val uint16) []byte {
+// AppendUint16 converts the input uint16 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendUint16(dst []byte, val uint16) []byte {
 	return strconv.AppendUint(dst, uint64(val), 10)
 }
 
-func AppendUints16(dst []byte, vals []uint16) []byte {
+// AppendUints16 encodes the input uint16s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendUints16(dst []byte, vals []uint16) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -178,11 +253,15 @@ func AppendUints16(dst []byte, vals []uint16) []byte {
 	return dst
 }
 
-func AppendUint32(dst []byte, val uint32) []byte {
+// AppendUint32 converts the input uint32 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendUint32(dst []byte, val uint32) []byte {
 	return strconv.AppendUint(dst, uint64(val), 10)
 }
 
-func AppendUints32(dst []byte, vals []uint32) []byte {
+// AppendUints32 encodes the input uint32s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendUints32(dst []byte, vals []uint32) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -197,11 +276,15 @@ func AppendUints32(dst []byte, vals []uint32) []byte {
 	return dst
 }
 
-func AppendUint64(dst []byte, val uint64) []byte {
+// AppendUint64 converts the input uint64 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendUint64(dst []byte, val uint64) []byte {
 	return strconv.AppendUint(dst, uint64(val), 10)
 }
 
-func AppendUints64(dst []byte, vals []uint64) []byte {
+// AppendUints64 encodes the input uint64s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendUints64(dst []byte, vals []uint64) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
@@ -216,7 +299,7 @@ func AppendUints64(dst []byte, vals []uint64) []byte {
 	return dst
 }
 
-func AppendFloat(dst []byte, val float64, bitSize int) []byte {
+func appendFloat(dst []byte, val float64, bitSize int) []byte {
 	// JSON does not permit NaN or Infinity. A typical JSON encoder would fail
 	// with an error, but a logging library wants the data to get thru so we
 	// make a tradeoff and store those types as string.
@@ -231,48 +314,89 @@ func AppendFloat(dst []byte, val float64, bitSize int) []byte {
 	return strconv.AppendFloat(dst, val, 'f', -1, bitSize)
 }
 
-func AppendFloat32(dst []byte, val float32) []byte {
-	return AppendFloat(dst, float64(val), 32)
+// AppendFloat32 converts the input float32 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendFloat32(dst []byte, val float32) []byte {
+	return appendFloat(dst, float64(val), 32)
 }
 
-func AppendFloats32(dst []byte, vals []float32) []byte {
+// AppendFloats32 encodes the input float32s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendFloats32(dst []byte, vals []float32) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = AppendFloat(dst, float64(vals[0]), 32)
+	dst = appendFloat(dst, float64(vals[0]), 32)
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
-			dst = AppendFloat(append(dst, ','), float64(val), 32)
+			dst = appendFloat(append(dst, ','), float64(val), 32)
 		}
 	}
 	dst = append(dst, ']')
 	return dst
 }
 
-func AppendFloat64(dst []byte, val float64) []byte {
-	return AppendFloat(dst, val, 64)
+// AppendFloat64 converts the input float64 to a string and
+// appends the encoded string to the input byte slice.
+func (Encoder) AppendFloat64(dst []byte, val float64) []byte {
+	return appendFloat(dst, val, 64)
 }
 
-func AppendFloats64(dst []byte, vals []float64) []byte {
+// AppendFloats64 encodes the input float64s to json and
+// appends the encoded string list to the input byte slice.
+func (Encoder) AppendFloats64(dst []byte, vals []float64) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = AppendFloat(dst, vals[0], 32)
+	dst = appendFloat(dst, vals[0], 32)
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
-			dst = AppendFloat(append(dst, ','), val, 64)
+			dst = appendFloat(append(dst, ','), val, 64)
 		}
 	}
 	dst = append(dst, ']')
 	return dst
 }
 
-func AppendInterface(dst []byte, i interface{}) []byte {
+// AppendInterface marshals the input interface to a string and
+// appends the encoded string to the input byte slice.
+func (e Encoder) AppendInterface(dst []byte, i interface{}) []byte {
 	marshaled, err := json.Marshal(i)
 	if err != nil {
-		return AppendString(dst, fmt.Sprintf("marshaling error: %v", err))
+		return e.AppendString(dst, fmt.Sprintf("marshaling error: %v", err))
 	}
 	return append(dst, marshaled...)
+}
+
+// AppendObjectData takes in an object that is already in a byte array
+// and adds it to the dst.
+func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
+	// Two conditions we want to put a ',' between existing content and
+	// new content:
+	// 1. new content starts with '{' - which shd be dropped   OR
+	// 2. existing content has already other fields
+	if o[0] == '{' {
+		o[0] = ','
+	} else if len(dst) > 1 {
+		dst = append(dst, ',')
+	}
+	return append(dst, o...)
+}
+
+// AppendIPAddr adds IPv4 or IPv6 address to dst.
+func (e Encoder) AppendIPAddr(dst []byte, ip net.IP) []byte {
+	return e.AppendString(dst, ip.String())
+}
+
+// AppendIPPrefix adds IPv4 or IPv6 Prefix (address & mask) to dst.
+func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
+	return e.AppendString(dst, pfx.String())
+
+}
+
+// AppendMACAddr adds MAC address to dst.
+func (e Encoder) AppendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
+	return e.AppendString(dst, ha.String())
 }

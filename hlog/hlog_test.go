@@ -15,7 +15,16 @@ import (
 	"net/http/httptest"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/internal/cbor"
 )
+
+func decodeIfBinary(out *bytes.Buffer) string {
+	p := out.Bytes()
+	if len(p) == 0 || p[0] < 0x7F {
+		return out.String()
+	}
+	return cbor.DecodeObjectToStr(p) + "\n"
+}
 
 func TestNewHandler(t *testing.T) {
 	log := zerolog.New(nil).With().
@@ -42,7 +51,7 @@ func TestURLHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"url":"/path?foo=bar"}`+"\n", out.String(); want != got {
+	if want, got := `{"url":"/path?foo=bar"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -58,7 +67,7 @@ func TestMethodHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"method":"POST"}`+"\n", out.String(); want != got {
+	if want, got := `{"method":"POST"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -75,7 +84,7 @@ func TestRequestHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"request":"POST /path?foo=bar"}`+"\n", out.String(); want != got {
+	if want, got := `{"request":"POST /path?foo=bar"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -91,7 +100,7 @@ func TestRemoteAddrHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"ip":"1.2.3.4"}`+"\n", out.String(); want != got {
+	if want, got := `{"ip":"1.2.3.4"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -107,7 +116,7 @@ func TestRemoteAddrHandlerIPv6(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"ip":"2001:db8:a0b:12f0::1"}`+"\n", out.String(); want != got {
+	if want, got := `{"ip":"2001:db8:a0b:12f0::1"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -125,7 +134,7 @@ func TestUserAgentHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"ua":"some user agent string"}`+"\n", out.String(); want != got {
+	if want, got := `{"ua":"some user agent string"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -143,7 +152,7 @@ func TestRefererHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"referer":"http://foo.com/bar"}`+"\n", out.String(); want != got {
+	if want, got := `{"referer":"http://foo.com/bar"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -165,7 +174,7 @@ func TestRequestIDHandler(t *testing.T) {
 		}
 		l := FromRequest(r)
 		l.Log().Msg("")
-		if want, got := fmt.Sprintf(`{"id":"%s"}`+"\n", id), out.String(); want != got {
+		if want, got := fmt.Sprintf(`{"id":"%s"}`+"\n", id), decodeIfBinary(out); want != got {
 			t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 		}
 	}))
@@ -185,7 +194,7 @@ func TestCombinedHandlers(t *testing.T) {
 	}))))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"method":"POST","request":"POST /path?foo=bar","url":"/path?foo=bar"}`+"\n", out.String(); want != got {
+	if want, got := `{"method":"POST","request":"POST /path?foo=bar","url":"/path?foo=bar"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }

@@ -124,12 +124,17 @@ func RefererHandler(fieldKey string) func(next http.Handler) http.Handler {
 
 type idKey struct{}
 
-// IDFromRequest returns the unique id accociated to the request if any.
+// IDFromRequest returns the unique id associated to the request if any.
 func IDFromRequest(r *http.Request) (id xid.ID, ok bool) {
 	if r == nil {
 		return
 	}
-	id, ok = r.Context().Value(idKey{}).(xid.ID)
+	return IDFromCtx(r.Context())
+}
+
+// IDFromCtx returns the unique id associated to the context if any.
+func IDFromCtx(ctx context.Context) (id xid.ID, ok bool) {
+	id, ok = ctx.Value(idKey{}).(xid.ID)
 	return
 }
 
