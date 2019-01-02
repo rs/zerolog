@@ -26,3 +26,16 @@ func TestLogStack(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+func BenchmarkLogStack(b *testing.B) {
+	zerolog.ErrorStackMarshaler = MarshalStack
+	out := &bytes.Buffer{}
+	log := zerolog.New(out)
+	err := errors.Wrap(errors.New("error message"), "from error")
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		log.Log().Stack().Err(err).Msg("")
+		out.Reset()
+	}
+}
