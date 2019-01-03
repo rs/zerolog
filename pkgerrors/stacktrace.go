@@ -47,12 +47,11 @@ func MarshalStack(err error) interface{} {
 	type stackTracer interface {
 		StackTrace() errors.StackTrace
 	}
-	var st errors.StackTrace
-	if err, ok := err.(stackTracer); ok {
-		st = err.StackTrace()
-	} else {
+	sterr, ok := err.(stackTracer)
+	if !ok {
 		return nil
 	}
+	st := sterr.StackTrace()
 	s := &state{}
 	out := make([]map[string]string, 0, len(st))
 	for _, frame := range st {
