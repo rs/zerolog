@@ -177,6 +177,7 @@ func ParseLevel(levelStr string) (Level, error) {
 // you may consider a sync wrapper.
 type Logger struct {
 	w       LevelWriter
+	stack   bool
 	level   Level
 	sampler Sampler
 	context []byte
@@ -377,6 +378,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 		return nil
 	}
 	e := newEvent(l.w, level)
+	e.stack = l.stack
 	e.done = done
 	e.ch = l.hooks
 	if level != NoLevel {
