@@ -14,11 +14,6 @@ import (
 )
 
 const (
-	colorBold = iota + 1
-	colorFaint
-)
-
-const (
 	colorBlack = iota + 30
 	colorRed
 	colorGreen
@@ -27,6 +22,9 @@ const (
 	colorMagenta
 	colorCyan
 	colorWhite
+
+	colorBold     = 1
+	colorDarkGray = 90
 )
 
 var (
@@ -299,7 +297,7 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 		case json.Number:
 			t = tt.String()
 		}
-		return colorize(t, colorFaint, noColor)
+		return colorize(t, colorDarkGray, noColor)
 	}
 }
 
@@ -342,7 +340,7 @@ func consoleDefaultFormatCaller(noColor bool) Formatter {
 				c = strings.TrimPrefix(c, cwd)
 				c = strings.TrimPrefix(c, "/")
 			}
-			c = colorize(c, colorBold, noColor) + colorize(" >", colorFaint, noColor)
+			c = colorize(c, colorBold, noColor) + colorize(" >", colorCyan, noColor)
 		}
 		return c
 	}
@@ -354,7 +352,7 @@ func consoleDefaultFormatMessage(i interface{}) string {
 
 func consoleDefaultFormatFieldName(noColor bool) Formatter {
 	return func(i interface{}) string {
-		return colorize(fmt.Sprintf("%s=", i), colorFaint, noColor)
+		return colorize(fmt.Sprintf("%s=", i), colorCyan, noColor)
 	}
 }
 
