@@ -7,6 +7,8 @@ import (
 	"net"
 	"reflect"
 	"runtime"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -637,6 +639,39 @@ func TestErrorMarshalFunc(t *testing.T) {
 	}
 	log.Log().Err(errors.New("err")).Msg("msg")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":{"message":"err: loggableError"},"message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestCallerMarshalFunc(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+
+	// test default behaviour this is really brittle due to the line numbers
+	// actually mattering for validation
+	_, file, line, _ := runtime.Caller(0)
+	caller := fmt.Sprintf("%s:%d", file, line + 2)
+	log.Log().Caller().Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"` + caller + `","message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+	out.Reset()
+
+	// test custom behavior. In this case we'll take just the last directory
+	origCallerMarshalFunc := CallerMarshalFunc
+	defer func() { CallerMarshalFunc = origCallerMarshalFunc }()
+	CallerMarshalFunc = func(file string, line int) string {
+		parts := strings.Split(file, "/")
+		if len(parts) > 1 {
+			return strings.Join(parts[len(parts)-2:], "/")+":"+strconv.Itoa(line)
+		} else {
+			return file+":"+strconv.Itoa(line)
+		}
+	}
+	_, file, line, _ = runtime.Caller(0)
+	caller = CallerMarshalFunc(file, line+2)
+	log.Log().Caller().Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"` + caller + `","message":"msg"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
