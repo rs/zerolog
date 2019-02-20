@@ -5,7 +5,6 @@ import (
 	"net"
 	"os"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -673,7 +672,7 @@ func (e *Event) caller(skip int) *Event {
 	if !ok {
 		return e
 	}
-	e.buf = enc.AppendString(enc.AppendKey(e.buf, CallerFieldName), file+":"+strconv.Itoa(line))
+	e.buf = enc.AppendString(enc.AppendKey(e.buf, CallerFieldName), CallerMarshalFunc(file, line))
 	return e
 }
 
