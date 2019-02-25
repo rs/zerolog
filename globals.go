@@ -13,6 +13,11 @@ var (
 	// LevelFieldName is the field name used for the level field.
 	LevelFieldName = "level"
 
+	// LevelFieldMarshalFunc allows customization of global level field marshaling
+	LevelFieldMarshalFunc = func(l Level) string {
+		return l.String()
+	}
+
 	// MessageFieldName is the field name used for the message field.
 	MessageFieldName = "message"
 
@@ -27,7 +32,7 @@ var (
 
 	// CallerMarshalFunc allows customization of global caller marshaling
 	CallerMarshalFunc = func(file string, line int) string {
-		return file+":"+strconv.Itoa(line)
+		return file + ":" + strconv.Itoa(line)
 	}
 
 	// ErrorStackFieldName is the field name used for error stacks.
