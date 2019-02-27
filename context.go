@@ -350,8 +350,8 @@ func (c Context) Interface(key string, i interface{}) Context {
 type callerHook struct{}
 
 func (ch callerHook) Run(e *Event, level Level, msg string) {
-	// Three extra frames to skip (added by hook infra).
-	e.caller(CallerSkipFrameCount + 3)
+	// Extra frames to skip (added by hook infra).
+	e.caller(CallerSkipFrameCount + contextCallerSkipFrameCount)
 }
 
 var ch = callerHook{}
