@@ -650,9 +650,9 @@ func TestCallerMarshalFunc(t *testing.T) {
 	// test default behaviour this is really brittle due to the line numbers
 	// actually mattering for validation
 	_, file, line, _ := runtime.Caller(0)
-	caller := fmt.Sprintf("%s:%d", file, line + 2)
+	caller := fmt.Sprintf("%s:%d", file, line+2)
 	log.Log().Caller().Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"` + caller + `","message":"msg"}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","message":"msg"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 	out.Reset()
@@ -663,17 +663,53 @@ func TestCallerMarshalFunc(t *testing.T) {
 	CallerMarshalFunc = func(file string, line int) string {
 		parts := strings.Split(file, "/")
 		if len(parts) > 1 {
-			return strings.Join(parts[len(parts)-2:], "/")+":"+strconv.Itoa(line)
+			return strings.Join(parts[len(parts)-2:], "/") + ":" + strconv.Itoa(line)
 		} else {
-			return file+":"+strconv.Itoa(line)
+			return file + ":" + strconv.Itoa(line)
 		}
 	}
 	_, file, line, _ = runtime.Caller(0)
 	caller = CallerMarshalFunc(file, line+2)
 	log.Log().Caller().Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"` + caller + `","message":"msg"}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","message":"msg"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
+}
+
+func TestLevelFieldMarshalFunc(t *testing.T) {
+	origLevelFieldMarshalFunc := LevelFieldMarshalFunc
+	LevelFieldMarshalFunc = func(l Level) string {
+		return strings.ToUpper(l.String())
+	}
+	defer func() {
+		LevelFieldMarshalFunc = origLevelFieldMarshalFunc
+	}()
+	out := &bytes.Buffer{}
+	log := New(out)
+
+	log.Debug().Msg("test")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"DEBUG","message":"test"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+	out.Reset()
+
+	log.Info().Msg("test")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"INFO","message":"test"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+	out.Reset()
+
+	log.Warn().Msg("test")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"WARN","message":"test"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+	out.Reset()
+
+	log.Error().Msg("test")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"ERROR","message":"test"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+	out.Reset()
 }
 
 type errWriter struct {
