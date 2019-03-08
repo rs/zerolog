@@ -94,8 +94,8 @@
 //            Msg("dup")
 //     // Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
 //
-// However, it’s not a big deal though as JSON accepts dup keys,
-// the last one prevails.
+// In this case, many consumers will take the last value,
+// but this is not guaranteed; check yours if in doubt.
 package zerolog
 
 import (
