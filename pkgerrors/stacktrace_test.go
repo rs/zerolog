@@ -37,7 +37,7 @@ func TestLogMultiStack(t *testing.T) {
 	log.Log().Stack().Err(err).Msg("")
 
 	got := out.String()
-	want := `\{"stack":"\[\{\"stacktrace\":\[\{\"source\":\"stacktrace_test.go\",\"line\":\"36\",\"func\":\"TestLogMultiStack\"\},.*\{\"stacktrace\".*\],"error":"from error: error message"\}`
+	want := `\{"stack":\[\{"stacktrace":\[\{"source":"stacktrace_test.go","line":"36","func":"TestLogMultiStack"\},.*\{"stacktrace".*\],"error":"from error: error message"\}`
 	if ok, _ := regexp.MatchString(want, got); !ok {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
@@ -45,9 +45,8 @@ func TestLogMultiStack(t *testing.T) {
 }
 
 // Some methods of wrapping cause more layers of wrapping than other layers,
-// e.g. errors.New doesn't cause any wrapping, errors.WithStack and
-// errors.WithMessage add one layer of wrapping, whereas errors.Wrap adds
-// two layers of wrapping.
+// e.g. errors.New, errors.WithStack and errors.WithMessage add one layer of
+// wrapping, whereas errors.Wrap adds two layers of wrapping.
 func TestUnwrapErr(t *testing.T) {
 	table := []struct {
 		name               string
@@ -55,45 +54,40 @@ func TestUnwrapErr(t *testing.T) {
 		numberOfWrapLevels int
 	}{
 		{
-			name:               "pass in nil error",
-			err:                nil,
-			numberOfWrapLevels: 0,
-		},
-		{
 			name:               "fundamental error",
 			err:                errors.New("error message"),
-			numberOfWrapLevels: 0,
+			numberOfWrapLevels: 1,
 		},
 		{
 			name:               "singly wrapped error",
 			err:                errors.Wrap(errors.New("error message"), "from error"),
-			numberOfWrapLevels: 2,
+			numberOfWrapLevels: 3,
 		},
 		{
 			name:               "doubly wrapped error",
 			err:                errors.Wrap(errors.Wrap(errors.New("error message"), "first wrapper"), "second wrapper"),
-			numberOfWrapLevels: 4,
+			numberOfWrapLevels: 5,
 		},
 		{
 			name:               "wrap with WithStack",
 			err:                errors.WithStack(errors.New("error message")),
-			numberOfWrapLevels: 1,
+			numberOfWrapLevels: 2,
 		},
 		{
 			name:               "wrap with WithMessage",
 			err:                errors.WithMessage(errors.New("error message"), "first wrapper"),
-			numberOfWrapLevels: 1,
+			numberOfWrapLevels: 2,
 		},
 		{
 			name:               "wrap with WithMessage and Wrap",
 			err:                errors.Wrap(errors.WithMessage(errors.New("error message"), "first wrapper"), "second wrapper"),
-			numberOfWrapLevels: 3,
+			numberOfWrapLevels: 4,
 		},
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
 			currentErr := test.err
-			for i := 0; i <= test.numberOfWrapLevels; i++ {
+			for i := 0; i < test.numberOfWrapLevels; i++ {
 				currentErr = unwrapErr(currentErr)
 			}
 			if currentErr != nil {

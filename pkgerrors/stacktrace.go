@@ -1,8 +1,6 @@
 package pkgerrors
 
 import (
-	"encoding/json"
-
 	"github.com/pkg/errors"
 )
 
@@ -67,10 +65,6 @@ func MarshalStack(err error) interface{} {
 	return out
 }
 
-type multiStack struct {
-	StackTraces []stackTrace
-}
-
 type stackTrace struct {
 	Frames []frame `json:"stacktrace"`
 }
@@ -85,7 +79,7 @@ type frame struct {
 //
 //   zerolog.ErrorStackMarshaler = MarshalMultiStack
 func MarshalMultiStack(err error) interface{} {
-	multiStack := multiStack{}
+	stackTraces := []stackTrace{}
 	currentErr := err
 	for currentErr != nil {
 		stack, ok := currentErr.(stackTracer)
@@ -106,15 +100,11 @@ func MarshalMultiStack(err error) interface{} {
 			}
 			stackTrace.Frames = append(stackTrace.Frames, frame)
 		}
-		multiStack.StackTraces = append(multiStack.StackTraces, stackTrace)
+		stackTraces = append(stackTraces, stackTrace)
 
 		currentErr = unwrapErr(currentErr)
 	}
-	marshalled, err := json.Marshal(multiStack.StackTraces)
-	if err != nil {
-		return ""
-	}
-	return string(marshalled)
+	return stackTraces
 }
 
 type causer interface {
