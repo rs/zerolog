@@ -1,6 +1,8 @@
 package pkgerrors
 
 import (
+	"encoding/json"
+
 	"github.com/pkg/errors"
 )
 
@@ -40,13 +42,14 @@ func frameField(f errors.Frame, s *state, c rune) string {
 	return string(s.b)
 }
 
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
 // MarshalStack implements pkg/errors stack trace marshaling.
 //
 //   zerolog.ErrorStackMarshaler = MarshalStack
 func MarshalStack(err error) interface{} {
-	type stackTracer interface {
-		StackTrace() errors.StackTrace
-	}
 	sterr, ok := err.(stackTracer)
 	if !ok {
 		return nil
@@ -62,4 +65,66 @@ func MarshalStack(err error) interface{} {
 		})
 	}
 	return out
+}
+
+type multiStack struct {
+	StackTraces []stackTrace
+}
+
+type stackTrace struct {
+	Frames []frame `json:"stacktrace"`
+}
+
+type frame struct {
+	StackSourceFileName string `json:"source"`
+	StackSourceLineName string `json:"line"`
+	StackSourceFuncName string `json:"func"`
+}
+
+// MarshalMultiStack properly implements pkg/errors stack trace marshaling by unwrapping the error stack.
+//
+//   zerolog.ErrorStackMarshaler = MarshalMultiStack
+func MarshalMultiStack(err error) interface{} {
+	multiStack := multiStack{}
+	currentErr := err
+	for currentErr != nil {
+		stack, ok := currentErr.(stackTracer)
+		if !ok {
+			// Unwrap again because errors.Wrap actually adds two
+			// layers of wrapping.
+			currentErr = unwrapErr(currentErr)
+			continue
+		}
+		st := stack.StackTrace()
+		s := &state{}
+		stackTrace := stackTrace{}
+		for _, f := range st {
+			frame := frame{
+				StackSourceFileName: frameField(f, s, 's'),
+				StackSourceLineName: frameField(f, s, 'd'),
+				StackSourceFuncName: frameField(f, s, 'n'),
+			}
+			stackTrace.Frames = append(stackTrace.Frames, frame)
+		}
+		multiStack.StackTraces = append(multiStack.StackTraces, stackTrace)
+
+		currentErr = unwrapErr(currentErr)
+	}
+	marshalled, err := json.Marshal(multiStack.StackTraces)
+	if err != nil {
+		return ""
+	}
+	return string(marshalled)
+}
+
+type causer interface {
+	Cause() error
+}
+
+func unwrapErr(err error) error {
+	cause, ok := err.(causer)
+	if !ok {
+		return nil
+	}
+	return cause.Cause()
 }
