@@ -111,6 +111,9 @@ type causer interface {
 	Cause() error
 }
 
+// Some methods of wrapping cause more layers of wrapping than other layers,
+// e.g. errors.New, errors.WithStack and errors.WithMessage add one layer of
+// wrapping, whereas errors.Wrap adds two layers of wrapping.
 func unwrapErr(err error) error {
 	cause, ok := err.(causer)
 	if !ok {
