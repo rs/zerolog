@@ -27,6 +27,24 @@ func TestLogStack(t *testing.T) {
 	}
 }
 
+func TestLogMultiStack(t *testing.T) {
+	zerolog.ErrorStackMarshaler = MarshalMultiStack
+
+	out := &bytes.Buffer{}
+	log := zerolog.New(out)
+
+	err := errors.New("error message")
+	err = errors.Wrap(err, "from error")
+	log.Log().Stack().Err(err).Msg("")
+
+	got := out.String()
+	want := `\{"stack":\[\{"stacktrace":\[\{"source":"stacktrace_test.go","line":"37","func":"TestLogMultiStack"\},.*\{"stacktrace":\[\{"source":"stacktrace_test.go","line":"36","func":"TestLogMultiStack"\}.*\],"error":"from error: error message"\}`
+	if ok, _ := regexp.MatchString(want, got); !ok {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+
+}
+
 func BenchmarkLogStack(b *testing.B) {
 	zerolog.ErrorStackMarshaler = MarshalStack
 	out := &bytes.Buffer{}
