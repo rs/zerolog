@@ -85,6 +85,11 @@ func (a *Array) Hex(val []byte) *Array {
 	return a
 }
 
+func (a *Array) RawJSON(val []byte) *Array {
+	a.buf = appendJSON(enc.AppendArrayDelim(a.buf), val)
+	return a
+}
+
 // Err serializes and appends the err to the array.
 func (a *Array) Err(err error) *Array {
 	marshaled := ErrorMarshalFunc(err)
