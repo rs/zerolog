@@ -71,6 +71,7 @@ func TestConsoleLogger(t *testing.T) {
 	})
 }
 
+
 func TestConsoleWriter(t *testing.T) {
 	t.Run("Default field formatter", func(t *testing.T) {
 		buf := &bytes.Buffer{}
@@ -199,6 +200,25 @@ func TestConsoleWriter(t *testing.T) {
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
+	})
+
+	t.Run("Write no level", func(t *testing.T) {
+		t.Run("Default field formatter no level", func(t *testing.T) {
+			buf := &bytes.Buffer{}
+			w := zerolog.ConsoleWriter{Out: buf, NoColor:true}
+
+			evt := `{"message" : "Foobar", "foo" : [1, 2, 3], "bar" : true}`
+			_, err := w.Write([]byte(evt))
+			if err != nil {
+				t.Errorf("Unexpected error when writing output: %s", err)
+			}
+
+			expectedOutput := "<nil> Foobar bar=true foo=[1,2,3]\n"
+			actualOutput := buf.String()
+			if actualOutput != expectedOutput {
+				t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+			}
+		})
 	})
 }
 

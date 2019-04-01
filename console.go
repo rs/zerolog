@@ -321,6 +321,8 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 			default:
 				l = colorize("???", colorBold, noColor)
 			}
+		} else if i == nil {
+			l = ""
 		} else {
 			l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
 		}
