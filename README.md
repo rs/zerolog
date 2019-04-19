@@ -53,7 +53,7 @@ func main() {
     // UNIX Time is faster and smaller than most timestamps
     // If you set zerolog.TimeFieldFormat to an empty string,
     // logs will write with UNIX time
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Print("hello world")
 }
@@ -76,7 +76,7 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Debug().
         Str("Scale", "833 cents").
@@ -102,7 +102,7 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Info().Msg("hello world")
 }
@@ -138,7 +138,7 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
     debug := flag.Bool("debug", false, "sets log level to debug")
 
     flag.Parse()
@@ -189,7 +189,7 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Log().
         Str("foo", "bar").
@@ -215,7 +215,7 @@ func main() {
     err := errors.New("A repo man spends his life getting into tense situations")
     service := "myservice"
 
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Fatal().
         Err(err).
@@ -474,9 +474,8 @@ Some settings can be changed and will by applied to all loggers:
 * `zerolog.LevelFieldName`: Can be set to customize level field name.
 * `zerolog.MessageFieldName`: Can be set to customize message field name.
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
-* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with an empty string, times are formated as UNIX timestamp.
-    // DurationFieldUnit defines the unit for time.Duration type fields added
-    // using the Dur method.
+* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with `zerolog.TimeFormatUnix` or `zerolog.TimeFormatUnixMs`, times are formated as UNIX timestamp.
+* DurationFieldUnit defines the unit for time.Duration type fields added using the Dur method.
 * `DurationFieldUnit`: Sets the unit of the fields added by `Dur` (default: `time.Millisecond`).
 * `DurationFieldInteger`: If set to true, `Dur` fields are formatted as integers instead of floats.
 * `ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.

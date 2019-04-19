@@ -6,6 +6,16 @@ import (
 )
 import "sync/atomic"
 
+const (
+	// TimeFormatUnix defines a time format that makes time fields to be
+	// serialized as Unix timestamp integers.
+	TimeFormatUnix = ""
+
+	// TimeFormatUnix defines a time format that makes time fields to be
+	// serialized as Unix timestamp integers in milliseconds.
+	TimeFormatUnixMs = "UNIXMS"
+)
+
 var (
 	// TimestampFieldName is the field name used for the timestamp field.
 	TimestampFieldName = "time"
@@ -46,9 +56,9 @@ var (
 		return err
 	}
 
-	// TimeFieldFormat defines the time format of the Time field type.
-	// If set to an empty string, the time is formatted as an UNIX timestamp
-	// as integer.
+	// TimeFieldFormat defines the time format of the Time field type. If set to
+	// TimeFormatUnix or TimeFormatUnixMs, the time is formatted as an UNIX
+	// timestamp as integer.
 	TimeFieldFormat = time.RFC3339
 
 	// TimestampFunc defines the function called to generate a timestamp.
