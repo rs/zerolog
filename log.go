@@ -291,6 +291,18 @@ func (l *Logger) Error() *Event {
 	return l.newEvent(ErrorLevel, nil)
 }
 
+// Err starts a new message with error level with err as a field if not nil or
+// with info level if err is nil.
+//
+// You must call Msg on the returned event in order to send the event.
+func (l *Logger) Err(err error) *Event {
+	if err != nil {
+		return l.Error().Err(err)
+	} else {
+		return l.Info()
+	}
+}
+
 // Fatal starts a new message with fatal level. The os.Exit(1) function
 // is called by the Msg method, which terminates the program immediately.
 //
