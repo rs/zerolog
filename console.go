@@ -328,7 +328,11 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 				l = colorize("???", colorBold, noColor)
 			}
 		} else {
-			l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
+			if i == nil {
+				l = colorize("???", colorBold, noColor)
+			} else {
+				l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
+			}
 		}
 		return l
 	}
