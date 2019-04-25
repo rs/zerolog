@@ -299,7 +299,12 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 			if err != nil {
 				t = tt.String()
 			} else {
-				ts := time.Unix(i, 0)
+				var sec, nsec int64 = i, 0
+				if TimeFieldFormat == TimeFormatUnixMs {
+					nsec = int64(time.Duration(i) * time.Millisecond)
+					sec = 0
+				}
+				ts := time.Unix(sec, nsec).UTC()
 				t = ts.Format(timeFormat)
 			}
 		}

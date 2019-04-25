@@ -129,14 +129,36 @@ func TestConsoleWriter(t *testing.T) {
 		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
 		buf := &bytes.Buffer{}
-		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+		w := zerolog.ConsoleWriter{Out: buf, TimeFormat: time.StampMilli, NoColor: true}
 
-		_, err := w.Write([]byte(`{"time": 0, "level": "debug", "message": "Foobar", "foo": "bar"}`))
+		_, err := w.Write([]byte(`{"time": 1234, "level": "debug", "message": "Foobar", "foo": "bar"}`))
 		if err != nil {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "4:00PM DBG Foobar foo=bar\n"
+		expectedOutput := "Jan  1 00:20:34.000 DBG Foobar foo=bar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("Unix timestamp ms input format", func(t *testing.T) {
+		of := zerolog.TimeFieldFormat
+		defer func() {
+			zerolog.TimeFieldFormat = of
+		}()
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, TimeFormat: time.StampMilli, NoColor: true}
+
+		_, err := w.Write([]byte(`{"time": 1234567, "level": "debug", "message": "Foobar", "foo": "bar"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "Jan  1 00:20:34.567 DBG Foobar foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
