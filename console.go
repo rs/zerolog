@@ -295,7 +295,13 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 				t = ts.Format(timeFormat)
 			}
 		case json.Number:
-			t = tt.String()
+			i, err := tt.Int64()
+			if err != nil {
+				t = tt.String()
+			} else {
+				ts := time.Unix(i, 0)
+				t = ts.Format(timeFormat)
+			}
 		}
 		return colorize(t, colorDarkGray, noColor)
 	}
@@ -347,6 +353,9 @@ func consoleDefaultFormatCaller(noColor bool) Formatter {
 }
 
 func consoleDefaultFormatMessage(i interface{}) string {
+	if i == nil {
+		return ""
+	}
 	return fmt.Sprintf("%s", i)
 }
 
