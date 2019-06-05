@@ -373,12 +373,17 @@ func (e Encoder) AppendInterface(dst []byte, i interface{}) []byte {
 // AppendObjectData takes in an object that is already in a byte array
 // and adds it to the dst.
 func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
-	// Two conditions we want to put a ',' between existing content and
-	// new content:
-	// 1. new content starts with '{' - which shd be dropped   OR
-	// 2. existing content has already other fields
+	// Three conditions apply here:
+	// 1. new content starts with '{' - which should be dropped   OR
+	// 2. new content starts with '{' - which should be replaced with ','
+	//    to separate with existing content OR
+	// 3. existing content has already other fields
 	if o[0] == '{' {
-		o[0] = ','
+		if len(dst) == 0 {
+			o = o[1:]
+		} else {
+			o[0] = ','
+		}
 	} else if len(dst) > 1 {
 		dst = append(dst, ',')
 	}

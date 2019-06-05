@@ -165,3 +165,23 @@ func Test_appendMac(t *testing.T) {
 		})
 	}
 }
+
+func Test_appendObjectData(t *testing.T) {
+	tests := []struct {
+		dst  []byte
+		obj  []byte
+		want []byte
+	}{
+		{[]byte{}, []byte(`{"foo":"bar"}`), []byte(`"foo":"bar"}`)},
+		{[]byte(`{"qux":"quz"`), []byte(`{"foo":"bar"}`), []byte(`{"qux":"quz","foo":"bar"}`)},
+		{[]byte{}, []byte(`"foo":"bar"`), []byte(`"foo":"bar"`)},
+		{[]byte(`{"qux":"quz"`), []byte(`"foo":"bar"`), []byte(`{"qux":"quz","foo":"bar"`)},
+	}
+	for _, tt := range tests {
+		t.Run("ObjectData", func(t *testing.T) {
+			if got := enc.AppendObjectData(tt.dst, tt.obj); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("appendObjectData() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
