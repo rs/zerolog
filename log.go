@@ -112,6 +112,8 @@ type Level uint8
 const (
 	// TraceLevel defines trace log level.
 	TraceLevel Level = iota
+	// DebugLevel defines debug log level.
+	DebugLevel
 	// InfoLevel defines info log level.
 	InfoLevel
 	// WarnLevel defines warn log level.
