@@ -10,6 +10,7 @@ import (
 // SyslogWriter is an interface matching a syslog.Writer struct.
 type SyslogWriter interface {
 	io.Writer
+	Trace(m string) error
 	Debug(m string) error
 	Info(m string) error
 	Warning(m string) error
@@ -35,6 +36,8 @@ func (sw syslogWriter) Write(p []byte) (n int, err error) {
 // WriteLevel implements LevelWriter interface.
 func (sw syslogWriter) WriteLevel(level Level, p []byte) (n int, err error) {
 	switch level {
+	case TraceLevel:
+		err = sw.w.Trace(string(p))
 	case DebugLevel:
 		err = sw.w.Debug(string(p))
 	case InfoLevel:

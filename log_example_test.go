@@ -95,6 +95,17 @@ func ExampleLogger_Printf() {
 	// Output: {"level":"debug","message":"hello world"}
 }
 
+func ExampleLogger_Trace() {
+	log := zerolog.New(os.Stdout)
+
+	log.Trace().
+		Str("foo", "bar").
+		Int("n", 123).
+		Msg("hello world")
+
+	// Output: {"level":"trace","foo":"bar","n":123,"message":"hello world"}
+}
+
 func ExampleLogger_Debug() {
 	log := zerolog.New(os.Stdout)
 

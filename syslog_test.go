@@ -17,6 +17,10 @@ type syslogTestWriter struct {
 func (w *syslogTestWriter) Write(p []byte) (int, error) {
 	return 0, nil
 }
+func (w *syslogTestWriter) Trace(m string) error {
+	w.events = append(w.events, syslogEvent{"Trace", m})
+	return nil
+}
 func (w *syslogTestWriter) Debug(m string) error {
 	w.events = append(w.events, syslogEvent{"Debug", m})
 	return nil
@@ -45,12 +49,14 @@ func (w *syslogTestWriter) Crit(m string) error {
 func TestSyslogWriter(t *testing.T) {
 	sw := &syslogTestWriter{}
 	log := New(SyslogLevelWriter(sw))
+	log.Trace().Msg("trace")
 	log.Debug().Msg("debug")
 	log.Info().Msg("info")
 	log.Warn().Msg("warn")
 	log.Error().Msg("error")
 	log.Log().Msg("nolevel")
 	want := []syslogEvent{
+		{"Trace", `{"level":"trace","message":"trace"}` + "\n"},
 		{"Debug", `{"level":"debug","message":"debug"}` + "\n"},
 		{"Info", `{"level":"info","message":"info"}` + "\n"},
 		{"Warning", `{"level":"warn","message":"warn"}` + "\n"},
