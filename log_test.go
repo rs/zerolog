@@ -571,6 +571,19 @@ func TestEventTimestamp(t *testing.T) {
 	}
 }
 
+func TestEvent_MsgWithFieldName(t *testing.T) {
+	fieldName := "cost"
+	fieldValue, _ := time.Parse("2006-01-02T15:04:05", "2016-01-02T15:04:05")
+
+	out := &bytes.Buffer{}
+	log := New(out).With().Str("foo", "bar").Logger()
+	log.Log().MsgWithFieldName(fieldName).Msgf("%v", fieldValue)
+
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"foo":"bar","cost":"2016-01-02 15:04:05 +0000 UTC"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestOutputWithoutTimestamp(t *testing.T) {
 	ignoredOut := &bytes.Buffer{}
 	out := &bytes.Buffer{}

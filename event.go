@@ -20,12 +20,13 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf   []byte
-	w     LevelWriter
-	level Level
-	done  func(msg string)
-	stack bool   // enable error stack trace
-	ch    []Hook // hooks from context
+	buf          []byte
+	w            LevelWriter
+	msgFieldName string
+	level        Level
+	done         func(msg string)
+	stack        bool   // enable error stack trace
+	ch           []Hook // hooks from context
 }
 
 func putEvent(e *Event) {
@@ -61,6 +62,7 @@ func newEvent(w LevelWriter, level Level) *Event {
 	e.buf = enc.AppendBeginMarker(e.buf)
 	e.w = w
 	e.level = level
+	e.msgFieldName = MessageFieldName
 	return e
 }
 
@@ -126,7 +128,7 @@ func (e *Event) msg(msg string) {
 		}
 	}
 	if msg != "" {
-		e.buf = enc.AppendString(enc.AppendKey(e.buf, MessageFieldName), msg)
+		e.buf = enc.AppendString(enc.AppendKey(e.buf, e.msgFieldName), msg)
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -138,6 +140,16 @@ func (e *Event) msg(msg string) {
 			fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v\n", err)
 		}
 	}
+}
+
+// MsgWithFieldName sets message field name of the event
+func (e *Event) MsgWithFieldName(name string) *Event {
+	if e == nil {
+		return e
+	}
+
+	e.msgFieldName = name
+	return e
 }
 
 // Fields is a helper function to use a map to set fields using type assertion.
