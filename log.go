@@ -251,6 +251,11 @@ func (l Logger) Level(lvl Level) Logger {
 	return l
 }
 
+// GetLevel returns the Level of logger
+func (l Logger) GetLevel() Level {
+	return l.level
+}
+
 // Sample returns a logger with the s sampler.
 func (l Logger) Sample(s Sampler) Logger {
 	l.sampler = s
