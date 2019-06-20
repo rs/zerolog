@@ -453,6 +453,24 @@ func TestLevel(t *testing.T) {
 	})
 }
 
+func TestGetLevel(t *testing.T) {
+	levels := []Level{
+		DebugLevel,
+		InfoLevel,
+		WarnLevel,
+		ErrorLevel,
+		FatalLevel,
+		PanicLevel,
+		NoLevel,
+		Disabled,
+	}
+	for _, level := range levels {
+		if got, want := New(nil).Level(level).GetLevel(), level; got != want {
+			t.Errorf("GetLevel() = %v, want: %v", got, want)
+		}
+	}
+}
+
 func TestSampling(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out).Sample(&BasicSampler{N: 2})
