@@ -251,7 +251,7 @@ func (l Logger) Level(lvl Level) Logger {
 	return l
 }
 
-// GetLevel returns the Level of logger
+// GetLevel returns the current Level of l.
 func (l Logger) GetLevel() Level {
 	return l.level
 }

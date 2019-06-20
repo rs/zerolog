@@ -466,7 +466,7 @@ func TestGetLevel(t *testing.T) {
 	}
 	for _, level := range levels {
 		if got, want := New(nil).Level(level).GetLevel(), level; got != want {
-			t.Errorf("GetLevel() got wrong value:\ngot:  %v\nwant: %v", got, want)
+			t.Errorf("GetLevel() = %v, want: %v", got, want)
 		}
 	}
 }
