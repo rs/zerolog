@@ -105,6 +105,11 @@ func (e *Event) Msg(msg string) {
 	e.msg(msg)
 }
 
+// End call Msg with empty string.
+func (e *Event) End() {
+	e.Msg("")
+}
+
 // Msgf sends the event with formated msg added as the message field if not empty.
 //
 // NOTICE: once this methid is called, the *Event should be disposed.
