@@ -105,9 +105,14 @@ func (e *Event) Msg(msg string) {
 	e.msg(msg)
 }
 
-// End call Msg with empty string.
+// End just like call Msg("")
+//
+// NOTICE: once this method is called, the *Event should be disposed.
 func (e *Event) End() {
-	e.Msg("")
+	if e == nil {
+		return
+	}
+	e.msg("")
 }
 
 // Msgf sends the event with formated msg added as the message field if not empty.
