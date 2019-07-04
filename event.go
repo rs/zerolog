@@ -105,10 +105,10 @@ func (e *Event) Msg(msg string) {
 	e.msg(msg)
 }
 
-// End just like call Msg("")
+// Send just like call Msg("")
 //
 // NOTICE: once this method is called, the *Event should be disposed.
-func (e *Event) End() {
+func (e *Event) Send() {
 	if e == nil {
 		return
 	}
