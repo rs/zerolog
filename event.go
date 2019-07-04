@@ -105,6 +105,16 @@ func (e *Event) Msg(msg string) {
 	e.msg(msg)
 }
 
+// Send just like call Msg("")
+//
+// NOTICE: once this method is called, the *Event should be disposed.
+func (e *Event) Send() {
+	if e == nil {
+		return
+	}
+	e.msg("")
+}
+
 // Msgf sends the event with formated msg added as the message field if not empty.
 //
 // NOTICE: once this methid is called, the *Event should be disposed.
