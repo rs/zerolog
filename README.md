@@ -85,7 +85,7 @@ func main() {
     
     log.Debug().
         Str("Name", "Tom").
-        End()
+        Send()
 }
 
 // Output: {"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}
