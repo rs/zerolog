@@ -127,13 +127,8 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 }
 
 func (e *Event) msg(msg string) {
-	if len(e.ch) > 0 {
-		e.ch[0].Run(e, e.level, msg)
-		if len(e.ch) > 1 {
-			for _, hook := range e.ch[1:] {
-				hook.Run(e, e.level, msg)
-			}
-		}
+	for _, hook := range e.ch {
+		hook.Run(e, e.level, msg)
 	}
 	if msg != "" {
 		e.buf = enc.AppendString(enc.AppendKey(e.buf, MessageFieldName), msg)
