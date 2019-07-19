@@ -24,9 +24,9 @@ func (Encoder) AppendEndMarker(dst []byte) []byte {
 
 // AppendObjectData takes an object in form of a byte array and appends to dst.
 func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
-        // BeginMarker is present in the dst, which
-        // should not be copied when appending to existing data.
-        return append(dst, o[1:]...)
+	// BeginMarker is present in the dst, which
+	// should not be copied when appending to existing data.
+	return append(dst, o[1:]...)
 }
 
 // AppendArrayStart adds markers to indicate the start of an array.
