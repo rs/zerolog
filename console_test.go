@@ -123,7 +123,9 @@ func TestConsoleWriter(t *testing.T) {
 
 	t.Run("Write fields in custom order", func(t *testing.T) {
 		buf := &bytes.Buffer{}
-		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, FieldOrder: []string{"foo", "zero", "do"}}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, OrderFields: func(fields []string) []string {
+			return []string{"foo", "zero", "do"}
+		}}
 
 		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
 		_, err := w.Write([]byte(`{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar", "do": "that", "zero": "log"}`))

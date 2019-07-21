@@ -58,7 +58,7 @@ type ConsoleWriter struct {
 	PartsOrder []string
 
 	// FieldsOrder defines the order of fields
-	FieldOrder []string
+	OrderFields func([]string) []string
 
 	FormatTimestamp     Formatter
 	FormatLevel         Formatter
@@ -120,15 +120,6 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	return len(p), err
 }
 
-func (w ConsoleWriter) getFieldsOrders(fields []string) []string {
-	if w.FieldOrder != nil {
-		return w.FieldOrder
-	} else {
-		sort.Strings(fields)
-		return fields
-	}
-}
-
 // writeFields appends formatted key-value pairs to buf.
 func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
 	var fields = make([]string, 0, len(evt))
@@ -139,7 +130,11 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		}
 		fields = append(fields, field)
 	}
-	fields = w.getFieldsOrders(fields)
+	if w.OrderFields != nil {
+		fields = w.OrderFields(fields)
+	} else {
+		sort.Strings(fields)
+	}
 
 	if len(fields) > 0 {
 		buf.WriteByte(' ')
