@@ -121,6 +121,23 @@ func TestConsoleWriter(t *testing.T) {
 		}
 	})
 
+	t.Run("Write fields in custom order", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, FieldOrder: []string{"foo", "zero", "do"}}
+
+		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
+		_, err := w.Write([]byte(`{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar", "do": "that", "zero": "log"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "12:00AM DBG Foobar foo=bar zero=log do=that\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("Unix timestamp input format", func(t *testing.T) {
 		of := zerolog.TimeFieldFormat
 		defer func() {
