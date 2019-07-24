@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -54,6 +55,23 @@ func ExampleNewConsoleWriter_customFormatters() {
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
 	// Output: <nil> [INFO ] Hello World foo=bar
+}
+
+func ExampleNewConsoleWriter_customOrders() {
+	out := zerolog.NewConsoleWriter(
+		func(w *zerolog.ConsoleWriter) {
+			w.OrderFields = func(strs []string) []string {
+				sort.Sort(sort.Reverse(sort.StringSlice(strs)))
+				return strs
+			}
+		},
+	)
+
+	out.NoColor = true // For testing purposes only
+
+	log := zerolog.New(out)
+	log.Info().Int("echo", 5).Str("foo", "bar").Send()
+	// Output: <nil> INF  foo=bar echo=5
 }
 
 func TestConsoleLogger(t *testing.T) {
