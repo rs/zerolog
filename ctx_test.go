@@ -24,7 +24,7 @@ func TestCtx(t *testing.T) {
 	}
 
 	log2 = Ctx(context.Background())
-	if log2 != disabledLogger {
+	if log2 != DefaultLogger {
 		t.Error("Ctx did not return the expected logger")
 	}
 }

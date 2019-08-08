@@ -4,11 +4,11 @@ import (
 	"context"
 )
 
-var disabledLogger *Logger
+var DefaultLogger *Logger
 
 func init() {
 	l := Nop()
-	disabledLogger = &l
+	DefaultLogger = &l
 }
 
 type ctxKey struct{}
@@ -43,5 +43,5 @@ func Ctx(ctx context.Context) *Logger {
 	if l, ok := ctx.Value(ctxKey{}).(*Logger); ok {
 		return l
 	}
-	return disabledLogger
+	return DefaultLogger
 }
