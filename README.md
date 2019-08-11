@@ -480,10 +480,9 @@ Some settings can be changed and will by applied to all loggers:
 * `zerolog.MessageFieldName`: Can be set to customize message field name.
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
 * `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with `zerolog.TimeFormatUnix` or `zerolog.TimeFormatUnixMs`, times are formated as UNIX timestamp.
-* DurationFieldUnit defines the unit for time.Duration type fields added using the Dur method.
-* `DurationFieldUnit`: Sets the unit of the fields added by `Dur` (default: `time.Millisecond`).
-* `DurationFieldInteger`: If set to true, `Dur` fields are formatted as integers instead of floats.
-* `ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
+* `zerolog.DurationFieldUnit`: Can be set to customize the unit for time.Duration type fields added by `Dur` (default: `time.Millisecond`).
+* `zerolog.DurationFieldInteger`: If set to `true`, `Dur` fields are formatted as integers instead of floats (default: `false`). 
+* `zerolog.ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
 
 ## Field Types
 
