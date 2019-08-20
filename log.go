@@ -181,6 +181,7 @@ type Logger struct {
 	sampler Sampler
 	context []byte
 	hooks   []Hook
+	stack   bool
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -401,6 +402,9 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	}
 	if l.context != nil && len(l.context) > 0 {
 		e.buf = enc.AppendObjectData(e.buf, l.context)
+	}
+	if l.stack {
+		e.Stack()
 	}
 	return e
 }

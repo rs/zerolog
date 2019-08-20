@@ -399,6 +399,7 @@ var sh = stackTraceHook{}
 // Stack enables stack trace printing for the error passed to Err().
 func (c Context) Stack() Context {
 	c.l = c.l.Hook(sh)
+	c.l.stack = true
 	return c
 }
 
