@@ -235,6 +235,26 @@ func (e *Event) Strs(key string, vals []string) *Event {
 	return e
 }
 
+// Stringer adds the field key with val as a string to the *Event context.
+// Use Stringer if possible, because it creates string value in lazy mode.
+func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendString(enc.AppendKey(e.buf, key), val.String())
+	return e
+}
+
+// Stringers adds the field key with vals as a []string to the *Event context.
+// Use Stringer if possible, because it creates string values in lazy mode.
+func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendStringers(enc.AppendKey(e.buf, key), vals)
+	return e
+}
+
 // Bytes adds the field key with val as a string to the *Event context.
 //
 // Runes outside of normal ASCII ranges will be hex-encoded in the resulting
