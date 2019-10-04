@@ -696,9 +696,9 @@ func TestCallerMarshalFunc(t *testing.T) {
 		parts := strings.Split(file, "/")
 		if len(parts) > 1 {
 			return strings.Join(parts[len(parts)-2:], "/") + ":" + strconv.Itoa(line)
-		} else {
-			return file + ":" + strconv.Itoa(line)
 		}
+
+		return file + ":" + strconv.Itoa(line)
 	}
 	_, file, line, _ = runtime.Caller(0)
 	caller = CallerMarshalFunc(file, line+2)

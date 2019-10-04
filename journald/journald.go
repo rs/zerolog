@@ -68,7 +68,7 @@ func levelToJPrio(zLevel string) journal.Priority {
 
 func (w journalWriter) Write(p []byte) (n int, err error) {
 	if !journal.Enabled() {
-		err = fmt.Errorf("Cannot connect to journalD!!")
+		err = fmt.Errorf("cannot connect to journalD")
 		return
 	}
 	var event map[string]interface{}
