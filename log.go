@@ -303,9 +303,9 @@ func (l *Logger) Error() *Event {
 func (l *Logger) Err(err error) *Event {
 	if err != nil {
 		return l.Error().Err(err)
-	} else {
-		return l.Info()
 	}
+
+	return l.Info()
 }
 
 // Fatal starts a new message with fatal level. The os.Exit(1) function
