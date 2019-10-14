@@ -1,8 +1,36 @@
 package json
 
 import (
+	"fmt"
 	"testing"
 )
+
+type testStringer string
+
+func (t testStringer) String() string {
+	return string(t)
+}
+
+type encodeStringerTestTable struct {
+	in  fmt.Stringer
+	out string
+}
+
+func newTestStringerTable(data []struct {
+	in  string
+	out string
+}) []encodeStringerTestTable {
+	res := make([]encodeStringerTestTable, len(data))
+	for i, t := range data {
+		res[i] = encodeStringerTestTable{
+			in:  testStringer(t.in),
+			out: t.out,
+		}
+	}
+	return res
+}
+
+var encodeStringerTests = newTestStringerTable(encodeStringTests)
 
 var encodeStringTests = []struct {
 	in  string
@@ -68,6 +96,15 @@ func TestAppendString(t *testing.T) {
 		b := enc.AppendString([]byte{}, tt.in)
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendString(%q) = %#q, want %#q", tt.in, got, want)
+		}
+	}
+}
+
+func TestAppendStringer(t *testing.T) {
+	for _, tt := range encodeStringerTests {
+		b := enc.AppendString([]byte{}, tt.in.String())
+		if got, want := string(b), tt.out; got != want {
+			t.Errorf("appendString(%q) = %#q, want %#q", tt.in.String(), got, want)
 		}
 	}
 }
