@@ -241,6 +241,10 @@ func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 	if e == nil {
 		return e
 	}
+	if val == nil {
+		e.buf = enc.AppendString(enc.AppendKey(e.buf, key), "nil")
+		return e
+	}
 	e.buf = enc.AppendString(enc.AppendKey(e.buf, key), val.String())
 	return e
 }

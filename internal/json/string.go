@@ -39,10 +39,20 @@ func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = e.AppendString(dst, vals[0].String())
+
+	if vals[0] == nil {
+		dst = e.AppendString(dst, "nil")
+	} else {
+		dst = e.AppendString(dst, vals[0].String())
+	}
+
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
-			dst = e.AppendString(append(dst, ','), val.String())
+			if val == nil {
+				dst = e.AppendString(append(dst, ','), "nil")
+			} else {
+				dst = e.AppendString(append(dst, ','), val.String())
+			}
 		}
 	}
 	dst = append(dst, ']')

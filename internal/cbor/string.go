@@ -30,7 +30,11 @@ func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
 		dst = appendCborTypePrefix(dst, major, uint64(l))
 	}
 	for _, v := range vals {
-		dst = e.AppendString(dst, v.String())
+		if v == nil {
+			dst = e.AppendString(dst, "nil")
+		} else {
+			dst = e.AppendString(dst, v.String())
+		}
 	}
 	return dst
 }
