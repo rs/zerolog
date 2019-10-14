@@ -1,5 +1,7 @@
 package cbor
 
+import "fmt"
+
 // AppendStrings encodes and adds an array of strings to the dst byte array.
 func (e Encoder) AppendStrings(dst []byte, vals []string) []byte {
 	major := majorTypeArray
@@ -12,6 +14,23 @@ func (e Encoder) AppendStrings(dst []byte, vals []string) []byte {
 	}
 	for _, v := range vals {
 		dst = e.AppendString(dst, v)
+	}
+	return dst
+}
+
+// AppendStringers encodes and adds an array of fmt.Stringer to the dst byte array.
+// It allows to make a string lazy
+func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
+	major := majorTypeArray
+	l := len(vals)
+	if l <= additionalMax {
+		lb := byte(l)
+		dst = append(dst, byte(major|lb))
+	} else {
+		dst = appendCborTypePrefix(dst, major, uint64(l))
+	}
+	for _, v := range vals {
+		dst = e.AppendString(dst, v.String())
 	}
 	return dst
 }
