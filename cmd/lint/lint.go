@@ -30,7 +30,7 @@ func init() {
 	flag.Parse()
 
 	// add zerolog to recursively ignored packages
-	recursivelyIgnoredPkgs = append(recursivelyIgnoredPkgs, "github.com/rs/zerolog")
+	recursivelyIgnoredPkgs = append(recursivelyIgnoredPkgs, "github.com/pickjunk/zerolog")
 	args := flag.Args()
 	if len(args) != 1 {
 		fmt.Fprintln(os.Stderr, "you must provide exactly one package path")
@@ -80,7 +80,7 @@ func main() {
 
 func getEvent(p *loader.Program) types.Type {
 	for _, pkg := range p.AllPackages {
-		if strings.HasSuffix(pkg.Pkg.Path(), "github.com/rs/zerolog") {
+		if strings.HasSuffix(pkg.Pkg.Path(), "github.com/pickjunk/zerolog") {
 			for _, d := range pkg.Defs {
 				if d != nil && d.Name() == "Event" {
 					return d.Type()

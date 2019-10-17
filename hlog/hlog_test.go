@@ -14,8 +14,8 @@ import (
 
 	"net/http/httptest"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/cbor"
+	"github.com/pickjunk/zerolog"
+	"github.com/pickjunk/zerolog/internal/cbor"
 )
 
 func decodeIfBinary(out *bytes.Buffer) string {
