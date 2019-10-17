@@ -166,6 +166,21 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	return e
 }
 
+// Merge a dict to the event context.
+// Use zerolog.Dict() to create the dictionary.
+func (e *Event) Merge(dict *Event) *Event {
+	if e == nil {
+		return e
+	}
+	if len(dict.buf) > 1 && dict.buf[0] == '{' {
+		dict.buf = dict.buf[1:]
+	}
+	e.buf = append(e.buf, ',')
+	e.buf = append(e.buf, dict.buf...)
+	putEvent(dict)
+	return e
+}
+
 // Dict creates an Event to be used with the *Event.Dict method.
 // Call usual field methods like Str, Int etc to add fields to this
 // event and give it as argument the *Event.Dict method.

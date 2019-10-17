@@ -184,6 +184,20 @@ func ExampleEvent_Dict() {
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
+func ExampleEvent_Merge() {
+	log := zerolog.New(os.Stdout)
+
+	log.Log().
+		Str("foo", "bar").
+		Merge(zerolog.Dict().
+			Str("bar", "baz").
+			Int("n", 1),
+		).
+		Msg("hello world")
+
+	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
 type User struct {
 	Name    string
 	Age     int

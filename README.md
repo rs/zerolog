@@ -302,6 +302,15 @@ log.Info().
     ).Msg("hello world")
 
 // Output: {"level":"info","time":1494567715,"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+
+log.Info().
+    Str("foo", "bar").
+    Merge(zerolog.Dict().
+        Str("bar", "baz").
+        Int("n", 1),
+    ).Msg("hello world")
+
+// Output: {"level":"info","time":1494567715,"foo":"bar","bar":"baz","n":1,"message":"hello world"}
 ```
 
 ### Customize automatic field names
