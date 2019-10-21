@@ -5,10 +5,12 @@ import (
 	"testing"
 )
 
-type testStringer string
+type testStringer struct {
+	value string
+}
 
-func (t testStringer) String() string {
-	return string(t)
+func (t *testStringer) String() string {
+	return t.value
 }
 
 type encodeStringerTestTable struct {
@@ -23,14 +25,12 @@ func newTestStringerTable(data []struct {
 	res := make([]encodeStringerTestTable, len(data))
 	for i, t := range data {
 		res[i] = encodeStringerTestTable{
-			in:  testStringer(t.in),
+			in:  &testStringer{value: t.in},
 			out: t.out,
 		}
 	}
 	return res
 }
-
-var encodeStringerTests = newTestStringerTable(encodeStringTests)
 
 var encodeStringTests = []struct {
 	in  string
@@ -101,10 +101,31 @@ func TestAppendString(t *testing.T) {
 }
 
 func TestAppendStringer(t *testing.T) {
-	for _, tt := range encodeStringerTests {
+	for _, tt := range newTestStringerTable(encodeStringTests) {
 		b := enc.AppendString([]byte{}, tt.in.String())
 		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendString(%q) = %#q, want %#q", tt.in.String(), got, want)
+			t.Errorf("appendString(%q) = %#q, want %#q", tt.in, got, want)
+		}
+	}
+}
+
+func TestAppendStringers(t *testing.T) {
+	var testTable []encodeStringerTestTable
+	for _, stringTest := range encodeStringTests {
+		testTable = append(testTable, encodeStringerTestTable{
+			in:  &testStringer{value: stringTest.in},
+			out: fmt.Sprintf("[%s]", stringTest.out),
+		})
+	}
+	testTable = append(testTable, encodeStringerTestTable{
+		in:  nil,
+		out: "[null]",
+	})
+
+	for _, tt := range testTable {
+		b := enc.AppendStringers([]byte{}, []fmt.Stringer{tt.in})
+		if got, want := string(b), tt.out; got != want {
+			t.Errorf("appendStringer([%q]) = %#q, want %#q", tt.in, got, want)
 		}
 	}
 }

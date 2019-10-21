@@ -41,7 +41,7 @@ func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
 	dst = append(dst, '[')
 
 	if vals[0] == nil {
-		dst = e.AppendString(dst, "nil")
+		dst = e.AppendInterface(dst, nil)
 	} else {
 		dst = e.AppendString(dst, vals[0].String())
 	}
