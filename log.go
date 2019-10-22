@@ -417,8 +417,6 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 
 // should returns true if the log event should be logged.
 func (l *Logger) should(lvl Level) bool {
-	fmt.Println("lvl", lvl, "l.level", l.level, lvl < l.level)
-	fmt.Println("lvl", lvl, "GlobalLevel", GlobalLevel(), lvl < GlobalLevel())
 	if lvl < l.level || lvl < GlobalLevel() {
 		return false
 	}
