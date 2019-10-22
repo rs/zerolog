@@ -107,13 +107,13 @@ import (
 )
 
 // Level defines log levels.
-type Level uint8
+type Level int8
 
 const (
 	// TraceLevel defines trace log level.
-	TraceLevel Level = -1 << iota
+	TraceLevel Level = -1
 	// DebugLevel defines debug log level.
-	DebugLevel
+	DebugLevel Level = iota
 	// InfoLevel defines info log level.
 	InfoLevel
 	// WarnLevel defines warn log level.
@@ -204,7 +204,7 @@ func New(w io.Writer) Logger {
 	if !ok {
 		lw = levelWriterAdapter{w}
 	}
-	return Logger{w: lw}
+	return Logger{w: lw, level: TraceLevel}
 }
 
 // Nop returns a disabled logger for which all operation are no-op.
@@ -417,6 +417,8 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 
 // should returns true if the log event should be logged.
 func (l *Logger) should(lvl Level) bool {
+	fmt.Println("lvl", lvl, "l.level", l.level, lvl < l.level)
+	fmt.Println("lvl", lvl, "GlobalLevel", GlobalLevel(), lvl < GlobalLevel())
 	if lvl < l.level || lvl < GlobalLevel() {
 		return false
 	}

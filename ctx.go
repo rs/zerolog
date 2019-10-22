@@ -7,6 +7,7 @@ import (
 var disabledLogger *Logger
 
 func init() {
+	SetGlobalLevel(TraceLevel)
 	l := Nop()
 	disabledLogger = &l
 }
