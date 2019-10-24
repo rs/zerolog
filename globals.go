@@ -11,7 +11,7 @@ const (
 	// serialized as Unix timestamp integers.
 	TimeFormatUnix = ""
 
-	// TimeFormatUnix defines a time format that makes time fields to be
+	// TimeFormatUnixMs defines a time format that makes time fields to be
 	// serialized as Unix timestamp integers in milliseconds.
 	TimeFormatUnixMs = "UNIXMS"
 
