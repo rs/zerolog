@@ -7,3 +7,5 @@ require (
 	github.com/zenazn/goji v0.9.0
 	golang.org/x/tools v0.0.0-20190828213141-aed303cbaa74
 )
+
+go 1.13
