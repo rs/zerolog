@@ -48,6 +48,8 @@ func levelToJPrio(zLevel string) journal.Priority {
 	lvl, _ := zerolog.ParseLevel(zLevel)
 
 	switch lvl {
+	case zerolog.TraceLevel:
+		return journal.PriDebug
 	case zerolog.DebugLevel:
 		return journal.PriDebug
 	case zerolog.InfoLevel:

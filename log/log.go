@@ -37,6 +37,13 @@ func Hook(h zerolog.Hook) zerolog.Logger {
 	return Logger.Hook(h)
 }
 
+// Trace starts a new message with trace level.
+//
+// You must call Msg on the returned event in order to send the event.
+func Trace() *zerolog.Event {
+	return Logger.Trace()
+}
+
 // Debug starts a new message with debug level.
 //
 // You must call Msg on the returned event in order to send the event.

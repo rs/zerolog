@@ -317,6 +317,8 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 		var l string
 		if ll, ok := i.(string); ok {
 			switch ll {
+			case "trace":
+				l = colorize("TRC", colorMagenta, noColor)
 			case "debug":
 				l = colorize("DBG", colorYellow, noColor)
 			case "info":

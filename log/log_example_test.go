@@ -54,6 +54,14 @@ func ExampleLog() {
 	// Output: {"time":1199811905,"message":"hello world"}
 }
 
+// Example of a log at a particular "level" (in this case, "trace")
+func ExampleTrace() {
+	setup()
+	log.Trace().Msg("hello world")
+
+	// Output: {"level":"trace","time":1199811905,"message":"hello world"}
+}
+
 // Example of a log at a particular "level" (in this case, "debug")
 func ExampleDebug() {
 	setup()

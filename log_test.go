@@ -526,30 +526,34 @@ func TestLevelWriter(t *testing.T) {
 		}{},
 	}
 	log := New(lw)
+	log.Trace().Msg("0")
 	log.Debug().Msg("1")
 	log.Info().Msg("2")
 	log.Warn().Msg("3")
 	log.Error().Msg("4")
 	log.Log().Msg("nolevel-1")
-	log.WithLevel(DebugLevel).Msg("5")
-	log.WithLevel(InfoLevel).Msg("6")
-	log.WithLevel(WarnLevel).Msg("7")
-	log.WithLevel(ErrorLevel).Msg("8")
+	log.WithLevel(TraceLevel).Msg("5")
+	log.WithLevel(DebugLevel).Msg("6")
+	log.WithLevel(InfoLevel).Msg("7")
+	log.WithLevel(WarnLevel).Msg("8")
+	log.WithLevel(ErrorLevel).Msg("9")
 	log.WithLevel(NoLevel).Msg("nolevel-2")
 
 	want := []struct {
 		l Level
 		p string
 	}{
+		{TraceLevel, `{"level":"trace","message":"0"}` + "\n"},
 		{DebugLevel, `{"level":"debug","message":"1"}` + "\n"},
 		{InfoLevel, `{"level":"info","message":"2"}` + "\n"},
 		{WarnLevel, `{"level":"warn","message":"3"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"4"}` + "\n"},
 		{NoLevel, `{"message":"nolevel-1"}` + "\n"},
-		{DebugLevel, `{"level":"debug","message":"5"}` + "\n"},
-		{InfoLevel, `{"level":"info","message":"6"}` + "\n"},
-		{WarnLevel, `{"level":"warn","message":"7"}` + "\n"},
-		{ErrorLevel, `{"level":"error","message":"8"}` + "\n"},
+		{TraceLevel, `{"level":"trace","message":"5"}` + "\n"},
+		{DebugLevel, `{"level":"debug","message":"6"}` + "\n"},
+		{InfoLevel, `{"level":"info","message":"7"}` + "\n"},
+		{WarnLevel, `{"level":"warn","message":"8"}` + "\n"},
+		{ErrorLevel, `{"level":"error","message":"9"}` + "\n"},
 		{NoLevel, `{"message":"nolevel-2"}` + "\n"},
 	}
 	if got := lw.ops; !reflect.DeepEqual(got, want) {
