@@ -171,6 +171,22 @@ func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.
 	}
 }
 
+// CustomHeaderHandler adds given header from request's header as a field to
+// the context's logger using fieldKey as field key.
+func CustomHeaderHandler(fieldKey, header string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if val := r.Header.Get(header); val != "" {
+				log := zerolog.Ctx(r.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, val)
+				})
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // AccessHandler returns a handler that call f after each request.
 func AccessHandler(f func(r *http.Request, status, size int, duration time.Duration)) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
