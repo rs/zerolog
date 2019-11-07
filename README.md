@@ -469,6 +469,25 @@ if err := http.ListenAndServe(":8080", nil); err != nil {
 }
 ```
 
+## Multiple Log Output
+`zerolog.MultiLevelWriter` may be used to send the log message to multiple outputs. 
+In this example, we send the log message to both `os.Stdout` and the in-built ConsoleWriter.
+```go
+func main() {
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
+
+	multi := zerolog.MultiLevelWriter(consoleWriter, os.Stdout)
+
+	logger := zerolog.New(multi).With().Timestamp().Logger()
+
+	logger.Info().Msg("Hello World!")
+}
+
+// Output (Line 1: Console; Line 2: Stdout)
+// 12:36PM INF Hello World!
+// {"level":"info","time":"2019-11-07T12:36:38+03:00","message":"Hello World!"}
+``` 
+
 ## Global Settings
 
 Some settings can be changed and will by applied to all loggers:
