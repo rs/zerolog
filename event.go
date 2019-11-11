@@ -665,8 +665,14 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 }
 
 // Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
-func (e *Event) Caller() *Event {
-	return e.caller(CallerSkipFrameCount)
+// The argument skip is the number of stack frames to ascend
+// Skip If not passed, use the global variable CallerSkipFrameCount
+func (e *Event) Caller(skip ...int) *Event {
+	sk := CallerSkipFrameCount
+	if len(skip) > 0 {
+		sk = skip[0] + CallerSkipFrameCount
+	}
+	return e.caller(sk)
 }
 
 func (e *Event) caller(skip int) *Event {
