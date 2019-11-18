@@ -110,8 +110,6 @@ import (
 type Level int8
 
 const (
-	// TraceLevel defines trace log level.
-	TraceLevel Level = -1
 	// DebugLevel defines debug log level.
 	DebugLevel Level = iota
 	// InfoLevel defines info log level.
@@ -128,6 +126,9 @@ const (
 	NoLevel
 	// Disabled disables the logger.
 	Disabled
+
+	// TraceLevel defines trace log level.
+	TraceLevel Level = -1
 )
 
 func (l Level) String() string {
