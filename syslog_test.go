@@ -3,8 +3,10 @@
 
 package zerolog
 
-import "testing"
-import "reflect"
+import (
+	"reflect"
+	"testing"
+)
 
 type syslogEvent struct {
 	level string
@@ -56,7 +58,6 @@ func TestSyslogWriter(t *testing.T) {
 	log.Error().Msg("error")
 	log.Log().Msg("nolevel")
 	want := []syslogEvent{
-		{"Trace", `{"level":"trace","message":"trace"}` + "\n"},
 		{"Debug", `{"level":"debug","message":"debug"}` + "\n"},
 		{"Info", `{"level":"info","message":"info"}` + "\n"},
 		{"Warning", `{"level":"warn","message":"warn"}` + "\n"},
