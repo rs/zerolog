@@ -10,7 +10,6 @@ import (
 // SyslogWriter is an interface matching a syslog.Writer struct.
 type SyslogWriter interface {
 	io.Writer
-	Trace(m string) error
 	Debug(m string) error
 	Info(m string) error
 	Warning(m string) error
