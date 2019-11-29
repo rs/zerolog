@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -21,6 +22,24 @@ func (c Context) Logger() Logger {
 func (c Context) Fields(fields map[string]interface{}) Context {
 	c.l.context = appendFields(c.l.context, fields)
 	return c
+}
+
+// Fields with prefix
+func (c Context) FieldsWith(fields map[string]interface{}, prefix string) Context {
+	if len(prefix) > 0 {
+		r := make(map[string]interface{}, len(fields))
+		for k, v := range fields {
+			r[strings.Join([]string{prefix, k}, "")] = v
+		}
+		return c.Fields(r)
+	} else {
+		return c.Fields(fields)
+	}
+}
+
+// Fields with prefix underscore
+func (c Context) FieldsWithUnderscore(fields map[string]interface{}, prefix string) Context {
+	return c.FieldsWith(fields, "_")
 }
 
 // Dict adds the field key with the dict to the logger context.
