@@ -179,7 +179,7 @@ func ParseLevel(levelStr string) (Level, error) {
 
 // A Logger represents an active logging object that generates lines
 // of JSON output to an io.Writer. Each logging operation makes a single
-// call to the Writer's Write method. There is no guaranty on access
+// call to the Writer's Write method. There is no guarantee on access
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
@@ -195,7 +195,7 @@ type Logger struct {
 // one.
 //
 // Each logging operation makes a single call to the Writer's Write method. There is no
-// guaranty on access serialization to the Writer. If your Writer is not thread safe,
+// guarantee on access serialization to the Writer. If your Writer is not thread safe,
 // you may consider using sync wrapper.
 func New(w io.Writer) Logger {
 	if w == nil {
