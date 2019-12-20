@@ -165,6 +165,28 @@ func TestConsoleWriter(t *testing.T) {
 		}
 	})
 
+	t.Run("Unix timestamp us input format", func(t *testing.T) {
+		of := zerolog.TimeFieldFormat
+		defer func() {
+			zerolog.TimeFieldFormat = of
+		}()
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMicro
+
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, TimeFormat: time.StampMicro, NoColor: true}
+
+		_, err := w.Write([]byte(`{"time": 1234567891, "level": "debug", "message": "Foobar", "foo": "bar"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "Jan  1 00:20:34.567891 DBG Foobar foo=bar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("No message field", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}

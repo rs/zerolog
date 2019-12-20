@@ -300,8 +300,12 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 				t = tt.String()
 			} else {
 				var sec, nsec int64 = i, 0
-				if TimeFieldFormat == TimeFormatUnixMs {
+				switch TimeFieldFormat {
+				case TimeFormatUnixMs:
 					nsec = int64(time.Duration(i) * time.Millisecond)
+					sec = 0
+				case TimeFormatUnixMicro:
+					nsec = int64(time.Duration(i) * time.Microsecond)
 					sec = 0
 				}
 				ts := time.Unix(sec, nsec).UTC()
