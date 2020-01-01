@@ -31,7 +31,7 @@ Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog)
 
 ## Installation
 
-```go
+```bash
 go get -u github.com/rs/zerolog/log
 ```
 
