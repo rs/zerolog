@@ -73,7 +73,9 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 		err = fmt.Errorf("cannot connect to journalD")
 		return
 	}
+
 	var event map[string]interface{}
+	origPLen := len(p)
 	p = cbor.DecodeIfBinaryToBytes(p)
 	d := json.NewDecoder(bytes.NewReader(p))
 	d.UseNumber()
@@ -114,5 +116,10 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 	}
 	args["JSON"] = string(p)
 	err = journal.Send(msg, jPrio, args)
+
+	if err == nil {
+		n = origPLen
+	}
+
 	return
 }
