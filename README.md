@@ -497,12 +497,16 @@ Some settings can be changed and will by applied to all loggers:
 
 ### Advanced Fields
 
-* `Err`: Takes an `error` and render it as a string using the `zerolog.ErrorFieldName` field name.
-* `Timestamp`: Insert a timestamp field with `zerolog.TimestampFieldName` field name and formatted using `zerolog.TimeFieldFormat`.
-* `Time`: Adds a field with the time formated with the `zerolog.TimeFieldFormat`.
-* `Dur`: Adds a field with a `time.Duration`.
+* `Err`: Takes an `error` and renders it as a string using the `zerolog.ErrorFieldName` field name.
+* `Timestamp`: Inserts a timestamp field with `zerolog.TimestampFieldName` field name, formatted using `zerolog.TimeFieldFormat`.
+* `Time`: Adds a field with time formatted with `zerolog.TimeFieldFormat`.
+* `Dur`: Adds a field with `time.Duration`.
 * `Dict`: Adds a sub-key/value as a field of the event.
+* `RawJSON`: Adds a field with an already encoded JSON (`[]byte`)
+* `Hex`: Adds a field with value formatted as a hexadecimal string (`[]byte`)
 * `Interface`: Uses reflection to marshal the type.
+
+Most fields are also available in the slice format (`Strs` for `[]string`, `Errs` for `[]error` etc.)
 
 ## Binary Encoding
 
