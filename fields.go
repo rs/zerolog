@@ -4,7 +4,12 @@ import (
 	"net"
 	"sort"
 	"time"
+	"unsafe"
 )
+
+func isNilValue(i interface{}) bool {
+	return (*[2]uintptr)(unsafe.Pointer(&i))[1] == 0
+}
 
 func appendFields(dst []byte, fields map[string]interface{}) []byte {
 	keys := make([]string, 0, len(fields))
@@ -29,8 +34,7 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case []byte:
 			dst = enc.AppendBytes(dst, val)
 		case error:
-			marshaled := ErrorMarshalFunc(val)
-			switch m := marshaled.(type) {
+			switch m := ErrorMarshalFunc(val).(type) {
 			case LogObjectMarshaler:
 				e := newEvent(nil, 0)
 				e.buf = e.buf[:0]
@@ -38,7 +42,11 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 				dst = append(dst, e.buf...)
 				putEvent(e)
 			case error:
-				dst = enc.AppendString(dst, m.Error())
+				if m == nil || isNilValue(m) {
+					dst = enc.AppendNil(dst)
+				} else {
+					dst = enc.AppendString(dst, m.Error())
+				}
 			case string:
 				dst = enc.AppendString(dst, m)
 			default:
@@ -47,8 +55,7 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case []error:
 			dst = enc.AppendArrayStart(dst)
 			for i, err := range val {
-				marshaled := ErrorMarshalFunc(err)
-				switch m := marshaled.(type) {
+				switch m := ErrorMarshalFunc(err).(type) {
 				case LogObjectMarshaler:
 					e := newEvent(nil, 0)
 					e.buf = e.buf[:0]
@@ -56,7 +63,11 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 					dst = append(dst, e.buf...)
 					putEvent(e)
 				case error:
-					dst = enc.AppendString(dst, m.Error())
+					if m == nil || isNilValue(m) {
+						dst = enc.AppendNil(dst)
+					} else {
+						dst = enc.AppendString(dst, m.Error())
+					}
 				case string:
 					dst = enc.AppendString(dst, m)
 				default:

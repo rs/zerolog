@@ -104,14 +104,17 @@ func (c Context) RawJSON(key string, b []byte) Context {
 
 // AnErr adds the field key with serialized err to the logger context.
 func (c Context) AnErr(key string, err error) Context {
-	marshaled := ErrorMarshalFunc(err)
-	switch m := marshaled.(type) {
+	switch m := ErrorMarshalFunc(err).(type) {
 	case nil:
 		return c
 	case LogObjectMarshaler:
 		return c.Object(key, m)
 	case error:
-		return c.Str(key, m.Error())
+		if m == nil || isNilValue(m) {
+			return c
+		} else {
+			return c.Str(key, m.Error())
+		}
 	case string:
 		return c.Str(key, m)
 	default:
@@ -124,12 +127,15 @@ func (c Context) AnErr(key string, err error) Context {
 func (c Context) Errs(key string, errs []error) Context {
 	arr := Arr()
 	for _, err := range errs {
-		marshaled := ErrorMarshalFunc(err)
-		switch m := marshaled.(type) {
+		switch m := ErrorMarshalFunc(err).(type) {
 		case LogObjectMarshaler:
 			arr = arr.Object(m)
 		case error:
-			arr = arr.Str(m.Error())
+			if m == nil || isNilValue(m) {
+				arr = arr.Interface(nil)
+			} else {
+				arr = arr.Str(m.Error())
+			}
 		case string:
 			arr = arr.Str(m)
 		default:

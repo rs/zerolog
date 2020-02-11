@@ -93,8 +93,7 @@ func (a *Array) RawJSON(val []byte) *Array {
 
 // Err serializes and appends the err to the array.
 func (a *Array) Err(err error) *Array {
-	marshaled := ErrorMarshalFunc(err)
-	switch m := marshaled.(type) {
+	switch m := ErrorMarshalFunc(err).(type) {
 	case LogObjectMarshaler:
 		e := newEvent(nil, 0)
 		e.buf = e.buf[:0]
@@ -102,7 +101,11 @@ func (a *Array) Err(err error) *Array {
 		a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
 		putEvent(e)
 	case error:
-		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
+		if m == nil || isNilValue(m) {
+			a.buf = enc.AppendNil(enc.AppendArrayDelim(a.buf))
+		} else {
+			a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
+		}
 	case string:
 		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m)
 	default:

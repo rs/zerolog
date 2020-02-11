@@ -280,7 +280,11 @@ func (e *Event) AnErr(key string, err error) *Event {
 	case LogObjectMarshaler:
 		return e.Object(key, m)
 	case error:
-		return e.Str(key, m.Error())
+		if m == nil || isNilValue(m) {
+			return e
+		} else {
+			return e.Str(key, m.Error())
+		}
 	case string:
 		return e.Str(key, m)
 	default:
@@ -330,7 +334,9 @@ func (e *Event) Err(err error) *Event {
 		case LogObjectMarshaler:
 			e.Object(ErrorStackFieldName, m)
 		case error:
-			e.Str(ErrorStackFieldName, m.Error())
+			if m != nil && !isNilValue(m) {
+				e.Str(ErrorStackFieldName, m.Error())
+			}
 		case string:
 			e.Str(ErrorStackFieldName, m)
 		default:
