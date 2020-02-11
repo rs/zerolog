@@ -1,14 +1,15 @@
-// +build !windows
+// +build linux
 
 package journald_test
 
 import (
 	"bytes"
-	"github.com/rs/zerolog"
 	"io"
 	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/journald"
 )
-import "github.com/rs/zerolog/journald"
 
 func ExampleNewJournalDWriter() {
 	log := zerolog.New(journald.NewJournalDWriter())
