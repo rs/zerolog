@@ -42,6 +42,10 @@ func (l *Logger) WithContext(ctx context.Context) context.Context {
 // is associated, a disabled logger is returned.
 func Ctx(ctx context.Context) *Logger {
 	if l, ok := ctx.Value(ctxKey{}).(*Logger); ok {
+		for _, ctxHook := range l.ctxHooks {
+			l2 := ctxHook.Run(ctx, *l)
+			l = &l2
+		}
 		return l
 	}
 	return disabledLogger

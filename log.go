@@ -183,11 +183,12 @@ func ParseLevel(levelStr string) (Level, error) {
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
-	w       LevelWriter
-	level   Level
-	sampler Sampler
-	context []byte
-	hooks   []Hook
+	w        LevelWriter
+	level    Level
+	sampler  Sampler
+	context  []byte
+	hooks    []Hook
+	ctxHooks []CtxtHook
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -220,6 +221,9 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2.sampler = l.sampler
 	if len(l.hooks) > 0 {
 		l2.hooks = append(l2.hooks, l.hooks...)
+	}
+	if len(l.ctxHooks) > 0 {
+		l2.ctxHooks = append(l2.ctxHooks, l.ctxHooks...)
 	}
 	if l.context != nil {
 		l2.context = make([]byte, len(l.context), cap(l.context))
@@ -272,6 +276,12 @@ func (l Logger) Sample(s Sampler) Logger {
 // Hook returns a logger with the h Hook.
 func (l Logger) Hook(h Hook) Logger {
 	l.hooks = append(l.hooks, h)
+	return l
+}
+
+// CtxHook returns a logger with the h CtxtHook.
+func (l Logger) CtxHook(h CtxtHook) Logger {
+	l.ctxHooks = append(l.ctxHooks, h)
 	return l
 }
 
