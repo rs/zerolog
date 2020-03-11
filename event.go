@@ -79,6 +79,15 @@ func (e *Event) write() (err error) {
 	return
 }
 
+// Export buf member which casn be useful in some cases
+// while using hooks capability instead of using reflection
+func (e *Event) GetBuffer() []byte {
+	if e == nil {
+		return nil
+	}
+	return e.buf
+}
+
 // Enabled return false if the *Event is going to be filtered out by
 // log level or sampling.
 func (e *Event) Enabled() bool {
