@@ -61,6 +61,7 @@ func newEvent(w LevelWriter, level Level) *Event {
 	e.buf = enc.AppendBeginMarker(e.buf)
 	e.w = w
 	e.level = level
+	e.stack = false
 	return e
 }
 
