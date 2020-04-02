@@ -379,7 +379,7 @@ func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
 	//    to separate with existing content OR
 	// 3. existing content has already other fields
 	if o[0] == '{' {
-		if len(dst) == 0 {
+		if len(dst) <= 1 {
 			o = o[1:]
 		} else {
 			o[0] = ','
