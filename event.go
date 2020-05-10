@@ -318,7 +318,6 @@ func (e *Event) Errs(key string, errs []error) *Event {
 
 // Err adds the field "error" with serialized err to the *Event context.
 // If err is nil, no field is added.
-// To customize the key name, change zerolog.ErrorFieldName.
 //
 // To customize the key name, change zerolog.ErrorFieldName.
 //
