@@ -31,9 +31,9 @@ type bucket struct {
 // OneToOne diode is meant to be used by a single reader and a single writer.
 // It is not thread safe if used otherwise.
 type OneToOne struct {
-	buffer     []unsafe.Pointer
 	writeIndex uint64
 	readIndex  uint64
+	buffer     []unsafe.Pointer
 	alerter    Alerter
 }
 
