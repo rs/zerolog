@@ -8,7 +8,7 @@ Zerolog's API is designed to provide both a great developer experience and stunn
 
 Uber's [zap](https://godoc.org/go.uber.org/zap) library pioneered this approach. Zerolog is taking this concept to the next level with a simpler to use API and even better performance.
 
-To keep the code base and the API simple, zerolog focuses on efficient structured logging only. Pretty logging on the console is made possible using the provided (but inefficient) `zerolog.ConsoleWriter`.
+To keep the code base and the API simple, zerolog focuses on efficient structured logging only. Pretty logging on the console is made possible using the provided (but inefficient) [`zerolog.ConsoleWriter`](#pretty-logging).
 
 ![Pretty Logging Image](pretty.png)
 
@@ -31,7 +31,7 @@ Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog)
 
 ## Installation
 
-```go
+```bash
 go get -u github.com/rs/zerolog/log
 ```
 
@@ -53,14 +53,14 @@ func main() {
     // UNIX Time is faster and smaller than most timestamps
     // If you set zerolog.TimeFieldFormat to an empty string,
     // logs will write with UNIX time
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Print("hello world")
 }
 
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
-
+> Note: By default log writes to `os.Stderr`
 > Note: The default log level for `log.Print` is *debug*
 
 ### Contextual Logging
@@ -76,15 +76,20 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Debug().
         Str("Scale", "833 cents").
         Float64("Interval", 833.09).
         Msg("Fibonacci is everywhere")
+    
+    log.Debug().
+        Str("Name", "Tom").
+        Send()
 }
 
-// Output: {"time":1524104936,"level":"debug","Scale":"833 cents","Interval":833.09,"message":"Fibonacci is everywhere"}
+// Output: {"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}
+// Output: {"level":"debug","Name":"Tom","time":1562212768}
 ```
 
 > You'll note in the above example that when adding contextual fields, the fields are strongly typed. You can find the full list of supported fields [here](#standard-types)
@@ -102,7 +107,7 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Info().Msg("hello world")
 }
@@ -120,6 +125,7 @@ func main() {
 * warn (`zerolog.WarnLevel`, 2)
 * info (`zerolog.InfoLevel`, 1)
 * debug (`zerolog.DebugLevel`, 0)
+* trace (`zerolog.TraceLevel`, -1)
 
 You can set the Global logging level to any of these options using the `SetGlobalLevel` function in the zerolog package, passing in one of the given constants above, e.g. `zerolog.InfoLevel` would be the "info" level.  Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the `zerolog.Disabled` constant.
 
@@ -138,7 +144,7 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
     debug := flag.Bool("debug", false, "sets log level to debug")
 
     flag.Parse()
@@ -189,7 +195,7 @@ import (
 )
 
 func main() {
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Log().
         Str("foo", "bar").
@@ -215,7 +221,7 @@ func main() {
     err := errors.New("A repo man spends his life getting into tense situations")
     service := "myservice"
 
-    zerolog.TimeFieldFormat = ""
+    zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Fatal().
         Err(err).
@@ -243,7 +249,7 @@ logger.Info().Str("foo", "bar").Msg("hello world")
 
 ```go
 sublogger := log.With().
-                 Str("component": "foo").
+                 Str("component", "foo").
                  Logger()
 sublogger.Info().Msg("hello world")
 
@@ -252,14 +258,38 @@ sublogger.Info().Msg("hello world")
 
 ### Pretty logging
 
+To log a human-friendly, colorized output, use `zerolog.ConsoleWriter`:
+
 ```go
-if isConsole {
-    log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-}
+log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 log.Info().Str("foo", "bar").Msg("Hello world")
 
-// Output: 1494567715 |INFO| Hello world foo=bar
+// Output: 3:04PM INF Hello World foo=bar
+```
+
+To customize the configuration and formatting:
+
+```go
+output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+output.FormatLevel = func(i interface{}) string {
+    return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
+}
+output.FormatMessage = func(i interface{}) string {
+    return fmt.Sprintf("***%s****", i)
+}
+output.FormatFieldName = func(i interface{}) string {
+    return fmt.Sprintf("%s:", i)
+}
+output.FormatFieldValue = func(i interface{}) string {
+    return strings.ToUpper(fmt.Sprintf("%s", i))
+}
+
+log := zerolog.New(output).With().Timestamp().Logger()
+
+log.Info().Str("foo", "bar").Msg("Hello World")
+
+// Output: 2006-01-02T15:04:05Z07:00 | INFO  | ***Hello World**** foo:BAR
 ```
 
 ### Sub dictionary
@@ -269,7 +299,7 @@ log.Info().
     Str("foo", "bar").
     Dict("dict", zerolog.Dict().
         Str("bar", "baz").
-        Int("n", 1)
+        Int("n", 1),
     ).Msg("hello world")
 
 // Output: {"level":"info","time":1494567715,"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
@@ -293,15 +323,24 @@ log.Info().Msg("hello world")
 log.Logger = log.With().Str("foo", "bar").Logger()
 ```
 
+### Add file and line number to log
+
+```go
+log.Logger = log.With().Caller().Logger()
+log.Info().Msg("hello world")
+
+// Output: {"level": "info", "message": "hello world", "caller": "/go/src/your_project/some_file:21"}
+```
+
+
 ### Thread-safe, lock-free, non-blocking writer
 
 If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follow:
 
 ```go
-d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
-    fmt.Printf("Dropped %d messages\n", missed)
-}))
-w := diode.NewWriter(os.Stdout, d, 10*time.Millisecond)
+wr := diode.NewWriter(os.Stdout, 1000, 10*time.Millisecond, func(missed int) {
+		fmt.Printf("Logger Dropped %d messages", missed)
+	})
 log := zerolog.New(w)
 log.Print("test")
 ```
@@ -355,7 +394,7 @@ hooked.Warn().Msg("")
 ### Pass a sub-logger by context
 
 ```go
-ctx := log.With("component", "module").Logger().WithContext(ctx)
+ctx := log.With().Str("component", "module").Logger().WithContext(ctx)
 
 log.Ctx(ctx).Info().Msg("hello world")
 
@@ -435,17 +474,16 @@ if err := http.ListenAndServe(":8080", nil); err != nil {
 Some settings can be changed and will by applied to all loggers:
 
 * `log.Logger`: You can set this value to customize the global logger (the one used by package level methods).
-* `zerolog.SetGlobalLevel`: Can raise the minimum level of all loggers. Set this to `zerolog.Disable` to disable logging altogether (quiet mode).
+* `zerolog.SetGlobalLevel`: Can raise the minimum level of all loggers. Call this with `zerolog.Disabled` to disable logging altogether (quiet mode).
 * `zerolog.DisableSampling`: If argument is `true`, all sampled loggers will stop sampling and issue 100% of their log events.
 * `zerolog.TimestampFieldName`: Can be set to customize `Timestamp` field name.
 * `zerolog.LevelFieldName`: Can be set to customize level field name.
 * `zerolog.MessageFieldName`: Can be set to customize message field name.
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
-* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with an empty string, times are formated as UNIX timestamp.
-    // DurationFieldUnit defines the unit for time.Duration type fields added
-    // using the Dur method.
-* `DurationFieldUnit`: Sets the unit of the fields added by `Dur` (default: `time.Millisecond`).
-* `DurationFieldInteger`: If set to true, `Dur` fields are formatted as integers instead of floats.
+* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with `zerolog.TimeFormatUnix`, `zerolog.TimeFormatUnixMs` or `zerolog.TimeFormatUnixMicro`, times are formated as UNIX timestamp.
+* `zerolog.DurationFieldUnit`: Can be set to customize the unit for time.Duration type fields added by `Dur` (default: `time.Millisecond`).
+* `zerolog.DurationFieldInteger`: If set to `true`, `Dur` fields are formatted as integers instead of floats (default: `false`). 
+* `zerolog.ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
 
 ## Field Types
 
@@ -459,12 +497,16 @@ Some settings can be changed and will by applied to all loggers:
 
 ### Advanced Fields
 
-* `Err`: Takes an `error` and render it as a string using the `zerolog.ErrorFieldName` field name.
-* `Timestamp`: Insert a timestamp field with `zerolog.TimestampFieldName` field name and formatted using `zerolog.TimeFieldFormat`.
-* `Time`: Adds a field with the time formated with the `zerolog.TimeFieldFormat`.
-* `Dur`: Adds a field with a `time.Duration`.
+* `Err`: Takes an `error` and renders it as a string using the `zerolog.ErrorFieldName` field name.
+* `Timestamp`: Inserts a timestamp field with `zerolog.TimestampFieldName` field name, formatted using `zerolog.TimeFieldFormat`.
+* `Time`: Adds a field with time formatted with `zerolog.TimeFieldFormat`.
+* `Dur`: Adds a field with `time.Duration`.
 * `Dict`: Adds a sub-key/value as a field of the event.
+* `RawJSON`: Adds a field with an already encoded JSON (`[]byte`)
+* `Hex`: Adds a field with value formatted as a hexadecimal string (`[]byte`)
 * `Interface`: Uses reflection to marshal the type.
+
+Most fields are also available in the slice format (`Strs` for `[]string`, `Errs` for `[]error` etc.)
 
 ## Binary Encoding
 
@@ -482,6 +524,8 @@ with zerolog library is [CSD](https://github.com/toravir/csd/).
 * [grpc-zerolog](https://github.com/cheapRoc/grpc-zerolog): Implementation of `grpclog.LoggerV2` interface using `zerolog`
 
 ## Benchmarks
+
+See [logbench](http://hackemist.com/logbench/) for more comprehensive and up-to-date benchmarks.
 
 All operations are allocation free (those numbers *include* JSON encoding):
 
@@ -542,7 +586,7 @@ Log a static string, without any context or `printf`-style templating:
 
 ## Caveats
 
-Note that zerolog does de-duplication fields. Using the same key multiple times creates multiple keys in final JSON:
+Note that zerolog does no de-duplication of fields. Using the same key multiple times creates multiple keys in final JSON:
 
 ```go
 logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
@@ -552,4 +596,4 @@ logger.Info().
 // Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
 ```
 
-However, it’s not a big deal as JSON accepts dup keys; the last one prevails.
+In this case, many consumers will take the last value, but this is not guaranteed; check yours if in doubt.

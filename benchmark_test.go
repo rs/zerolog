@@ -234,7 +234,7 @@ func BenchmarkLogFieldType(b *testing.B) {
 
 func BenchmarkContextFieldType(b *testing.B) {
 	oldFormat := TimeFieldFormat
-	TimeFieldFormat = ""
+	TimeFieldFormat = TimeFormatUnix
 	defer func() { TimeFieldFormat = oldFormat }()
 	bools := []bool{true, false, true, false, true, false, true, false, true, false}
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}

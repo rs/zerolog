@@ -3,7 +3,7 @@ package json
 import "unicode/utf8"
 
 // AppendBytes is a mirror of appendString with []byte arg
-func AppendBytes(dst, s []byte) []byte {
+func (Encoder) AppendBytes(dst, s []byte) []byte {
 	dst = append(dst, '"')
 	for i := 0; i < len(s); i++ {
 		if !noEscapeTable[s[i]] {
@@ -20,7 +20,7 @@ func AppendBytes(dst, s []byte) []byte {
 //
 // The operation loops though each byte and encodes it as hex using
 // the hex lookup table.
-func AppendHex(dst, s []byte) []byte {
+func (Encoder) AppendHex(dst, s []byte) []byte {
 	dst = append(dst, '"')
 	for _, v := range s {
 		dst = append(dst, hex[v>>4], hex[v&0x0f])

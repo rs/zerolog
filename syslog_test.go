@@ -3,8 +3,10 @@
 
 package zerolog
 
-import "testing"
-import "reflect"
+import (
+	"reflect"
+	"testing"
+)
 
 type syslogEvent struct {
 	level string
@@ -16,6 +18,10 @@ type syslogTestWriter struct {
 
 func (w *syslogTestWriter) Write(p []byte) (int, error) {
 	return 0, nil
+}
+func (w *syslogTestWriter) Trace(m string) error {
+	w.events = append(w.events, syslogEvent{"Trace", m})
+	return nil
 }
 func (w *syslogTestWriter) Debug(m string) error {
 	w.events = append(w.events, syslogEvent{"Debug", m})
@@ -45,6 +51,7 @@ func (w *syslogTestWriter) Crit(m string) error {
 func TestSyslogWriter(t *testing.T) {
 	sw := &syslogTestWriter{}
 	log := New(SyslogLevelWriter(sw))
+	log.Trace().Msg("trace")
 	log.Debug().Msg("debug")
 	log.Info().Msg("info")
 	log.Warn().Msg("warn")

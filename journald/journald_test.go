@@ -1,9 +1,15 @@
-// +build !windows
+// +build linux
 
 package journald_test
 
-import "github.com/rs/zerolog"
-import "github.com/rs/zerolog/journald"
+import (
+	"bytes"
+	"io"
+	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/journald"
+)
 
 func ExampleNewJournalDWriter() {
 	log := zerolog.New(journald.NewJournalDWriter())
@@ -42,3 +48,39 @@ Thu 2018-04-26 22:30:20.768136 PDT [s=3284d695bde946e4b5017c77a399237f;i=329f0;b
     _PID=27103
     _SOURCE_REALTIME_TIMESTAMP=1524807020768136
 */
+
+func TestWriteReturnsNoOfWrittenBytes(t *testing.T) {
+	input := []byte(`{"level":"info","time":1570912626,"message":"Starting..."}`)
+	wr := journald.NewJournalDWriter()
+	want := len(input)
+	got, err := wr.Write(input)
+
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+
+	if want != got {
+		t.Errorf("Expected %d bytes to be written got %d", want, got)
+	}
+}
+
+func TestMultiWrite(t *testing.T) {
+	var (
+		w1 = new(bytes.Buffer)
+		w2 = new(bytes.Buffer)
+		w3 = journald.NewJournalDWriter()
+	)
+
+	zerolog.ErrorHandler = func(err error) {
+		if err == io.ErrShortWrite {
+			t.Errorf("Unexpected ShortWriteError")
+			t.FailNow()
+		}
+	}
+
+	log := zerolog.New(io.MultiWriter(w1, w2, w3)).With().Logger()
+
+	for i := 0; i < 10; i++ {
+		log.Info().Msg("Tick!")
+	}
+}

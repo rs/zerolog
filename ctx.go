@@ -2,38 +2,40 @@ package zerolog
 
 import (
 	"context"
-	"io/ioutil"
 )
 
 var disabledLogger *Logger
 
 func init() {
-	l := New(ioutil.Discard).Level(Disabled)
+	SetGlobalLevel(TraceLevel)
+	l := Nop()
 	disabledLogger = &l
 }
 
 type ctxKey struct{}
 
 // WithContext returns a copy of ctx with l associated. If an instance of Logger
-// is already in the context, the pointer to this logger is updated with l.
+// is already in the context, the context is not updated.
 //
 // For instance, to add a field to an existing logger in the context, use this
 // notation:
 //
 //     ctx := r.Context()
 //     l := zerolog.Ctx(ctx)
-//     ctx = l.With().Str("foo", "bar").WithContext(ctx)
-func (l Logger) WithContext(ctx context.Context) context.Context {
+//     l.UpdateContext(func(c Context) Context {
+//         return c.Str("bar", "baz")
+//     })
+func (l *Logger) WithContext(ctx context.Context) context.Context {
 	if lp, ok := ctx.Value(ctxKey{}).(*Logger); ok {
-		// Update existing pointer.
-		*lp = l
-		return ctx
-	}
-	if l.level == Disabled {
+		if lp == l {
+			// Do not store same logger.
+			return ctx
+		}
+	} else if l.level == Disabled {
 		// Do not store disabled logger.
 		return ctx
 	}
-	return context.WithValue(ctx, ctxKey{}, &l)
+	return context.WithValue(ctx, ctxKey{}, l)
 }
 
 // Ctx returns the Logger associated with the ctx. If no logger

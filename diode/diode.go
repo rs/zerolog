@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	diodes "code.cloudfoundry.org/go-diodes"
+	"github.com/rs/zerolog/diode/internal/diodes"
 )
 
 var bufPool = &sync.Pool{
@@ -17,12 +17,18 @@ var bufPool = &sync.Pool{
 	},
 }
 
+type Alerter func(missed int)
+
+type diodeFetcher interface {
+	diodes.Diode
+	Next() diodes.GenericDataType
+}
+
 // Writer is a io.Writer wrapper that uses a diode to make Write lock-free,
 // non-blocking and thread safe.
 type Writer struct {
 	w    io.Writer
-	d    *diodes.ManyToOne
-	p    *diodes.Poller
+	d    diodeFetcher
 	c    context.CancelFunc
 	done chan struct{}
 }
@@ -33,23 +39,33 @@ type Writer struct {
 //
 // Use a diode.Writer when
 //
-//     d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
+//     wr := diode.NewWriter(w, 1000, 0, func(missed int) {
 //         log.Printf("Dropped %d messages", missed)
-//     }))
-//     w := diode.NewWriter(w, d, 10 * time.Millisecond)
-//     log := zerolog.New(w)
+//     })
+//     log := zerolog.New(wr)
+//
+// If pollInterval is greater than 0, a poller is used otherwise a waiter is
+// used.
 //
 // See code.cloudfoundry.org/go-diodes for more info on diode.
-func NewWriter(w io.Writer, manyToOneDiode *diodes.ManyToOne, poolInterval time.Duration) Writer {
+func NewWriter(w io.Writer, size int, poolInterval time.Duration, f Alerter) Writer {
 	ctx, cancel := context.WithCancel(context.Background())
 	dw := Writer{
-		w: w,
-		d: manyToOneDiode,
-		p: diodes.NewPoller(manyToOneDiode,
-			diodes.WithPollingInterval(poolInterval),
-			diodes.WithPollingContext(ctx)),
+		w:    w,
 		c:    cancel,
 		done: make(chan struct{}),
+	}
+	if f == nil {
+		f = func(int) {}
+	}
+	d := diodes.NewManyToOne(size, diodes.AlertFunc(f))
+	if poolInterval > 0 {
+		dw.d = diodes.NewPoller(d,
+			diodes.WithPollingInterval(poolInterval),
+			diodes.WithPollingContext(ctx))
+	} else {
+		dw.d = diodes.NewWaiter(d,
+			diodes.WithWaiterContext(ctx))
 	}
 	go dw.poll()
 	return dw
@@ -77,12 +93,22 @@ func (dw Writer) Close() error {
 func (dw Writer) poll() {
 	defer close(dw.done)
 	for {
-		d := dw.p.Next()
+		d := dw.d.Next()
 		if d == nil {
 			return
 		}
 		p := *(*[]byte)(d)
 		dw.w.Write(p)
-		bufPool.Put(p[:0])
+
+		// Proper usage of a sync.Pool requires each entry to have approximately
+		// the same memory cost. To obtain this property when the stored type
+		// contains a variably-sized buffer, we add a hard limit on the maximum buffer
+		// to place back in the pool.
+		//
+		// See https://golang.org/issue/23199
+		const maxSize = 1 << 16 // 64KiB
+		if cap(p) <= maxSize {
+			bufPool.Put(p[:0])
+		}
 	}
 }

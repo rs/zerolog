@@ -9,8 +9,8 @@ import (
 
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog/internal/mutil"
 	"github.com/rs/zerolog/log"
-	"github.com/zenazn/goji/web/mutil"
 )
 
 // FromRequest gets the logger in the request's context.
@@ -129,7 +129,12 @@ func IDFromRequest(r *http.Request) (id xid.ID, ok bool) {
 	if r == nil {
 		return
 	}
-	id, ok = r.Context().Value(idKey{}).(xid.ID)
+	return IDFromCtx(r.Context())
+}
+
+// IDFromCtx returns the unique id associated to the context if any.
+func IDFromCtx(ctx context.Context) (id xid.ID, ok bool) {
+	id, ok = ctx.Value(idKey{}).(xid.ID)
 	return
 }
 
@@ -160,6 +165,22 @@ func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.
 			}
 			if headerName != "" {
 				w.Header().Set(headerName, id.String())
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// CustomHeaderHandler adds given header from request's header as a field to
+// the context's logger using fieldKey as field key.
+func CustomHeaderHandler(fieldKey, header string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if val := r.Header.Get(header); val != "" {
+				log := zerolog.Ctx(r.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, val)
+				})
 			}
 			next.ServeHTTP(w, r)
 		})

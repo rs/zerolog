@@ -59,7 +59,7 @@ var encodeByteTests = []struct {
 
 func TestAppendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		b := AppendString([]byte{}, tt.plain)
+		b := enc.AppendString([]byte{}, tt.plain)
 		if got, want := string(b), tt.binary; got != want {
 			t.Errorf("appendString(%q) = %#q, want %#q", tt.plain, got, want)
 		}
@@ -72,7 +72,7 @@ func TestAppendString(t *testing.T) {
 	}
 	inp := buffer.String()
 	want := "\x7a\x00\x01\x11\x70" + inp
-	b := AppendString([]byte{}, inp)
+	b := enc.AppendString([]byte{}, inp)
 	if got := string(b); got != want {
 		t.Errorf("appendString(%q) = %#q, want %#q", inp, got, want)
 	}
@@ -80,7 +80,7 @@ func TestAppendString(t *testing.T) {
 
 func TestAppendBytes(t *testing.T) {
 	for _, tt := range encodeByteTests {
-		b := AppendBytes([]byte{}, tt.plain)
+		b := enc.AppendBytes([]byte{}, tt.plain)
 		if got, want := string(b), tt.binary; got != want {
 			t.Errorf("appendString(%q) = %#q, want %#q", tt.plain, got, want)
 		}
@@ -92,7 +92,7 @@ func TestAppendBytes(t *testing.T) {
 		inp = append(inp, byte('a'))
 	}
 	want := "\x5a\x00\x01\x11\x70" + string(inp)
-	b := AppendBytes([]byte{}, inp)
+	b := enc.AppendBytes([]byte{}, inp)
 	if got := string(b); got != want {
 		t.Errorf("appendString(%q) = %#q, want %#q", inp, got, want)
 	}
@@ -111,7 +111,7 @@ func BenchmarkAppendString(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			buf := make([]byte, 0, 120)
 			for i := 0; i < b.N; i++ {
-				_ = AppendString(buf, str)
+				_ = enc.AppendString(buf, str)
 			}
 		})
 	}

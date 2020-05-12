@@ -1,5 +1,8 @@
 // +build !windows
 
+// Package journald provides a io.Writer to send the logs
+// to journalD component of systemd.
+
 package journald
 
 // This file provides a zerolog writer so that logs printed
@@ -17,11 +20,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"strings"
+
 	"github.com/coreos/go-systemd/journal"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/internal/cbor"
-	"io"
-	"strings"
 )
 
 const defaultJournalDPrio = journal.PriNotice
@@ -44,6 +48,8 @@ func levelToJPrio(zLevel string) journal.Priority {
 	lvl, _ := zerolog.ParseLevel(zLevel)
 
 	switch lvl {
+	case zerolog.TraceLevel:
+		return journal.PriDebug
 	case zerolog.DebugLevel:
 		return journal.PriDebug
 	case zerolog.InfoLevel:
@@ -64,10 +70,12 @@ func levelToJPrio(zLevel string) journal.Priority {
 
 func (w journalWriter) Write(p []byte) (n int, err error) {
 	if !journal.Enabled() {
-		err = fmt.Errorf("Cannot connect to journalD!!")
+		err = fmt.Errorf("cannot connect to journalD")
 		return
 	}
+
 	var event map[string]interface{}
+	origPLen := len(p)
 	p = cbor.DecodeIfBinaryToBytes(p)
 	d := json.NewDecoder(bytes.NewReader(p))
 	d.UseNumber()
@@ -108,5 +116,10 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 	}
 	args["JSON"] = string(p)
 	err = journal.Send(msg, jPrio, args)
+
+	if err == nil {
+		n = origPLen
+	}
+
 	return
 }

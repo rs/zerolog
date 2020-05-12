@@ -37,6 +37,21 @@ func Hook(h zerolog.Hook) zerolog.Logger {
 	return Logger.Hook(h)
 }
 
+// Err starts a new message with error level with err as a field if not nil or
+// with info level if err is nil.
+//
+// You must call Msg on the returned event in order to send the event.
+func Err(err error) *zerolog.Event {
+	return Logger.Err(err)
+}
+
+// Trace starts a new message with trace level.
+//
+// You must call Msg on the returned event in order to send the event.
+func Trace() *zerolog.Event {
+	return Logger.Trace()
+}
+
 // Debug starts a new message with debug level.
 //
 // You must call Msg on the returned event in order to send the event.

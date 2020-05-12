@@ -9,18 +9,18 @@ import (
 
 func TestAppendType(t *testing.T) {
 	w := map[string]func(interface{}) []byte{
-		"AppendInt":     func(v interface{}) []byte { return AppendInt([]byte{}, v.(int)) },
-		"AppendInt8":    func(v interface{}) []byte { return AppendInt8([]byte{}, v.(int8)) },
-		"AppendInt16":   func(v interface{}) []byte { return AppendInt16([]byte{}, v.(int16)) },
-		"AppendInt32":   func(v interface{}) []byte { return AppendInt32([]byte{}, v.(int32)) },
-		"AppendInt64":   func(v interface{}) []byte { return AppendInt64([]byte{}, v.(int64)) },
-		"AppendUint":    func(v interface{}) []byte { return AppendUint([]byte{}, v.(uint)) },
-		"AppendUint8":   func(v interface{}) []byte { return AppendUint8([]byte{}, v.(uint8)) },
-		"AppendUint16":  func(v interface{}) []byte { return AppendUint16([]byte{}, v.(uint16)) },
-		"AppendUint32":  func(v interface{}) []byte { return AppendUint32([]byte{}, v.(uint32)) },
-		"AppendUint64":  func(v interface{}) []byte { return AppendUint64([]byte{}, v.(uint64)) },
-		"AppendFloat32": func(v interface{}) []byte { return AppendFloat32([]byte{}, v.(float32)) },
-		"AppendFloat64": func(v interface{}) []byte { return AppendFloat64([]byte{}, v.(float64)) },
+		"AppendInt":     func(v interface{}) []byte { return enc.AppendInt([]byte{}, v.(int)) },
+		"AppendInt8":    func(v interface{}) []byte { return enc.AppendInt8([]byte{}, v.(int8)) },
+		"AppendInt16":   func(v interface{}) []byte { return enc.AppendInt16([]byte{}, v.(int16)) },
+		"AppendInt32":   func(v interface{}) []byte { return enc.AppendInt32([]byte{}, v.(int32)) },
+		"AppendInt64":   func(v interface{}) []byte { return enc.AppendInt64([]byte{}, v.(int64)) },
+		"AppendUint":    func(v interface{}) []byte { return enc.AppendUint([]byte{}, v.(uint)) },
+		"AppendUint8":   func(v interface{}) []byte { return enc.AppendUint8([]byte{}, v.(uint8)) },
+		"AppendUint16":  func(v interface{}) []byte { return enc.AppendUint16([]byte{}, v.(uint16)) },
+		"AppendUint32":  func(v interface{}) []byte { return enc.AppendUint32([]byte{}, v.(uint32)) },
+		"AppendUint64":  func(v interface{}) []byte { return enc.AppendUint64([]byte{}, v.(uint64)) },
+		"AppendFloat32": func(v interface{}) []byte { return enc.AppendFloat32([]byte{}, v.(float32)) },
+		"AppendFloat64": func(v interface{}) []byte { return enc.AppendFloat64([]byte{}, v.(float64)) },
 	}
 	tests := []struct {
 		name  string
@@ -74,7 +74,7 @@ func Test_appendMAC(t *testing.T) {
 	for _, tt := range MACtests {
 		t.Run("MAC", func(t *testing.T) {
 			ha, _ := net.ParseMAC(tt.input)
-			if got := AppendMACAddr([]byte{}, ha); !reflect.DeepEqual(got, tt.want) {
+			if got := enc.AppendMACAddr([]byte{}, ha); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendMACAddr() = %s, want %s", got, tt.want)
 			}
 		})
@@ -92,7 +92,7 @@ func Test_appendIP(t *testing.T) {
 
 	for _, tt := range IPv4tests {
 		t.Run("IPv4", func(t *testing.T) {
-			if got := AppendIPAddr([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
+			if got := enc.AppendIPAddr([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendIPAddr() = %s, want %s", got, tt.want)
 			}
 		})
@@ -107,7 +107,7 @@ func Test_appendIP(t *testing.T) {
 	}
 	for _, tt := range IPv6tests {
 		t.Run("IPv6", func(t *testing.T) {
-			if got := AppendIPAddr([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
+			if got := enc.AppendIPAddr([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendIPAddr() = %s, want %s", got, tt.want)
 			}
 		})
@@ -124,7 +124,7 @@ func Test_appendIPPrefix(t *testing.T) {
 	}
 	for _, tt := range IPv4Prefixtests {
 		t.Run("IPv4", func(t *testing.T) {
-			if got := AppendIPPrefix([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
+			if got := enc.AppendIPPrefix([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendIPPrefix() = %s, want %s", got, tt.want)
 			}
 		})
@@ -141,7 +141,7 @@ func Test_appendIPPrefix(t *testing.T) {
 	}
 	for _, tt := range IPv6Prefixtests {
 		t.Run("IPv6", func(t *testing.T) {
-			if got := AppendIPPrefix([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
+			if got := enc.AppendIPPrefix([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendIPPrefix() = %s, want %s", got, tt.want)
 			}
 		})
@@ -159,8 +159,28 @@ func Test_appendMac(t *testing.T) {
 
 	for _, tt := range MACtests {
 		t.Run("MAC", func(t *testing.T) {
-			if got := AppendMACAddr([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
+			if got := enc.AppendMACAddr([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendMAC() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_appendObjectData(t *testing.T) {
+	tests := []struct {
+		dst  []byte
+		obj  []byte
+		want []byte
+	}{
+		{[]byte{}, []byte(`{"foo":"bar"}`), []byte(`"foo":"bar"}`)},
+		{[]byte(`{"qux":"quz"`), []byte(`{"foo":"bar"}`), []byte(`{"qux":"quz","foo":"bar"}`)},
+		{[]byte{}, []byte(`"foo":"bar"`), []byte(`"foo":"bar"`)},
+		{[]byte(`{"qux":"quz"`), []byte(`"foo":"bar"`), []byte(`{"qux":"quz","foo":"bar"`)},
+	}
+	for _, tt := range tests {
+		t.Run("ObjectData", func(t *testing.T) {
+			if got := enc.AppendObjectData(tt.dst, tt.obj); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("appendObjectData() = %s, want %s", got, tt.want)
 			}
 		})
 	}

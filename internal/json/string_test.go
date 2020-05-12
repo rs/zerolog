@@ -65,7 +65,7 @@ var encodeHexTests = []struct {
 
 func TestAppendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		b := AppendString([]byte{}, tt.in)
+		b := enc.AppendString([]byte{}, tt.in)
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendString(%q) = %#q, want %#q", tt.in, got, want)
 		}
@@ -86,7 +86,7 @@ func BenchmarkAppendString(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			buf := make([]byte, 0, 100)
 			for i := 0; i < b.N; i++ {
-				_ = AppendString(buf, str)
+				_ = enc.AppendString(buf, str)
 			}
 		})
 	}
