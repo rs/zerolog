@@ -341,7 +341,7 @@ If your writer might be slow or not thread-safe and you need your log producers 
 wr := diode.NewWriter(os.Stdout, 1000, 10*time.Millisecond, func(missed int) {
 		fmt.Printf("Logger Dropped %d messages", missed)
 	})
-log := zerolog.New(w)
+log := zerolog.New(wr)
 log.Print("test")
 ```
 
@@ -435,7 +435,7 @@ c := alice.New()
 c = c.Append(hlog.NewHandler(log))
 
 // Install some provided extra handler to set some request's context fields.
-// Thanks to those handler, all our logs will come with some pre-populated fields.
+// Thanks to that handler, all our logs will come with some prepopulated fields.
 c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
     hlog.FromRequest(r).Info().
         Str("method", r.Method).
