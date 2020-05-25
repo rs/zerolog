@@ -26,11 +26,9 @@ type syncWriter struct {
 }
 
 // SyncWriter wraps w so that each call to Write is synchronized with a mutex.
-// This syncer can be the call to writer's Write method is not thread safe.
-// Note that os.File Write operation is using write() syscall which is supposed
-// to be thread-safe on POSIX systems. So there is no need to use this with
-// os.File on such systems as zerolog guarantees to issue a single Write call
-// per log event.
+// This syncer can be used to wrap the call to writer's Write method if it is
+// not thread safe. Note that you do not need this wrapper for os.File Write
+// operations on POSIX and Windows systems as they are already thread-safe.
 func SyncWriter(w io.Writer) io.Writer {
 	if lw, ok := w.(LevelWriter); ok {
 		return &syncWriter{lw: lw}
