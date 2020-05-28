@@ -1,6 +1,9 @@
 package json
 
-import "unicode/utf8"
+import (
+	"fmt"
+	"unicode/utf8"
+)
 
 const hex = "0123456789abcdef"
 
@@ -23,6 +26,33 @@ func (e Encoder) AppendStrings(dst []byte, vals []string) []byte {
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
 			dst = e.AppendString(append(dst, ','), val)
+		}
+	}
+	dst = append(dst, ']')
+	return dst
+}
+
+// AppendStringers encodes the input []fmt.Stringer to json and
+// appends the encoded string list to the input byte slice.
+func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
+	if len(vals) == 0 {
+		return append(dst, '[', ']')
+	}
+	dst = append(dst, '[')
+
+	if vals[0] == nil {
+		dst = e.AppendInterface(dst, nil)
+	} else {
+		dst = e.AppendString(dst, vals[0].String())
+	}
+
+	if len(vals) > 1 {
+		for _, val := range vals[1:] {
+			if val == nil {
+				dst = e.AppendString(append(dst, ','), "nil")
+			} else {
+				dst = e.AppendString(append(dst, ','), val.String())
+			}
 		}
 	}
 	dst = append(dst, ']')
