@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math"
 	"net"
@@ -78,6 +79,17 @@ func (c Context) Str(key, val string) Context {
 // Strs adds the field key with val as a string to the logger context.
 func (c Context) Strs(key string, vals []string) Context {
 	c.l.context = enc.AppendStrings(enc.AppendKey(c.l.context, key), vals)
+	return c
+}
+
+// Stringer adds the field key with val.String() (or null if val is nil) to the logger context.
+func (c Context) Stringer(key string, val fmt.Stringer) Context {
+	if val != nil {
+		c.l.context = enc.AppendString(enc.AppendKey(c.l.context, key), val.String())
+		return c
+	}
+
+	c.l.context = enc.AppendInterface(enc.AppendKey(c.l.context, key), nil)
 	return c
 }
 

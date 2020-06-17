@@ -3,6 +3,7 @@ package zerolog
 import (
 	"errors"
 	"io/ioutil"
+	"net"
 	"testing"
 	"time"
 )
@@ -240,6 +241,7 @@ func BenchmarkContextFieldType(b *testing.B) {
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	floats := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	strings := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+	stringer := net.IP{127, 0, 0, 1}
 	durations := []time.Duration{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	times := []time.Time{
 		time.Unix(0, 0),
@@ -306,6 +308,9 @@ func BenchmarkContextFieldType(b *testing.B) {
 		},
 		"Strs": func(c Context) Context {
 			return c.Strs("k", strings)
+		},
+		"Stringer": func(c Context) Context {
+			return c.Stringer("k", stringer)
 		},
 		"Err": func(c Context) Context {
 			return c.Err(errs[0])
