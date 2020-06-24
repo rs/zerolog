@@ -252,6 +252,9 @@ func (l *Logger) UpdateContext(update func(c Context) Context) {
 	if cap(l.context) == 0 {
 		l.context = make([]byte, 0, 500)
 	}
+	if len(l.context) == 0 {
+		l.context = enc.AppendBeginMarker(l.context)
+	}
 	c := update(Context{*l})
 	l.context = c.l.context
 }
