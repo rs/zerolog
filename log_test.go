@@ -772,3 +772,19 @@ func TestErrorHandler(t *testing.T) {
 		t.Errorf("ErrorHandler err = %#v, want %#v", got, want)
 	}
 }
+
+func TestUpdateEmptyContext(t *testing.T) {
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	log.UpdateContext(func(c Context) Context {
+		return c.Str("foo", "bar")
+	})
+	log.Info().Msg("no panic")
+
+	want := `{"level":"info","foo":"bar","message":"no panic"}` + "\n"
+
+	if got := buf.String(); got != want {
+		t.Errorf("invalid log output:\ngot:  %q\nwant: %q", got, want)
+	}
+}
