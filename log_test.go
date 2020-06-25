@@ -784,7 +784,7 @@ func TestUpdateEmptyContext(t *testing.T) {
 
 	want := `{"level":"info","foo":"bar","message":"no panic"}` + "\n"
 
-	if got := buf.String(); got != want {
+	if got := decodeIfBinaryToString(buf.Bytes()); got != want {
 		t.Errorf("invalid log output:\ngot:  %q\nwant: %q", got, want)
 	}
 }
