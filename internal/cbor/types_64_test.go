@@ -19,7 +19,6 @@ var integerTestCases_64bit = []struct {
 	// Value in 8 bytes.
 	{-0xabcd100000001, "\x3b\x00\x0a\xbc\xd1\x00\x00\x00\x00"},
 	{-1000000000001, "\x3b\x00\x00\x00\xe8\xd4\xa5\x10\x00"},
-
 }
 
 func TestAppendInt_64bit(t *testing.T) {
