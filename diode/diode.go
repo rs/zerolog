@@ -48,7 +48,7 @@ type Writer struct {
 // used.
 //
 // See code.cloudfoundry.org/go-diodes for more info on diode.
-func NewWriter(w io.Writer, size int, poolInterval time.Duration, f Alerter) Writer {
+func NewWriter(w io.Writer, size int, pollInterval time.Duration, f Alerter) Writer {
 	ctx, cancel := context.WithCancel(context.Background())
 	dw := Writer{
 		w:    w,
@@ -59,9 +59,9 @@ func NewWriter(w io.Writer, size int, poolInterval time.Duration, f Alerter) Wri
 		f = func(int) {}
 	}
 	d := diodes.NewManyToOne(size, diodes.AlertFunc(f))
-	if poolInterval > 0 {
+	if pollInterval > 0 {
 		dw.d = diodes.NewPoller(d,
-			diodes.WithPollingInterval(poolInterval),
+			diodes.WithPollingInterval(pollInterval),
 			diodes.WithPollingContext(ctx))
 	} else {
 		dw.d = diodes.NewWaiter(d,
