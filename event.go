@@ -146,6 +146,12 @@ func (e *Event) msg(msg string) {
 	}
 }
 
+// Level sets the log event level.
+func (e *Event) Level(level Level) *Event {
+	e.level = level
+	return e
+}
+
 // Fields is a helper function to use a map to set fields using type assertion.
 func (e *Event) Fields(fields map[string]interface{}) *Event {
 	if e == nil {
