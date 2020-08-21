@@ -57,6 +57,9 @@ type ConsoleWriter struct {
 	// PartsOrder defines the order of parts in output.
 	PartsOrder []string
 
+	// MarshalIndent enables indentation.
+	MarshalIndent bool
+
 	FormatTimestamp     Formatter
 	FormatLevel         Formatter
 	FormatCaller        Formatter
@@ -190,7 +193,13 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		case json.Number:
 			buf.WriteString(fv(fValue))
 		default:
-			b, err := json.Marshal(fValue)
+			var b []byte
+			var err error
+			if w.MarshalIndent {
+				b, err = json.MarshalIndent(fValue, "", "  ")
+			} else {
+				b, err = json.Marshal(fValue)
+			}
 			if err != nil {
 				fmt.Fprintf(buf, colorize("[error: %v]", colorRed, w.NoColor), err)
 			} else {
