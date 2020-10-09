@@ -4,7 +4,9 @@
 package zerolog
 
 import (
+	"bytes"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -66,5 +68,41 @@ func TestSyslogWriter(t *testing.T) {
 	}
 	if got := sw.events; !reflect.DeepEqual(got, want) {
 		t.Errorf("Invalid syslog message routing: want %v, got %v", want, got)
+	}
+}
+
+type testCEEwriter struct {
+	buf *bytes.Buffer
+}
+
+// Only implement one method as we're just testing the prefixing
+func (c testCEEwriter) Debug(m string) error { return nil }
+
+func (c testCEEwriter) Info(m string) error {
+	_, err := c.buf.Write([]byte(m))
+	return err
+}
+
+func (c testCEEwriter) Warning(m string) error { return nil }
+
+func (c testCEEwriter) Err(m string) error { return nil }
+
+func (c testCEEwriter) Emerg(m string) error { return nil }
+
+func (c testCEEwriter) Crit(m string) error { return nil }
+
+func (c testCEEwriter) Write(b []byte) (int, error) {
+	return c.buf.Write(b)
+}
+
+func TestSyslogWriter_WithCEE(t *testing.T) {
+	var buf bytes.Buffer
+	sw := testCEEwriter{&buf}
+	log := New(SyslogCEEWriter(sw))
+	log.Info().Str("key", "value").Msg("message string")
+	got := string(buf.Bytes())
+	want := "@cee:{"
+	if !strings.HasPrefix(got, want) {
+		t.Errorf("Bad CEE message start: want %v, got %v", want, got)
 	}
 }
