@@ -350,7 +350,7 @@ func (Encoder) AppendFloats64(dst []byte, vals []float64) []byte {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = appendFloat(dst, vals[0], 32)
+	dst = appendFloat(dst, vals[0], 64)
 	if len(vals) > 1 {
 		for _, val := range vals[1:] {
 			dst = appendFloat(append(dst, ','), val, 64)
