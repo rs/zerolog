@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -358,8 +359,10 @@ func consoleDefaultFormatCaller(noColor bool) Formatter {
 		if len(c) > 0 {
 			cwd, err := os.Getwd()
 			if err == nil {
-				prefix := cwd + "/"
-				c = strings.TrimPrefix(c, prefix)
+				rel, err := filepath.Rel(cwd, c)
+				if err == nil {
+					c = rel
+				}
 			}
 			c = colorize(c, colorBold, noColor) + colorize(" >", colorCyan, noColor)
 		}
