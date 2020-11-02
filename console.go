@@ -358,8 +358,8 @@ func consoleDefaultFormatCaller(noColor bool) Formatter {
 		if len(c) > 0 {
 			cwd, err := os.Getwd()
 			if err == nil {
-				c = strings.TrimPrefix(c, cwd)
-				c = strings.TrimPrefix(c, "/")
+				prefix := cwd + "/"
+				c = strings.TrimPrefix(c, prefix)
 			}
 			c = colorize(c, colorBold, noColor) + colorize(" >", colorCyan, noColor)
 		}
