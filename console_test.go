@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -54,6 +55,23 @@ func ExampleNewConsoleWriter_customFormatters() {
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
 	// Output: <nil> [INFO ] Hello World foo=bar
+}
+
+func ExampleNewConsoleWriter_customOrders() {
+	out := zerolog.NewConsoleWriter(
+		func(w *zerolog.ConsoleWriter) {
+			w.OrderFields = func(strs []string) []string {
+				sort.Sort(sort.Reverse(sort.StringSlice(strs)))
+				return strs
+			}
+		},
+	)
+
+	out.NoColor = true // For testing purposes only
+
+	log := zerolog.New(out)
+	log.Info().Int("echo", 5).Str("foo", "bar").Send()
+	// Output: <nil> INF  foo=bar echo=5
 }
 
 func TestConsoleLogger(t *testing.T) {
@@ -115,6 +133,25 @@ func TestConsoleWriter(t *testing.T) {
 		}
 
 		expectedOutput := "12:00AM DBG Foobar foo=bar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("Write fields in custom order", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, OrderFields: func(fields []string) []string {
+			return []string{"foo", "zero", "do"}
+		}}
+
+		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
+		_, err := w.Write([]byte(`{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar", "do": "that", "zero": "log"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "12:00AM DBG Foobar foo=bar zero=log do=that\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)

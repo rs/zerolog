@@ -57,6 +57,9 @@ type ConsoleWriter struct {
 	// PartsOrder defines the order of parts in output.
 	PartsOrder []string
 
+	// FieldsOrder defines the order of fields
+	OrderFields func([]string) []string
+
 	FormatTimestamp     Formatter
 	FormatLevel         Formatter
 	FormatCaller        Formatter
@@ -127,7 +130,11 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		}
 		fields = append(fields, field)
 	}
-	sort.Strings(fields)
+	if w.OrderFields != nil {
+		fields = w.OrderFields(fields)
+	} else {
+		sort.Strings(fields)
+	}
 
 	if len(fields) > 0 {
 		buf.WriteByte(' ')
