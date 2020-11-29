@@ -57,6 +57,9 @@ type ConsoleWriter struct {
 	// PartsOrder defines the order of parts in output.
 	PartsOrder []string
 
+	// PartsExclude defines parts to not display in output.
+	PartsExclude []string
+
 	FormatTimestamp     Formatter
 	FormatLevel         Formatter
 	FormatCaller        Formatter
@@ -207,6 +210,14 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 // writePart appends a formatted part to buf.
 func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
 	var f Formatter
+
+	if w.PartsExclude != nil && len(w.PartsExclude) > 0 {
+		for _, exclude := range w.PartsExclude {
+			if exclude == p {
+				return
+			}
+		}
+	}
 
 	switch p {
 	case LevelFieldName:
