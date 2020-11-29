@@ -336,6 +336,24 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
 	})
+
+	t.Run("Sets PartsExclude", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, PartsExclude: []string{"time"}}
+
+		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
+		evt := `{"time": "` + d + `", "level": "info", "message": "Foobar"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
 }
 
 func BenchmarkConsoleWriter(b *testing.B) {
