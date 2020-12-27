@@ -18,16 +18,17 @@ Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog)
 
 ## Features
 
-* Blazing fast
-* Low to zero allocation
-* Level logging
-* Sampling
-* Hooks
-* Contextual fields
+* [Blazing fast](#benchmarks)
+* [Low to zero allocation](#benchmarks)
+* [Leveled logging](#leveled-logging)
+* [Sampling](#log-sampling)
+* [Hooks](#hooks)
+* [Contextual fields](#contextual-logging)
 * `context.Context` integration
-* `net/http` helpers
-* JSON and CBOR encoding formats
-* Pretty logging for development
+* [Integration with `net/http`](#integration-with-nethttp)
+* [JSON and CBOR encoding formats](#binary-encoding)
+* [Pretty logging for development](#pretty-logging)
+* [Error Logging (with optional Stacktrace)](#error-logging)
 
 ## Installation
 
@@ -51,8 +52,6 @@ import (
 
 func main() {
     // UNIX Time is faster and smaller than most timestamps
-    // If you set zerolog.TimeFieldFormat to an empty string,
-    // logs will write with UNIX time
     zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
     log.Print("hello world")
@@ -205,6 +204,80 @@ func main() {
 // Output: {"time":1494567715,"foo":"bar"}
 ```
 
+### Error Logging
+
+You can log errors using the `Err` method
+
+```go
+package main
+
+import (
+	"errors"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
+
+func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	err := errors.New("seems we have an error here")
+	log.Error().Err(err).Msg("")
+}
+
+// Output: {"level":"error","error":"seems we have an error here","time":1609085256}
+```
+
+> The default field name for errors is `error`, you can change this by setting `zerolog.ErrorFieldName` to meet your needs.
+
+#### Error Logging with Stacktrace
+
+Using `github.com/pkg/errors`, you can add a formatted stacktrace to your errors. 
+
+```go
+package main
+
+import (
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/pkgerrors"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
+
+func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
+	err := outer()
+	log.Error().Stack().Err(err).Msg("")
+}
+
+func inner() error {
+	return errors.New("seems we have an error here")
+}
+
+func middle() error {
+	err := inner()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func outer() error {
+	err := middle()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Output: {"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}
+```
+
+> zerolog.ErrorStackMarshaler must be set in order for the stack to output anything.
+
 #### Logging Fatal Messages
 
 ```go
@@ -234,6 +307,7 @@ func main() {
 ```
 
 > NOTE: Using `Msgf` generates one allocation even when the logger is disabled.
+
 
 ### Create logger instance to manage different outputs
 
