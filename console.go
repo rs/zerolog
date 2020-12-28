@@ -357,10 +357,8 @@ func consoleDefaultFormatCaller(noColor bool) Formatter {
 			c = cc
 		}
 		if len(c) > 0 {
-			cwd, err := os.Getwd()
-			if err == nil {
-				rel, err := filepath.Rel(cwd, c)
-				if err == nil {
+			if cwd, err := os.Getwd(); err == nil {
+				if rel, err := filepath.Rel(cwd, c); err == nil {
 					c = rel
 				}
 			}
