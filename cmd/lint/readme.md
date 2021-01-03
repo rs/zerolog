@@ -1,6 +1,6 @@
 # Zerolog Lint
 
-This is a basic linter that checks for missing log event finishers. Finds errors like: `log.Error().Int64("userID": 5)` - missing the `Msg`/`Msgf` finishers.
+This is a basic linter that checks for missing log event finishers. Finds errors like: `log.Error().Int64("userID", 5)` - missing the `Msg`/`Msgf` finishers.
 
 ## Problem
 
@@ -16,20 +16,55 @@ A basic linter like this one here that looks for method invocations on `zerolog.
 
 Just compile this and then run it. Or just run it via `go run` command via something like `go run cmd/lint/lint.go`.
 
-The command accepts only one argument - the package to be inspected - and 4 optional flags, all of which can occur multiple times. The standard synopsis of the command is:
+zerologlint uses [`singlechecker`](https://pkg.go.dev/golang.org/x/tools/go/analysis/singlechecker) package to run.
 
-`lint [-finisher value] [-ignoreFile value] [-ignorePkg value] [-ignorePkgRecursively value] package`
+Synopsis:
+```
+zerologlint: This is a basic linter that checks for missing log event finishers.
 
-#### Flags
+Usage: zerologlint [-flag] [package]
 
-- finisher
+
+Flags:  -V	print version and exit
+  -all
+    	no effect (deprecated)
+  -c int
+    	display offending line with this many lines of context (default -1)
+  -cpuprofile string
+    	write CPU profile to this file
+  -debug string
+    	debug flags, any subset of "fpstv"
+  -finisher value
+    	allowed finisher for the event chain (default [Msg Msgf])
+  -fix
+    	apply all suggested fixes
+  -flags
+    	print analyzer flags in JSON
+  -ignoreFile value
+    	ignore the specified file by its path and/or go path (package/file.go)
+  -ignorePkg value
+    	ignore the specified package
+  -json
+    	emit JSON output
+  -memprofile string
+    	write memory profile to this file
+  -source
+    	no effect (deprecated)
+  -tags string
+    	no effect (deprecated)
+  -trace string
+    	write trace log to this file
+  -v	no effect (deprecated)
+```
+
+#### Special flags
+
+- `-finisher`
     - specify which finishers to accept, defaults to `Msg` and `Msgf`
-- ignoreFile
+- `-ignoreFile`
     - which files to ignore, either by full path or by go path (package/file.go)
-- ignorePkg
-    - do not inspect the specified package if found in the dependecy tree
-- ignorePkgRecursively
-    - do not inspect the specified package or its subpackages if found in the dependency tree
+- `-ignorePkg`
+    - do not inspect the specified package if found in the dependency tree
 
 ## Drawbacks
 
