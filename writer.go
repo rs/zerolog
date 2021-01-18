@@ -56,30 +56,30 @@ type multiLevelWriter struct {
 
 func (t multiLevelWriter) Write(p []byte) (n int, err error) {
 	for _, w := range t.writers {
-		n, err = w.Write(p)
-		if err != nil {
-			return
-		}
-		if n != len(p) {
-			err = io.ErrShortWrite
-			return
+		if _n, _err := w.Write(p); err == nil {
+			n = _n
+			if _err != nil {
+				err = _err
+			} else if _n != len(p) {
+				err = io.ErrShortWrite
+			}
 		}
 	}
-	return len(p), nil
+	return n, err
 }
 
 func (t multiLevelWriter) WriteLevel(l Level, p []byte) (n int, err error) {
 	for _, w := range t.writers {
-		n, err = w.WriteLevel(l, p)
-		if err != nil {
-			return
-		}
-		if n != len(p) {
-			err = io.ErrShortWrite
-			return
+		if _n, _err := w.WriteLevel(l, p); err == nil {
+			n = _n
+			if _err != nil {
+				err = _err
+			} else if _n != len(p) {
+				err = io.ErrShortWrite
+			}
 		}
 	}
-	return len(p), nil
+	return n, err
 }
 
 // MultiLevelWriter creates a writer that duplicates its writes to all the
