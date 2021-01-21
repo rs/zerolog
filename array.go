@@ -67,6 +67,14 @@ func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	return a
 }
 
+// Strs append append the val as a string to the array with massive assignment
+func (a *Array) Strs(val ...string) *Array {
+	for _, v := range val {
+		a.Str(v)
+	}
+	return a
+}
+
 // Str append append the val as a string to the array.
 func (a *Array) Str(val string) *Array {
 	a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), val)

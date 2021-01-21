@@ -27,8 +27,9 @@ func TestArray(t *testing.T) {
 		RawJSON([]byte(`{"some":"json"}`)).
 		Time(time.Time{}).
 		IPAddr(net.IP{192, 168, 0, 10}).
-		Dur(0)
-	want := `[true,1,2,3,4,5,6,7,8,9,10,11.98122,12.987654321,"a","b","1f",{"some":"json"},"0001-01-01T00:00:00Z","192.168.0.10",0]`
+		Dur(0).
+		Strs("you", "will", "like", "this")
+	want := `[true,1,2,3,4,5,6,7,8,9,10,11.98122,12.987654321,"a","b","1f",{"some":"json"},"0001-01-01T00:00:00Z","192.168.0.10",0,"you","will","like","this"]`
 	if got := decodeObjectToStr(a.write([]byte{})); got != want {
 		t.Errorf("Array.write()\ngot:  %s\nwant: %s", got, want)
 	}
