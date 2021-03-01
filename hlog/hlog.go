@@ -138,6 +138,11 @@ func IDFromCtx(ctx context.Context) (id xid.ID, ok bool) {
 	return
 }
 
+// CtxWithID adds the given xid.ID to the context
+func CtxWithID(ctx context.Context, id xid.ID) context.Context {
+	return context.WithValue(ctx, idKey{}, id)
+}
+
 // RequestIDHandler returns a handler setting a unique id to the request which can
 // be gathered using IDFromRequest(req). This generated id is added as a field to the
 // logger using the passed fieldKey as field name. The id is also added as a response
@@ -154,7 +159,7 @@ func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.
 			id, ok := IDFromRequest(r)
 			if !ok {
 				id = xid.New()
-				ctx = context.WithValue(ctx, idKey{}, id)
+				ctx = CtxWithID(ctx, id)
 				r = r.WithContext(ctx)
 			}
 			if fieldKey != "" {

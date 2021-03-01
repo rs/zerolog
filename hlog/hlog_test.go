@@ -4,16 +4,16 @@ package hlog
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 
-	"reflect"
-
-	"net/http/httptest"
-
+	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/internal/cbor"
 )
@@ -261,4 +261,17 @@ func BenchmarkDataRace(b *testing.B) {
 			h.ServeHTTP(nil, &http.Request{})
 		}
 	})
+}
+
+func TestCtxWithID(t *testing.T) {
+	ctx := context.Background()
+
+	id, _ := xid.FromString(`c0umremcie6smuu506pg`)
+
+	want := context.Background()
+	want = context.WithValue(want, idKey{}, id)
+
+	if got := CtxWithID(ctx, id); !reflect.DeepEqual(got, want) {
+		t.Errorf("CtxWithID() = %v, want %v", got, want)
+	}
 }
