@@ -26,4 +26,4 @@ jobs:
       - name: Download released earthly
         run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.5.7/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - name: test zerolog with go ${{ matrix.go_version }}
-        run: earthly --build-arg GO_VERSION=${{ matrix.go_version }} --use-inline-cache +test
+        run: earthly --build-arg GO_VERSION=${{ matrix.go_version }} --ci +test
