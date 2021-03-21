@@ -406,17 +406,9 @@ func (c Context) CallerWithSkipFrameCount(skipFrameCount int) Context {
 	return c
 }
 
-type stackTraceHook struct{}
-
-func (sh stackTraceHook) Run(e *Event, level Level, msg string) {
-	e.Stack()
-}
-
-var sh = stackTraceHook{}
-
 // Stack enables stack trace printing for the error passed to Err().
 func (c Context) Stack() Context {
-	c.l = c.l.Hook(sh)
+	c.l.stack = true
 	return c
 }
 
