@@ -680,7 +680,7 @@ Log a static string, without any context or `printf`-style templating:
 
 ## Caveats
 
-Note that zerolog does not de-duplication of fields. Using the same key multiple times creates multiple keys in final JSON:
+Note that zerolog does no de-duplication of fields. Using the same key multiple times creates multiple keys in final JSON:
 
 ```go
 logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
