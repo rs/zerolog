@@ -788,3 +788,62 @@ func TestUpdateEmptyContext(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %q\nwant: %q", got, want)
 	}
 }
+
+func TestLevel_String(t *testing.T) {
+	tests := []struct {
+		name string
+		l    Level
+		want string
+	}{
+		{"trace", TraceLevel, "trace"},
+		{"debug", DebugLevel, "debug"},
+		{"info", InfoLevel, "info"},
+		{"warn", WarnLevel, "warn"},
+		{"error", ErrorLevel, "error"},
+		{"fatal", FatalLevel, "fatal"},
+		{"panic", PanicLevel, "panic"},
+		{"disabled", Disabled, "disabled"},
+		{"nolevel", NoLevel, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.l.String(); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseLevel(t *testing.T) {
+	type args struct {
+		levelStr string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    Level
+		wantErr bool
+	}{
+		{"trace", args{"trace"}, TraceLevel, false},
+		{"debug", args{"debug"}, DebugLevel, false},
+		{"info", args{"info"}, InfoLevel, false},
+		{"warn", args{"warn"}, WarnLevel, false},
+		{"error", args{"error"}, ErrorLevel, false},
+		{"fatal", args{"fatal"}, FatalLevel, false},
+		{"panic", args{"panic"}, PanicLevel, false},
+		{"disabled", args{"disabled"}, Disabled, false},
+		{"nolevel", args{""}, NoLevel, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseLevel(tt.args.levelStr)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseLevel() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ParseLevel() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

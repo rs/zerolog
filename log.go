@@ -147,6 +147,8 @@ func (l Level) String() string {
 		return "fatal"
 	case PanicLevel:
 		return "panic"
+	case Disabled:
+		return "disabled"
 	case NoLevel:
 		return ""
 	}
@@ -171,6 +173,8 @@ func ParseLevel(levelStr string) (Level, error) {
 		return FatalLevel, nil
 	case LevelFieldMarshalFunc(PanicLevel):
 		return PanicLevel, nil
+	case LevelFieldMarshalFunc(Disabled):
+		return Disabled, nil
 	case LevelFieldMarshalFunc(NoLevel):
 		return NoLevel, nil
 	}
