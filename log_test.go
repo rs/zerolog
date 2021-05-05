@@ -77,6 +77,26 @@ func TestInfo(t *testing.T) {
 	})
 }
 
+func TestEmptyLevelFieldName(t *testing.T) {
+	fieldName := LevelFieldName
+	LevelFieldName = ""
+
+	t.Run("empty setting", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out)
+		log.Info().
+			Str("foo", "bar").
+			Int("n", 123).
+			Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"foo":"bar","n":123}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	LevelFieldName = fieldName
+
+}
+
 func TestWith(t *testing.T) {
 	out := &bytes.Buffer{}
 	ctx := New(out).With().
