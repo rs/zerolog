@@ -424,7 +424,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	e := newEvent(l.w, level)
 	e.done = done
 	e.ch = l.hooks
-	if level != NoLevel {
+	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}
 	if l.context != nil && len(l.context) > 1 {
