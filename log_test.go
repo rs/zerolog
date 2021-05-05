@@ -92,9 +92,7 @@ func TestEmptyLevelFieldName(t *testing.T) {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
-
 	LevelFieldName = fieldName
-
 }
 
 func TestWith(t *testing.T) {
