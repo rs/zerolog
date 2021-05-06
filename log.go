@@ -392,6 +392,7 @@ func (l *Logger) Log() *Event {
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Print(v ...interface{}) {
 	if e := l.Debug(); e.Enabled() {
+		e.CallerSkipFrame(1)
 		e.Msg(fmt.Sprint(v...))
 	}
 }
@@ -400,6 +401,7 @@ func (l *Logger) Print(v ...interface{}) {
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Printf(format string, v ...interface{}) {
 	if e := l.Debug(); e.Enabled() {
+		e.CallerSkipFrame(1)
 		e.Msg(fmt.Sprintf(format, v...))
 	}
 }
@@ -412,6 +414,7 @@ func (l Logger) Write(p []byte) (n int, err error) {
 		// Trim CR added by stdlog.
 		p = p[0 : n-1]
 	}
+	e.CallerSkipFrame(1)
 	l.Log().Msg(string(p))
 	return
 }
