@@ -20,13 +20,13 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf                  []byte
-	w                    LevelWriter
-	level                Level
-	done                 func(msg string)
-	stack                bool   // enable error stack trace
-	ch                   []Hook // hooks from context
-	callerSkipFrameCount int    // The number of additional frames to skip when printing the caller.
+	buf       []byte
+	w         LevelWriter
+	level     Level
+	done      func(msg string)
+	stack     bool   // enable error stack trace
+	ch        []Hook // hooks from context
+	skipFrame int    // The number of additional frames to skip when printing the caller.
 }
 
 func putEvent(e *Event) {
@@ -63,7 +63,7 @@ func newEvent(w LevelWriter, level Level) *Event {
 	e.w = w
 	e.level = level
 	e.stack = false
-	e.callerSkipFrameCount = 0
+	e.skipFrame = 0
 	return e
 }
 
@@ -690,7 +690,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 // CallerSkipFrame instructs any future Caller calls to skip the specified number of frames.
 // This includes those added via hooks from the context.
 func (e *Event) CallerSkipFrame(skip int) *Event {
-	e.callerSkipFrameCount++
+	e.skipFrame++
 	return e
 }
 
@@ -709,7 +709,7 @@ func (e *Event) caller(skip int) *Event {
 	if e == nil {
 		return e
 	}
-	_, file, line, ok := runtime.Caller(skip + e.callerSkipFrameCount)
+	_, file, line, ok := runtime.Caller(skip + e.skipFrame)
 	if !ok {
 		return e
 	}
