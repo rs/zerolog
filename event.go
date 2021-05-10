@@ -690,7 +690,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 // CallerSkipFrame instructs any future Caller calls to skip the specified number of frames.
 // This includes those added via hooks from the context.
 func (e *Event) CallerSkipFrame(skip int) *Event {
-	e.skipFrame++
+	e.skipFrame += skip
 	return e
 }
 
