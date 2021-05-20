@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/json"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -74,6 +75,10 @@ var (
 	ErrorMarshalFunc = func(err error) interface{} {
 		return err
 	}
+
+	// InterfaceMarshalFunc allows customization of interface marshaling.
+	// Default: "encoding/json.Marshal"
+	InterfaceMarshalFunc = json.Marshal
 
 	// TimeFieldFormat defines the time format of the Time field type. If set to
 	// TimeFormatUnix, TimeFormatUnixMs or TimeFormatUnixMicro, the time is formatted as an UNIX
