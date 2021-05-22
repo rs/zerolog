@@ -23,7 +23,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/coreos/go-systemd/journal"
+	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/internal/cbor"
 )
