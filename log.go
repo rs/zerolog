@@ -223,6 +223,7 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
 	l2.sampler = l.sampler
+	l2.stack = l.stack
 	if len(l.hooks) > 0 {
 		l2.hooks = append(l2.hooks, l.hooks...)
 	}
