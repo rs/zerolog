@@ -333,19 +333,19 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 		var l string
 		if ll, ok := i.(string); ok {
 			switch ll {
-			case "trace":
+			case LevelTraceValue:
 				l = colorize("TRC", colorMagenta, noColor)
-			case "debug":
+			case LevelDebugValue:
 				l = colorize("DBG", colorYellow, noColor)
-			case "info":
+			case LevelInfoValue:
 				l = colorize("INF", colorGreen, noColor)
-			case "warn":
+			case LevelWarnValue:
 				l = colorize("WRN", colorRed, noColor)
-			case "error":
+			case LevelErrorValue:
 				l = colorize(colorize("ERR", colorRed, noColor), colorBold, noColor)
-			case "fatal":
+			case LevelFatalValue:
 				l = colorize(colorize("FTL", colorRed, noColor), colorBold, noColor)
-			case "panic":
+			case LevelPanicValue:
 				l = colorize(colorize("PNC", colorRed, noColor), colorBold, noColor)
 			default:
 				l = colorize("???", colorBold, noColor)
