@@ -83,7 +83,7 @@ var (
 	// TimeFieldFormat defines the time format of the Time field type. If set to
 	// TimeFormatUnix, TimeFormatUnixMs or TimeFormatUnixMicro, the time is formatted as an UNIX
 	// timestamp as integer.
-	TimeFieldFormat = time.RFC3339
+	TimeFieldFormat = time.RFC3339Nano
 
 	// TimestampFunc defines the function called to generate a timestamp.
 	TimestampFunc = time.Now
