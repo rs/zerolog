@@ -29,12 +29,57 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 			putEvent(e)
 			continue
 		}
-		// concrete type switch: binary search of sorted typehash
 		switch val := val.(type) {
 		case string:
 			dst = enc.AppendString(dst, val)
 		case []byte:
 			dst = enc.AppendBytes(dst, val)
+		case error:
+			switch m := ErrorMarshalFunc(val).(type) {
+			case LogObjectMarshaler:
+				e := newEvent(nil, 0)
+				e.buf = e.buf[:0]
+				e.appendObject(m)
+				dst = append(dst, e.buf...)
+				putEvent(e)
+			case error:
+				if m == nil || isNilValue(m) {
+					dst = enc.AppendNil(dst)
+				} else {
+					dst = enc.AppendString(dst, m.Error())
+				}
+			case string:
+				dst = enc.AppendString(dst, m)
+			default:
+				dst = enc.AppendInterface(dst, m)
+			}
+		case []error:
+			dst = enc.AppendArrayStart(dst)
+			for i, err := range val {
+				switch m := ErrorMarshalFunc(err).(type) {
+				case LogObjectMarshaler:
+					e := newEvent(nil, 0)
+					e.buf = e.buf[:0]
+					e.appendObject(m)
+					dst = append(dst, e.buf...)
+					putEvent(e)
+				case error:
+					if m == nil || isNilValue(m) {
+						dst = enc.AppendNil(dst)
+					} else {
+						dst = enc.AppendString(dst, m.Error())
+					}
+				case string:
+					dst = enc.AppendString(dst, m)
+				default:
+					dst = enc.AppendInterface(dst, m)
+				}
+
+				if i < (len(val) - 1) {
+					enc.AppendArrayDelim(dst)
+				}
+			}
+			dst = enc.AppendArrayEnd(dst)
 		case bool:
 			dst = enc.AppendBool(dst, val)
 		case int:
@@ -193,6 +238,8 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 			dst = enc.AppendTimes(dst, val, TimeFieldFormat)
 		case []time.Duration:
 			dst = enc.AppendDurations(dst, val, DurationFieldUnit, DurationFieldInteger)
+		case nil:
+			dst = enc.AppendNil(dst)
 		case net.IP:
 			dst = enc.AppendIPAddr(dst, val)
 		case net.IPNet:
@@ -202,59 +249,7 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case json.RawMessage:
 			dst = appendJSON(dst, val)
 		default:
-			// interface type switch
-			switch val := val.(type) {
-			case error:
-				switch m := ErrorMarshalFunc(val).(type) {
-				case LogObjectMarshaler:
-					e := newEvent(nil, 0)
-					e.buf = e.buf[:0]
-					e.appendObject(m)
-					dst = append(dst, e.buf...)
-					putEvent(e)
-				case error:
-					if m == nil || isNilValue(m) {
-						dst = enc.AppendNil(dst)
-					} else {
-						dst = enc.AppendString(dst, m.Error())
-					}
-				case string:
-					dst = enc.AppendString(dst, m)
-				default:
-					dst = enc.AppendInterface(dst, m)
-				}
-			case []error:
-				dst = enc.AppendArrayStart(dst)
-				for i, err := range val {
-					switch m := ErrorMarshalFunc(err).(type) {
-					case LogObjectMarshaler:
-						e := newEvent(nil, 0)
-						e.buf = e.buf[:0]
-						e.appendObject(m)
-						dst = append(dst, e.buf...)
-						putEvent(e)
-					case error:
-						if m == nil || isNilValue(m) {
-							dst = enc.AppendNil(dst)
-						} else {
-							dst = enc.AppendString(dst, m.Error())
-						}
-					case string:
-						dst = enc.AppendString(dst, m)
-					default:
-						dst = enc.AppendInterface(dst, m)
-					}
-
-					if i < (len(val) - 1) {
-						enc.AppendArrayDelim(dst)
-					}
-				}
-				dst = enc.AppendArrayEnd(dst)
-			case nil:
-				dst = enc.AppendNil(dst)
-			default:
-				dst = enc.AppendInterface(dst, val)
-			}
+			dst = enc.AppendInterface(dst, val)
 		}
 	}
 	return dst
