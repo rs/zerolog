@@ -37,3 +37,29 @@ func TestEvent_AnErr(t *testing.T) {
 		})
 	}
 }
+
+func TestEvent_ObjectWithNil(t *testing.T) {
+	var buf bytes.Buffer
+	e := newEvent(levelWriterAdapter{&buf}, DebugLevel)
+	_ = e.Object("obj", nil)
+	_ = e.write()
+
+	want := `{"obj":null}`
+	got := strings.TrimSpace(buf.String())
+	if got != want {
+		t.Errorf("Event.Object() = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_EmbedObjectWithNil(t *testing.T) {
+	var buf bytes.Buffer
+	e := newEvent(levelWriterAdapter{&buf}, DebugLevel)
+	_ = e.EmbedObject(nil)
+	_ = e.write()
+
+	want := "{}"
+	got := strings.TrimSpace(buf.String())
+	if got != want {
+		t.Errorf("Event.EmbedObject() = %q, want %q", got, want)
+	}
+}

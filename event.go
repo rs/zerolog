@@ -207,6 +207,12 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 		return e
 	}
 	e.buf = enc.AppendKey(e.buf, key)
+	if obj == nil {
+		e.buf = enc.AppendNil(e.buf)
+
+		return e
+	}
+
 	e.appendObject(obj)
 	return e
 }
@@ -222,6 +228,9 @@ func (e *Event) Func(f func(e *Event)) *Event {
 // EmbedObject marshals an object that implement the LogObjectMarshaler interface.
 func (e *Event) EmbedObject(obj LogObjectMarshaler) *Event {
 	if e == nil {
+		return e
+	}
+	if obj == nil {
 		return e
 	}
 	obj.MarshalZerologObject(e)
