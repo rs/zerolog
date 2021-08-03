@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/json"
 	"net"
 	"sort"
 	"time"
@@ -245,6 +246,8 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 			dst = enc.AppendIPPrefix(dst, val)
 		case net.HardwareAddr:
 			dst = enc.AppendMACAddr(dst, val)
+		case json.RawMessage:
+			dst = appendJSON(dst, val)
 		default:
 			dst = enc.AppendInterface(dst, val)
 		}
