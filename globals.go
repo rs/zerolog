@@ -100,6 +100,10 @@ var (
 	// output. If not set, an error is printed on the stderr. This handler must
 	// be thread safe and non-blocking.
 	ErrorHandler func(err error)
+
+	// DefaultContextLogger is returned from Ctx() if there is no logger associated
+	// with the context.
+	DefaultContextLogger *Logger
 )
 
 var (
