@@ -79,10 +79,16 @@ func RequestHandler(fieldKey string) func(next http.Handler) http.Handler {
 func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			addr := r.RemoteAddr
+
 			if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+				addr = host
+			}
+
+			if addr != "" {
 				log := zerolog.Ctx(r.Context())
 				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
-					return c.Str(fieldKey, host)
+					return c.Str(fieldKey, addr)
 				})
 			}
 			next.ServeHTTP(w, r)
