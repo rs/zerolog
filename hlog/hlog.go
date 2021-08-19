@@ -3,7 +3,6 @@ package hlog
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"time"
 
@@ -79,10 +78,10 @@ func RequestHandler(fieldKey string) func(next http.Handler) http.Handler {
 func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+			if r.RemoteAddr != "" {
 				log := zerolog.Ctx(r.Context())
 				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
-					return c.Str(fieldKey, host)
+					return c.Str(fieldKey, r.RemoteAddr)
 				})
 			}
 			next.ServeHTTP(w, r)

@@ -100,7 +100,7 @@ func TestRemoteAddrHandler(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"ip":"1.2.3.4"}`+"\n", decodeIfBinary(out); want != got {
+	if want, got := `{"ip":"1.2.3.4:1234"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
@@ -116,7 +116,7 @@ func TestRemoteAddrHandlerIPv6(t *testing.T) {
 	}))
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
-	if want, got := `{"ip":"2001:db8:a0b:12f0::1"}`+"\n", decodeIfBinary(out); want != got {
+	if want, got := `{"ip":"[2001:db8:a0b:12f0::1]:1234"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
