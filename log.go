@@ -129,6 +129,7 @@ const (
 
 	// TraceLevel defines trace log level.
 	TraceLevel Level = -1
+	// Values less than TraceLevel are handled as numbers.
 )
 
 func (l Level) String() string {
@@ -152,7 +153,7 @@ func (l Level) String() string {
 	case NoLevel:
 		return ""
 	}
-	return ""
+	return strconv.Itoa(int(l))
 }
 
 // ParseLevel converts a level string into a zerolog Level value.
@@ -178,7 +179,14 @@ func ParseLevel(levelStr string) (Level, error) {
 	case LevelFieldMarshalFunc(NoLevel):
 		return NoLevel, nil
 	}
-	return NoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
+	i, err := strconv.Atoi(levelStr)
+	if err != nil {
+		return NoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
+	}
+	if i > 127 || i < -128 {
+		return NoLevel, fmt.Errorf("Out-Of-Bounds Level: '%d', defaulting to NoLevel", i)
+	}
+	return Level(i), nil
 }
 
 // A Logger represents an active logging object that generates lines
@@ -377,7 +385,7 @@ func (l *Logger) WithLevel(level Level) *Event {
 	case Disabled:
 		return nil
 	default:
-		panic("zerolog: WithLevel(): invalid level: " + strconv.Itoa(int(level)))
+		return l.newEvent(level, nil)
 	}
 }
 
