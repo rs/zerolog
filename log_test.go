@@ -549,7 +549,11 @@ func TestLevelWriter(t *testing.T) {
 			p string
 		}{},
 	}
-	log := New(lw)
+
+	// Allow extra-verbose logs.
+	SetGlobalLevel(TraceLevel - 1)
+	log := New(lw).Level(TraceLevel - 1)
+
 	log.Trace().Msg("0")
 	log.Debug().Msg("1")
 	log.Info().Msg("2")
@@ -562,6 +566,9 @@ func TestLevelWriter(t *testing.T) {
 	log.WithLevel(WarnLevel).Msg("8")
 	log.WithLevel(ErrorLevel).Msg("9")
 	log.WithLevel(NoLevel).Msg("nolevel-2")
+	log.WithLevel(-1).Msg("-1") // Same as TraceLevel
+	log.WithLevel(-2).Msg("-2") // Will log
+	log.WithLevel(-3).Msg("-3") // Will not log
 
 	want := []struct {
 		l Level
@@ -579,6 +586,8 @@ func TestLevelWriter(t *testing.T) {
 		{WarnLevel, `{"level":"warn","message":"8"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"9"}` + "\n"},
 		{NoLevel, `{"message":"nolevel-2"}` + "\n"},
+		{Level(-1), `{"level":"trace","message":"-1"}` + "\n"},
+		{Level(-2), `{"level":"-2","message":"-2"}` + "\n"},
 	}
 	if got := lw.ops; !reflect.DeepEqual(got, want) {
 		t.Errorf("invalid ops:\ngot:\n%v\nwant:\n%v", got, want)
@@ -853,6 +862,9 @@ func TestParseLevel(t *testing.T) {
 		{"panic", args{"panic"}, PanicLevel, false},
 		{"disabled", args{"disabled"}, Disabled, false},
 		{"nolevel", args{""}, NoLevel, false},
+		{"-1", args{"-1"}, TraceLevel, false},
+		{"-2", args{"-2"}, Level(-2), false},
+		{"-3", args{"-3"}, Level(-3), false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
