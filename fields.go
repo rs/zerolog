@@ -18,9 +18,23 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
+	keyValues := make([]interface{}, 2)
 	for _, key := range keys {
+		keyValues[0] = key
+		keyValues[1] = fields[key]
+		dst = appendKeyValues(dst, keyValues)
+	}
+	return dst
+}
+
+func appendKeyValues(dst []byte, keyValues []interface{}) []byte {
+	for i, kvLen := 0, len(keyValues); i < kvLen; i += 2 {
+		k, val := keyValues[i], keyValues[i+1]
+		key, ok := k.(string)
+		if !ok {
+			continue
+		}
 		dst = enc.AppendKey(dst, key)
-		val := fields[key]
 		if val, ok := val.(LogObjectMarshaler); ok {
 			e := newEvent(nil, 0)
 			e.buf = e.buf[:0]

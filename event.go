@@ -157,6 +157,19 @@ func (e *Event) Fields(fields map[string]interface{}) *Event {
 	return e
 }
 
+// KeyValues is a helper function to use a slice to set fields using type assertion.
+// The key/value pairs must alternate string keys and arbitrary values.
+func (e *Event) KeyValues(keyValues []interface{}) *Event {
+	if e == nil {
+		return e
+	}
+	if kvLen := len(keyValues); kvLen&0x1 == 1 { // odd number
+		keyValues = keyValues[:kvLen-1]
+	}
+	e.buf = appendKeyValues(e.buf, keyValues)
+	return e
+}
+
 // Dict adds the field key with a dict to the event context.
 // Use zerolog.Dict() to create the dictionary.
 func (e *Event) Dict(key string, dict *Event) *Event {

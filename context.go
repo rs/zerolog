@@ -24,6 +24,16 @@ func (c Context) Fields(fields map[string]interface{}) Context {
 	return c
 }
 
+// KeyValues is a helper function to use a slice to set fields using type assertion.
+// The key/value pairs must alternate string keys and arbitrary values.
+func (c Context) KeyValues(keyValues []interface{}) Context {
+	if kvLen := len(keyValues); kvLen&0x1 == 1 { // odd number
+		keyValues = keyValues[:kvLen-1]
+	}
+	c.l.context = appendKeyValues(c.l.context, keyValues)
+	return c
+}
+
 // Dict adds the field key with the dict to the logger context.
 func (c Context) Dict(key string, dict *Event) Context {
 	dict.buf = enc.AppendEndMarker(dict.buf)
