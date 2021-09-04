@@ -18,6 +18,11 @@ func (c Context) Logger() Logger {
 	return c.l
 }
 
+// LoggerRef is the same as Logger(), but returns a *Logger.
+func (c Context) LoggerRef() *Logger {
+	return &c.l
+}
+
 // Fields is a helper function to use a map to set fields using type assertion.
 func (c Context) Fields(fields map[string]interface{}) Context {
 	c.l.context = appendFields(c.l.context, fields)
