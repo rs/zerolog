@@ -148,8 +148,10 @@ func (e *Event) msg(msg string) {
 	}
 }
 
-// Fields is a helper function to use a map to set fields using type assertion.
-func (e *Event) Fields(fields map[string]interface{}) *Event {
+// Fields is a helper function to use a map or slice to set fields using type assertion.
+// Only map[string]interface{} and []interface{} are accepted. []interface{} must
+// alternate string keys and arbitrary values, and extraneous ones are ignored.
+func (e *Event) Fields(fields interface{}) *Event {
 	if e == nil {
 		return e
 	}

@@ -364,6 +364,42 @@ func ExampleEvent_Durs() {
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
 }
 
+func ExampleEvent_Fields_map() {
+	fields := map[string]interface{}{
+		"bar": "baz",
+		"n":   1,
+	}
+
+	dst := bytes.Buffer{}
+	log := New(&dst)
+
+	log.Log().
+		Str("foo", "bar").
+		Fields(fields).
+		Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
+func ExampleEvent_Fields_slice() {
+	fields := []interface{}{
+		"bar", "baz",
+		"n", 1,
+	}
+
+	dst := bytes.Buffer{}
+	log := New(&dst)
+
+	log.Log().
+		Str("foo", "bar").
+		Fields(fields).
+		Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
 func ExampleContext_Dict() {
 	dst := bytes.Buffer{}
 	log := New(&dst).With().
@@ -509,4 +545,40 @@ func ExampleContext_Durs() {
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+}
+
+func ExampleContext_Fields_map() {
+	fields := map[string]interface{}{
+		"bar": "baz",
+		"n":   1,
+	}
+
+	dst := bytes.Buffer{}
+	log := New(&dst).With().
+		Str("foo", "bar").
+		Fields(fields).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
+func ExampleContext_Fields_slice() {
+	fields := []interface{}{
+		"bar", "baz",
+		"n", 1,
+	}
+
+	dst := bytes.Buffer{}
+	log := New(&dst).With().
+		Str("foo", "bar").
+		Fields(fields).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
 }
