@@ -148,16 +148,16 @@ func BenchmarkLogFieldType(b *testing.B) {
 		{"a", "a", 0},
 	}
 	objects := []obj{
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
 	}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
 	types := map[string]func(e *Event) *Event{
@@ -272,16 +272,16 @@ func BenchmarkContextFieldType(b *testing.B) {
 		{"a", "a", 0},
 	}
 	objects := []obj{
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
-		obj{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
+		{"a", "a", 0},
 	}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
 	types := map[string]func(c Context) Context{

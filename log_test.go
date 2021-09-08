@@ -246,6 +246,66 @@ func TestFieldsMapNilPnt(t *testing.T) {
 	}
 }
 
+func TestFieldsSlice(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields([]interface{}{
+		"nil", nil,
+		"string", "foo",
+		"bytes", []byte("bar"),
+		"error", errors.New("some error"),
+		"bool", true,
+		"int", int(1),
+		"int8", int8(2),
+		"int16", int16(3),
+		"int32", int32(4),
+		"int64", int64(5),
+		"uint", uint(6),
+		"uint8", uint8(7),
+		"uint16", uint16(8),
+		"uint32", uint32(9),
+		"uint64", uint64(10),
+		"float32", float32(11),
+		"float64", float64(12),
+		"ipv6", net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
+		"dur", 1 * time.Second,
+		"time", time.Time{},
+		"obj", obj{"a", "b", 1},
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"nil":null,"string":"foo","bytes":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"ipv6":"2001:db8:85a3::8a2e:370:7334","dur":1000,"time":"0001-01-01T00:00:00Z","obj":{"Pub":"a","Tag":"b","priv":1}}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestFieldsSliceExtraneous(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields([]interface{}{
+		"string", "foo",
+		"error", errors.New("some error"),
+		32, "valueForNonStringKey",
+		"bool", true,
+		"int", int(1),
+		"keyWithoutValue",
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":"foo","error":"some error","bool":true,"int":1}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestFieldsNotMapSlice(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().
+		Fields(obj{"a", "b", 1}).
+		Fields("string").
+		Fields(1).
+		Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestFields(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
@@ -336,7 +396,7 @@ func TestFieldsArraySingleElement(t *testing.T) {
 		Floats32("float32", []float32{11}).
 		Floats64("float64", []float64{12}).
 		Durs("dur", []time.Duration{1 * time.Second}).
-		Times("time", []time.Time{time.Time{}}).
+		Times("time", []time.Time{{}}).
 		Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo"],"err":["some error"],"bool":[true],"int":[1],"int8":[2],"int16":[3],"int32":[4],"int64":[5],"uint":[6],"uint8":[7],"uint16":[8],"uint32":[9],"uint64":[10],"float32":[11],"float64":[12],"dur":[1000],"time":["0001-01-01T00:00:00Z"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
@@ -363,7 +423,7 @@ func TestFieldsArrayMultipleElement(t *testing.T) {
 		Floats32("float32", []float32{11, 0}).
 		Floats64("float64", []float64{12, 0}).
 		Durs("dur", []time.Duration{1 * time.Second, 0}).
-		Times("time", []time.Time{time.Time{}, time.Time{}}).
+		Times("time", []time.Time{{}, {}}).
 		Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo","bar"],"err":["some error",null],"bool":[true,false],"int":[1,0],"int8":[2,0],"int16":[3,0],"int32":[4,0],"int64":[5,0],"uint":[6,0],"uint8":[7,0],"uint16":[8,0],"uint32":[9,0],"uint64":[10,0],"float32":[11,0],"float64":[12,0],"dur":[1000,0],"time":["0001-01-01T00:00:00Z","0001-01-01T00:00:00Z"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
