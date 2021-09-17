@@ -354,6 +354,7 @@ func TestFieldsArrayEmpty(t *testing.T) {
 	log := New(out)
 	log.Log().
 		Strs("string", []string{}).
+		Stringers("stringer", []fmt.Stringer{}).
 		Errs("err", []error{}).
 		Bools("bool", []bool{}).
 		Ints("int", []int{}).
@@ -371,7 +372,7 @@ func TestFieldsArrayEmpty(t *testing.T) {
 		Durs("dur", []time.Duration{}).
 		Times("time", []time.Time{}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":[],"stringer":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -381,6 +382,7 @@ func TestFieldsArraySingleElement(t *testing.T) {
 	log := New(out)
 	log.Log().
 		Strs("string", []string{"foo"}).
+		Stringers("stringer", []fmt.Stringer{net.IP{127, 0, 0, 1}}).
 		Errs("err", []error{errors.New("some error")}).
 		Bools("bool", []bool{true}).
 		Ints("int", []int{1}).
@@ -398,7 +400,7 @@ func TestFieldsArraySingleElement(t *testing.T) {
 		Durs("dur", []time.Duration{1 * time.Second}).
 		Times("time", []time.Time{{}}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo"],"err":["some error"],"bool":[true],"int":[1],"int8":[2],"int16":[3],"int32":[4],"int64":[5],"uint":[6],"uint8":[7],"uint16":[8],"uint32":[9],"uint64":[10],"float32":[11],"float64":[12],"dur":[1000],"time":["0001-01-01T00:00:00Z"]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo"],"stringer":["127.0.0.1"],"err":["some error"],"bool":[true],"int":[1],"int8":[2],"int16":[3],"int32":[4],"int64":[5],"uint":[6],"uint8":[7],"uint16":[8],"uint32":[9],"uint64":[10],"float32":[11],"float64":[12],"dur":[1000],"time":["0001-01-01T00:00:00Z"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -408,6 +410,7 @@ func TestFieldsArrayMultipleElement(t *testing.T) {
 	log := New(out)
 	log.Log().
 		Strs("string", []string{"foo", "bar"}).
+		Stringers("stringer", []fmt.Stringer{nil, net.IP{127, 0, 0, 1}}).
 		Errs("err", []error{errors.New("some error"), nil}).
 		Bools("bool", []bool{true, false}).
 		Ints("int", []int{1, 0}).
@@ -425,7 +428,7 @@ func TestFieldsArrayMultipleElement(t *testing.T) {
 		Durs("dur", []time.Duration{1 * time.Second, 0}).
 		Times("time", []time.Time{{}, {}}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo","bar"],"err":["some error",null],"bool":[true,false],"int":[1,0],"int8":[2,0],"int16":[3,0],"int32":[4,0],"int64":[5,0],"uint":[6,0],"uint8":[7,0],"uint16":[8,0],"uint32":[9,0],"uint64":[10,0],"float32":[11,0],"float64":[12,0],"dur":[1000,0],"time":["0001-01-01T00:00:00Z","0001-01-01T00:00:00Z"]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo","bar"],"stringer":[null,"127.0.0.1"],"err":["some error",null],"bool":[true,false],"int":[1,0],"int8":[2,0],"int16":[3,0],"int32":[4,0],"int64":[5,0],"uint":[6,0],"uint8":[7,0],"uint16":[8,0],"uint32":[9,0],"uint64":[10,0],"float32":[11,0],"float64":[12,0],"dur":[1000,0],"time":["0001-01-01T00:00:00Z","0001-01-01T00:00:00Z"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -436,6 +439,7 @@ func TestFieldsDisabled(t *testing.T) {
 	now := time.Now()
 	log.Debug().
 		Str("string", "foo").
+		Stringer("stringer", net.IP{127, 0, 0, 1}).
 		Bytes("bytes", []byte("bar")).
 		Hex("hex", []byte{0x12, 0xef}).
 		AnErr("some_err", nil).
