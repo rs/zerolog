@@ -76,8 +76,7 @@ func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
 			dst = e.AppendStringer(append(dst, ','), val)
 		}
 	}
-	dst = append(dst, ']')
-	return dst
+	return append(dst, ']')
 }
 
 // AppendStringer encodes the input Stringer to json and appends the
