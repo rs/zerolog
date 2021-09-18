@@ -257,18 +257,24 @@ func (e *Event) Strs(key string, vals []string) *Event {
 	return e
 }
 
-// Stringer adds the field key with val.String() (or null if val is nil) to the *Event context.
+// Stringer adds the field key with val.String() (or null if val is nil)
+// to the *Event context.
 func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 	if e == nil {
 		return e
 	}
+	e.buf = enc.AppendStringer(enc.AppendKey(e.buf, key), val)
+	return e
+}
 
-	if val != nil {
-		e.buf = enc.AppendString(enc.AppendKey(e.buf, key), val.String())
+// Stringers adds the field key with vals where each individual val
+// is used as val.String() (or null if val is empty) to the *Event
+// context.
+func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
+	if e == nil {
 		return e
 	}
-
-	e.buf = enc.AppendInterface(enc.AppendKey(e.buf, key), nil)
+	e.buf = enc.AppendStringers(enc.AppendKey(e.buf, key), vals)
 	return e
 }
 
