@@ -12,6 +12,14 @@ type LevelWriter interface {
 	WriteLevel(level Level, p []byte) (n int, err error)
 }
 
+// ErrorWriter defines an optional interface: If it's satisfied, any
+// errors stored within the event will be passed along in a call to
+// WriteErrors() in order to facilitate e.g. persistence via an
+// external error tracker.
+type ErrorWriter interface {
+	WriteErrors(level Level, errs []error)
+}
+
 type levelWriterAdapter struct {
 	io.Writer
 }

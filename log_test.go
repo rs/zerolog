@@ -943,3 +943,122 @@ func TestParseLevel(t *testing.T) {
 		})
 	}
 }
+
+type errorWriter struct {
+	levelWriter
+
+	errs []error
+}
+
+func (e *errorWriter) WriteErrors(l Level, errs []error) {
+	e.errs = append(e.errs, errs...)
+}
+
+func TestErrorWriter(t *testing.T) {
+	w := &errorWriter{}
+	log := New(w)
+
+	errs := []error{
+		errors.New("foo"),
+		errors.New("bar"),
+	}
+
+	tests := []struct {
+		name     string
+		setup    func() *Event
+		wantErrs []error
+	}{
+		{
+			"log.Err",
+			func() *Event { return log.Err(errs[0]) },
+			[]error{errs[0]},
+		},
+		{
+			"log.Info().AnErr",
+			func() *Event { return log.Info().AnErr("foo", errs[1]) },
+			[]error{errs[1]},
+		},
+		{
+			"log.Info().Errs",
+			func() *Event { return log.Info().Errs("err", []error{errs[0], errs[1]}) },
+			[]error{errs[0], errs[1]},
+		},
+		{
+			"log.With().Err",
+			func() *Event {
+				log := log.With().Err(errs[0]).Logger()
+				return log.Info()
+			},
+			[]error{errs[0]},
+		},
+		{
+			"log.With().Errs",
+			func() *Event {
+				log := log.With().Errs("err", []error{errs[0], errs[1]}).Logger()
+				return log.Info()
+			},
+			[]error{errs[0], errs[1]},
+		},
+		{
+			"log.With().AnErr",
+			func() *Event {
+				log := log.With().AnErr("err", errs[0]).Logger()
+				return log.Info()
+			},
+			[]error{errs[0]},
+		},
+		{
+			"log.With().Err + AnErr",
+			func() *Event {
+				log := log.With().Err(errs[0]).Logger()
+				return log.Info().AnErr("other_err", errs[1])
+			},
+			[]error{errs[0], errs[1]},
+		},
+		{
+			"log.Err + Arr.Err",
+			func() *Event {
+				return log.Err(errs[0]).Array("other_errs", Arr().Err(errs[1]))
+			},
+			[]error{errs[0], errs[1]},
+		},
+		{
+			"log.With().Err + Output",
+			func() *Event {
+				log := log.With().Err(errs[0]).Logger()
+				log = log.Output(w)
+				return log.Info()
+			},
+			[]error{errs[0]},
+		},
+		{
+			"log.With().Array + Info().Err",
+			func() *Event {
+				log := log.With().Array("other_ers", Arr().Err(errs[0])).Logger()
+				return log.Info().Err(errs[1])
+			},
+			[]error{errs[0], errs[1]},
+		},
+		{
+			"log.Info().Dict",
+			func() *Event {
+				d := Dict().Err(errs[0])
+				return log.Info().Dict("foo", d)
+			},
+			[]error{errs[0]},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w.errs = nil
+
+			e := tt.setup()
+			e.Msg("dispatch")
+
+			if !reflect.DeepEqual(w.errs, tt.wantErrs) {
+				t.Errorf("invalid errs:\ngot:  %v\nwant: %v", w.errs, tt.wantErrs)
+			}
+		})
+	}
+}

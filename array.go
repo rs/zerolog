@@ -17,7 +17,8 @@ var arrayPool = &sync.Pool{
 // Array is used to prepopulate an array of items
 // which can be re-used to add to log messages.
 type Array struct {
-	buf []byte
+	buf  []byte
+	errs []error
 }
 
 func putArray(a *Array) {
@@ -38,6 +39,7 @@ func putArray(a *Array) {
 func Arr() *Array {
 	a := arrayPool.Get().(*Array)
 	a.buf = a.buf[:0]
+	a.errs = a.errs[:0]
 	return a
 }
 
@@ -93,6 +95,10 @@ func (a *Array) RawJSON(val []byte) *Array {
 
 // Err serializes and appends the err to the array.
 func (a *Array) Err(err error) *Array {
+	if err != nil {
+		a.errs = append(a.errs, err)
+	}
+
 	switch m := ErrorMarshalFunc(err).(type) {
 	case LogObjectMarshaler:
 		e := newEvent(nil, 0)

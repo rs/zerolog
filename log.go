@@ -201,6 +201,7 @@ type Logger struct {
 	context []byte
 	hooks   []Hook
 	stack   bool
+	errs    []error
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -238,6 +239,9 @@ func (l Logger) Output(w io.Writer) Logger {
 	if l.context != nil {
 		l2.context = make([]byte, len(l.context), cap(l.context))
 		copy(l2.context, l.context)
+	}
+	if len(l.errs) > 0 {
+		l2.errs = append(l2.errs, l.errs...)
 	}
 	return l2
 }
@@ -441,6 +445,9 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	}
 	if l.stack {
 		e.Stack()
+	}
+	if l.errs != nil {
+		e.errs = append(e.errs, l.errs...)
 	}
 	return e
 }

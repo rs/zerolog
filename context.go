@@ -40,6 +40,9 @@ func (c Context) Dict(key string, dict *Event) Context {
 func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 	c.l.context = enc.AppendKey(c.l.context, key)
 	if arr, ok := arr.(*Array); ok {
+		if len(arr.errs) > 0 {
+			c.l.errs = append(c.l.errs, arr.errs...)
+		}
 		c.l.context = arr.write(c.l.context)
 		return c
 	}
@@ -118,6 +121,10 @@ func (c Context) RawJSON(key string, b []byte) Context {
 
 // AnErr adds the field key with serialized err to the logger context.
 func (c Context) AnErr(key string, err error) Context {
+	if err != nil {
+		c.l.errs = append(c.l.errs, err)
+	}
+
 	switch m := ErrorMarshalFunc(err).(type) {
 	case nil:
 		return c
@@ -140,6 +147,7 @@ func (c Context) AnErr(key string, err error) Context {
 // logger context.
 func (c Context) Errs(key string, errs []error) Context {
 	arr := Arr()
+	c.l.errs = append(c.l.errs, errs...)
 	for _, err := range errs {
 		switch m := ErrorMarshalFunc(err).(type) {
 		case LogObjectMarshaler:

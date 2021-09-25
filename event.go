@@ -27,6 +27,7 @@ type Event struct {
 	stack     bool   // enable error stack trace
 	ch        []Hook // hooks from context
 	skipFrame int    // The number of additional frames to skip when printing the caller.
+	errs      []error
 }
 
 func putEvent(e *Event) {
@@ -64,6 +65,7 @@ func newEvent(w LevelWriter, level Level) *Event {
 	e.level = level
 	e.stack = false
 	e.skipFrame = 0
+	e.errs = e.errs[:0]
 	return e
 }
 
@@ -76,6 +78,9 @@ func (e *Event) write() (err error) {
 		e.buf = enc.AppendLineBreak(e.buf)
 		if e.w != nil {
 			_, err = e.w.WriteLevel(e.level, e.buf)
+			if w, ok := e.w.(ErrorWriter); ok {
+				w.WriteErrors(e.level, e.errs)
+			}
 		}
 	}
 	putEvent(e)
@@ -167,6 +172,10 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	}
 	dict.buf = enc.AppendEndMarker(dict.buf)
 	e.buf = append(enc.AppendKey(e.buf, key), dict.buf...)
+	if len(dict.errs) > 0 {
+		e.errs = append(e.errs, dict.errs...)
+	}
+
 	putEvent(dict)
 	return e
 }
@@ -185,9 +194,14 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 	if e == nil {
 		return e
 	}
+
 	e.buf = enc.AppendKey(e.buf, key)
 	var a *Array
 	if aa, ok := arr.(*Array); ok {
+		if len(aa.errs) > 0 {
+			e.errs = append(e.errs, aa.errs...)
+		}
+
 		a = aa
 	} else {
 		a = Arr()
@@ -317,6 +331,11 @@ func (e *Event) AnErr(key string, err error) *Event {
 	if e == nil {
 		return e
 	}
+
+	if err != nil {
+		e.errs = append(e.errs, err)
+	}
+
 	switch m := ErrorMarshalFunc(err).(type) {
 	case nil:
 		return e
@@ -342,6 +361,7 @@ func (e *Event) Errs(key string, errs []error) *Event {
 		return e
 	}
 	arr := Arr()
+	e.errs = append(e.errs, errs...)
 	for _, err := range errs {
 		switch m := ErrorMarshalFunc(err).(type) {
 		case LogObjectMarshaler:
@@ -354,6 +374,9 @@ func (e *Event) Errs(key string, errs []error) *Event {
 			arr = arr.Interface(m)
 		}
 	}
+
+	// Avoid duplicating errors
+	arr.errs = arr.errs[:0]
 
 	return e.Array(key, arr)
 }
