@@ -617,7 +617,7 @@ with zerolog library is [CSD](https://github.com/toravir/csd/).
 
 * [grpc-zerolog](https://github.com/cheapRoc/grpc-zerolog): Implementation of `grpclog.LoggerV2` interface using `zerolog`
 * [overlog](https://github.com/Trendyol/overlog): Implementation of `Mapped Diagnostic Context` interface using `zerolog`
-* [zerologr](https://github.com/screenleap/zerologr): Implementation of `logr.LogSink` interface using `zerolog`
+* [zerologr](https://github.com/go-logr/zerologr): Implementation of `logr.LogSink` interface using `zerolog`
 
 ## Benchmarks
 
