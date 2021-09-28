@@ -398,7 +398,7 @@ func consoleDefaultFormatFieldValue(i interface{}) string {
 
 func consoleDefaultFormatErrFieldName(noColor bool) Formatter {
 	return func(i interface{}) string {
-		return colorize(fmt.Sprintf("%s=", i), colorRed, noColor)
+		return colorize(fmt.Sprintf("%s=", i), colorCyan, noColor)
 	}
 }
 
