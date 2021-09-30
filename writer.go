@@ -1,8 +1,14 @@
 package zerolog
 
 import (
+	"bytes"
 	"io"
+	"path"
+	"runtime"
+	"strconv"
+	"strings"
 	"sync"
+	"testing"
 )
 
 // LevelWriter defines as interface a writer may implement in order
@@ -95,4 +101,46 @@ func MultiLevelWriter(writers ...io.Writer) LevelWriter {
 		}
 	}
 	return multiLevelWriter{lwriters}
+}
+
+// TestWriter is a writer that writes to testing.TB.
+type TestWriter struct {
+	TB testing.TB
+
+	// Frame skips caller frames to capture the original file and line numbers.
+	Frame int
+}
+
+// NewTestWriter creates a writer that logs to the testing.TB.
+func NewTestWriter(t testing.TB) TestWriter {
+	return TestWriter{TB: t, Frame: 1}
+}
+
+// Write to testing.TB.
+func (t TestWriter) Write(p []byte) (n int, err error) {
+	n = len(p)
+
+	// Strip trailing newline because t.Log always adds one.
+	p = bytes.TrimRight(p, "\n")
+
+	// Try to correct the log file and line number to the caller.
+	if t.Frame > 0 {
+		_, origFile, origLine, _ := runtime.Caller(0)
+		_, frameFile, frameLine, ok := runtime.Caller(t.Frame)
+		if ok {
+			erase := strings.Repeat("\b", len(path.Base(origFile))+len(strconv.Itoa(origLine))+3)
+			t.TB.Logf("%s%s:%d: %s", erase, path.Base(frameFile), frameLine, p)
+			return n, err
+		}
+	}
+	t.TB.Logf("%s", p)
+
+	return n, err
+}
+
+// ConsoleTestWriter creates an option that correctly sets the file frame depth for testing.TB log.
+func ConsoleTestWriter(t testing.TB) func(w *ConsoleWriter) {
+	return func(w *ConsoleWriter) {
+		w.Out = TestWriter{TB: t, Frame: 7}
+	}
 }
