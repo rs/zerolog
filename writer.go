@@ -103,17 +103,23 @@ func MultiLevelWriter(writers ...io.Writer) LevelWriter {
 	return multiLevelWriter{lwriters}
 }
 
+// TestingLog is the logging interface of testing.TB.
+type TestingLog interface {
+	Log(args ...interface{})
+	Logf(format string, args ...interface{})
+}
+
 // TestWriter is a writer that writes to testing.TB.
 type TestWriter struct {
-	TB testing.TB
+	T TestingLog
 
 	// Frame skips caller frames to capture the original file and line numbers.
 	Frame int
 }
 
 // NewTestWriter creates a writer that logs to the testing.TB.
-func NewTestWriter(t testing.TB) TestWriter {
-	return TestWriter{TB: t, Frame: 1}
+func NewTestWriter(t TestingLog) TestWriter {
+	return TestWriter{T: t, Frame: 1}
 }
 
 // Write to testing.TB.
@@ -129,11 +135,11 @@ func (t TestWriter) Write(p []byte) (n int, err error) {
 		_, frameFile, frameLine, ok := runtime.Caller(t.Frame)
 		if ok {
 			erase := strings.Repeat("\b", len(path.Base(origFile))+len(strconv.Itoa(origLine))+3)
-			t.TB.Logf("%s%s:%d: %s", erase, path.Base(frameFile), frameLine, p)
+			t.T.Logf("%s%s:%d: %s", erase, path.Base(frameFile), frameLine, p)
 			return n, err
 		}
 	}
-	t.TB.Logf("%s", p)
+	t.T.Log(string(p))
 
 	return n, err
 }
@@ -141,6 +147,6 @@ func (t TestWriter) Write(p []byte) (n int, err error) {
 // ConsoleTestWriter creates an option that correctly sets the file frame depth for testing.TB log.
 func ConsoleTestWriter(t testing.TB) func(w *ConsoleWriter) {
 	return func(w *ConsoleWriter) {
-		w.Out = TestWriter{TB: t, Frame: 7}
+		w.Out = TestWriter{T: t, Frame: 7}
 	}
 }

@@ -114,18 +114,18 @@ func TestResilientMultiWriter(t *testing.T) {
 	}
 }
 
-type tb struct {
+type testingLog struct {
 	testing.TB
 	buf bytes.Buffer
 }
 
-func (t *tb) Log(args ...interface{}) {
-	if _, err := t.buf.WriteString(fmt.Sprintln(args...)); err != nil {
+func (t *testingLog) Log(args ...interface{}) {
+	if _, err := t.buf.WriteString(fmt.Sprint(args...)); err != nil {
 		t.Error(err)
 	}
 }
 
-func (t *tb) Logf(format string, args ...interface{}) {
+func (t *testingLog) Logf(format string, args ...interface{}) {
 	if _, err := t.buf.WriteString(fmt.Sprintf(format, args...)); err != nil {
 		t.Error(err)
 	}
@@ -152,8 +152,8 @@ func TestTestWriter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tb := &tb{TB: t} // Capture TB log buffer.
-			w := TestWriter{TB: tb}
+			tb := &testingLog{TB: t} // Capture TB log buffer.
+			w := TestWriter{T: tb}
 
 			n, err := w.Write(tt.write)
 			if err != nil {
