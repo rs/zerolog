@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"testing"
 )
 
 // LevelWriter defines as interface a writer may implement in order
@@ -148,7 +147,7 @@ func (t TestWriter) Write(p []byte) (n int, err error) {
 }
 
 // ConsoleTestWriter creates an option that correctly sets the file frame depth for testing.TB log.
-func ConsoleTestWriter(t testing.TB) func(w *ConsoleWriter) {
+func ConsoleTestWriter(t TestingLog) func(w *ConsoleWriter) {
 	return func(w *ConsoleWriter) {
 		w.Out = TestWriter{T: t, Frame: 6}
 	}
