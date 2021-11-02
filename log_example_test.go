@@ -238,11 +238,15 @@ func ExampleEvent_Array() {
 		Str("foo", "bar").
 		Array("array", zerolog.Arr().
 			Str("baz").
-			Int(1),
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("bar", "baz").
+				Int("n", 1),
+			),
 		).
 		Msg("hello world")
 
-	// Output: {"foo":"bar","array":["baz",1],"message":"hello world"}
+	// Output: {"foo":"bar","array":["baz",1,{"bar":"baz","n":1}],"message":"hello world"}
 }
 
 func ExampleEvent_Array_object() {
