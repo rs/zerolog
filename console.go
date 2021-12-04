@@ -109,6 +109,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 
 	for _, p := range w.PartsOrder {
 		w.writePart(buf, evt, p)
+		delete(evt, p)
 	}
 
 	w.writeFields(evt, buf)
