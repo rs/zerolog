@@ -475,6 +475,29 @@ log.Ctx(ctx).Info().Msg("hello world")
 // Output: {"component":"module","level":"info","message":"hello world"}
 ```
 
+### Use default logger from context
+
+If one try to get logger from context that has not logger within it the default, disabled logger will be returned
+```go
+ctx := context.Background()
+
+log.Ctx(ctx).Info().Msg("hello world")
+
+// No output by default!
+```
+You can easily substitute default logger with your own instance
+```go
+logger := log.With().Str("component", "module").Logger()
+
+zerolog.DefaultLogger = &logger 
+
+ctx := context.Background()
+
+log.Ctx(ctx).Info().Msg("hello world")
+
+// Output: {"component": "module", "level": "info", "message": "hello world"}
+```
+
 ### Set as standard logger output
 
 ```go

@@ -4,12 +4,15 @@ import (
 	"context"
 )
 
-var disabledLogger *Logger
+// DefaultLogger is used if user tries to get Logger from context.Context that has not Logger within it
+// By default it is disabled, meaning it logs nothing at all,
+// but it can be easily substituted by custom instance with different behavior.
+var DefaultLogger *Logger
 
 func init() {
 	SetGlobalLevel(TraceLevel)
 	l := Nop()
-	disabledLogger = &l
+	DefaultLogger = &l
 }
 
 type ctxKey struct{}
@@ -47,5 +50,5 @@ func Ctx(ctx context.Context) *Logger {
 	} else if l = DefaultContextLogger; l != nil {
 		return l
 	}
-	return disabledLogger
+	return DefaultLogger
 }

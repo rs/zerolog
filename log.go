@@ -260,7 +260,7 @@ func (l Logger) With() Context {
 //
 // Use this method with caution. If unsure, prefer the With method.
 func (l *Logger) UpdateContext(update func(c Context) Context) {
-	if l == disabledLogger {
+	if l == DefaultLogger {
 		return
 	}
 	if cap(l.context) == 0 {

@@ -24,7 +24,7 @@ func TestCtx(t *testing.T) {
 	}
 
 	log2 = Ctx(context.Background())
-	if log2 != disabledLogger {
+	if log2 != DefaultLogger || log2.level != Disabled {
 		t.Error("Ctx did not return the expected logger")
 	}
 
@@ -65,6 +65,14 @@ func TestCtxDisabled(t *testing.T) {
 
 	ctx = dl.WithContext(ctx)
 	if Ctx(ctx) != &dl {
-		t.Error("WithContext did not overide logger with a disabled logger")
+		t.Error("WithContext did not override logger with a disabled logger")
+	}
+}
+
+func TestCtxCustomDefault(t *testing.T) {
+	logger := New(ioutil.Discard).With().Str("custom_field", "custom_value").Logger()
+	DefaultLogger = &logger
+	if Ctx(context.Background()) != &logger {
+		t.Error("default logger has not been substituted")
 	}
 }
