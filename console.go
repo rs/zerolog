@@ -85,6 +85,7 @@ func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 		opt(&w)
 	}
 
+	// Fix color on Windows
 	if w.Out == os.Stdout || w.Out == os.Stderr {
 		w.Out = colorable.NewColorable(w.Out.(*os.File))
 	}
@@ -94,6 +95,11 @@ func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 
 // Write transforms the JSON input with formatters and appends to w.Out.
 func (w ConsoleWriter) Write(p []byte) (n int, err error) {
+	// Fix color on Windows
+	if w.Out == os.Stdout || w.Out == os.Stderr {
+		w.Out = colorable.NewColorable(w.Out.(*os.File))
+	}
+
 	if w.PartsOrder == nil {
 		w.PartsOrder = consoleDefaultPartsOrder()
 	}
