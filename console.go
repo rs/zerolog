@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mattn/go-colorable"
 )
 
 const (
@@ -81,6 +83,10 @@ func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 
 	for _, opt := range options {
 		opt(&w)
+	}
+
+	if w.Out == os.Stdout || w.Out == os.Stderr {
+		w.Out = colorable.NewColorable(w.Out.(*os.File))
 	}
 
 	return w
