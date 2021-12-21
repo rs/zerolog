@@ -460,7 +460,7 @@ func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
 	return e.AppendUint8(dst, uint8(maskLen))
 }
 
-// AppendMACAddr encodes and inserts an Hardware (MAC) address.
+// AppendMACAddr encodes and inserts a Hardware (MAC) address.
 func (e Encoder) AppendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
 	dst = append(dst, majorTypeTags|additionalTypeIntUint16)
 	dst = append(dst, byte(additionalTypeTagNetworkAddr>>8))

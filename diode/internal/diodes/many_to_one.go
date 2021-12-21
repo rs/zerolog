@@ -66,7 +66,7 @@ func (d *ManyToOne) Set(data GenericDataType) {
 }
 
 // TryNext will attempt to read from the next slot of the ring buffer.
-// If there is not data available, it will return (nil, false).
+// If there is no data available, it will return (nil, false).
 func (d *ManyToOne) TryNext() (data GenericDataType, ok bool) {
 	// Read a value from the ring buffer based on the readIndex.
 	idx := d.readIndex % uint64(len(d.buffer))
@@ -80,7 +80,7 @@ func (d *ManyToOne) TryNext() (data GenericDataType, ok bool) {
 	}
 
 	// When the seq value is less than the current read index that means a
-	// value was read from idx that was previously written but has since has
+	// value was read from idx that was previously written but since has
 	// been dropped. This value must be ignored and the read head must not
 	// increment.
 	//

@@ -238,7 +238,7 @@ func decodeUTF8String(src *bufio.Reader) []byte {
 			return append(dst, '"')
 		}
 	}
-	// The string has no need for encoding an therefore is directly
+	// The string has no need for encoding and therefore is directly
 	// appended to the byte slice.
 	result = append(result, pbs...)
 	return append(result, '"')

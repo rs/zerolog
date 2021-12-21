@@ -300,7 +300,7 @@ func (Encoder) AppendUints64(dst []byte, vals []uint64) []byte {
 
 func appendFloat(dst []byte, val float64, bitSize int) []byte {
 	// JSON does not permit NaN or Infinity. A typical JSON encoder would fail
-	// with an error, but a logging library wants the data to get thru so we
+	// with an error, but a logging library wants the data to get through so we
 	// make a tradeoff and store those types as string.
 	switch {
 	case math.IsNaN(val):

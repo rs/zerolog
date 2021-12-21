@@ -80,7 +80,7 @@ func (d *OneToOne) TryNext() (data GenericDataType, ok bool) {
 	}
 
 	// When the seq value is less than the current read index that means a
-	// value was read from idx that was previously written but has since has
+	// value was read from idx that was previously written but since has
 	// been dropped. This value must be ignored and the read head must not
 	// increment.
 	//
