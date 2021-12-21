@@ -24,18 +24,18 @@ type PollerConfigOption func(*Poller)
 // WithPollingInterval sets the interval at which the diode is queried
 // for new data. The default is 10ms.
 func WithPollingInterval(interval time.Duration) PollerConfigOption {
-	return PollerConfigOption(func(c *Poller) {
+	return func(c *Poller) {
 		c.interval = interval
-	})
+	}
 }
 
 // WithPollingContext sets the context to cancel any retrieval (Next()). It
 // will not change any results for adding data (Set()). Default is
 // context.Background().
 func WithPollingContext(ctx context.Context) PollerConfigOption {
-	return PollerConfigOption(func(c *Poller) {
+	return func(c *Poller) {
 		c.ctx = ctx
-	})
+	}
 }
 
 // NewPoller returns a new Poller that wraps the given diode.

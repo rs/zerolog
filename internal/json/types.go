@@ -278,7 +278,7 @@ func (Encoder) AppendUints32(dst []byte, vals []uint32) []byte {
 // AppendUint64 converts the input uint64 to a string and
 // appends the encoded string to the input byte slice.
 func (Encoder) AppendUint64(dst []byte, val uint64) []byte {
-	return strconv.AppendUint(dst, uint64(val), 10)
+	return strconv.AppendUint(dst, val, 10)
 }
 
 // AppendUints64 encodes the input uint64s to json and

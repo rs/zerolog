@@ -91,7 +91,8 @@ func appendCborTypePrefix(dst []byte, major byte, number uint64) []byte {
 		minor = additionalTypeIntUint64
 
 	}
-	dst = append(dst, byte(major|minor))
+
+	dst = append(dst, major|minor)
 	byteCount--
 	for ; byteCount >= 0; byteCount-- {
 		dst = append(dst, byte(number>>(uint(byteCount)*8)))

@@ -266,7 +266,7 @@ func array2Json(src *bufio.Reader, dst io.Writer) {
 			if e != nil {
 				panic(e)
 			}
-			if pb[0] == byte(majorTypeSimpleAndFloat|additionalTypeBreak) {
+			if pb[0] == majorTypeSimpleAndFloat|additionalTypeBreak {
 				readByte(src)
 				break
 			}
@@ -277,7 +277,7 @@ func array2Json(src *bufio.Reader, dst io.Writer) {
 			if e != nil {
 				panic(e)
 			}
-			if pb[0] == byte(majorTypeSimpleAndFloat|additionalTypeBreak) {
+			if pb[0] == majorTypeSimpleAndFloat|additionalTypeBreak {
 				readByte(src)
 				break
 			}
@@ -311,7 +311,7 @@ func map2Json(src *bufio.Reader, dst io.Writer) {
 			if e != nil {
 				panic(e)
 			}
-			if pb[0] == byte(majorTypeSimpleAndFloat|additionalTypeBreak) {
+			if pb[0] == majorTypeSimpleAndFloat|additionalTypeBreak {
 				readByte(src)
 				break
 			}
@@ -326,7 +326,7 @@ func map2Json(src *bufio.Reader, dst io.Writer) {
 				if e != nil {
 					panic(e)
 				}
-				if pb[0] == byte(majorTypeSimpleAndFloat|additionalTypeBreak) {
+				if pb[0] == majorTypeSimpleAndFloat|additionalTypeBreak {
 					readByte(src)
 					break
 				}
@@ -383,7 +383,7 @@ func decodeTagData(src *bufio.Reader) []byte {
 
 		case additionalTypeTagNetworkPrefix:
 			pb := readByte(src)
-			if pb != byte(majorTypeMap|0x1) {
+			if pb != majorTypeMap|0x1 {
 				panic(fmt.Errorf("IP Prefix is NOT of MAP of 1 elements as expected"))
 			}
 			octets := decodeString(src, true)

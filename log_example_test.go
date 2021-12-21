@@ -311,7 +311,7 @@ func ExampleEvent_Interface() {
 }
 
 func ExampleEvent_Dur() {
-	d := time.Duration(10 * time.Second)
+	d := 10 * time.Second
 
 	log := zerolog.New(os.Stdout)
 
@@ -325,8 +325,8 @@ func ExampleEvent_Dur() {
 
 func ExampleEvent_Durs() {
 	d := []time.Duration{
-		time.Duration(10 * time.Second),
-		time.Duration(20 * time.Second),
+		10 * time.Second,
+		20 * time.Second,
 	}
 
 	log := zerolog.New(os.Stdout)
@@ -460,7 +460,7 @@ func ExampleContext_Interface() {
 }
 
 func ExampleContext_Dur() {
-	d := time.Duration(10 * time.Second)
+	d := 10 * time.Second
 
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
@@ -474,8 +474,8 @@ func ExampleContext_Dur() {
 
 func ExampleContext_Durs() {
 	d := []time.Duration{
-		time.Duration(10 * time.Second),
-		time.Duration(20 * time.Second),
+		10 * time.Second,
+		20 * time.Second,
 	}
 
 	log := zerolog.New(os.Stdout).With().
