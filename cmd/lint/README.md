@@ -27,7 +27,7 @@ The command accepts only one argument - the package to be inspected - and 4 opti
 - ignoreFile
     - which files to ignore, either by full path or by go path (package/file.go)
 - ignorePkg
-    - do not inspect the specified package if found in the dependecy tree
+    - do not inspect the specified package if found in the dependency tree
 - ignorePkgRecursively
     - do not inspect the specified package or its subpackages if found in the dependency tree
 

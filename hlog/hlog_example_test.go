@@ -48,8 +48,8 @@ func Example_handler() {
 	// Install the logger handler with default output on the console
 	c = c.Append(hlog.NewHandler(log))
 
-	// Install some provided extra handler to set some request's context fields.
-	// Thanks to those handler, all our logs will come with some pre-populated fields.
+	// Install some provided extra handlers to set some request's context fields.
+	// Thanks to those handlers, all our logs will come with some pre-populated fields.
 	c = c.Append(hlog.RemoteAddrHandler("ip"))
 	c = c.Append(hlog.UserAgentHandler("user_agent"))
 	c = c.Append(hlog.RefererHandler("referer"))
@@ -63,11 +63,11 @@ func Example_handler() {
 		hlog.FromRequest(r).Info().
 			Str("user", "current user").
 			Str("status", "ok").
-			Msg("Something happend")
+			Msg("Something happened")
 	}))
 	http.Handle("/", h)
 
 	h.ServeHTTP(httptest.NewRecorder(), &http.Request{})
 
-	// Output: {"level":"info","role":"my-service","host":"local-hostname","user":"current user","status":"ok","time":"2001-02-03T04:05:06Z","message":"Something happend"}
+	// Output: {"level":"info","role":"my-service","host":"local-hostname","user":"current user","status":"ok","time":"2001-02-03T04:05:06Z","message":"Something happened"}
 }

@@ -409,7 +409,7 @@ log.Info().Msg("hello world")
 
 ### Thread-safe, lock-free, non-blocking writer
 
-If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follow:
+If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follows:
 
 ```go
 wr := diode.NewWriter(os.Stdout, 1000, 10*time.Millisecond, func(missed int) {
@@ -564,7 +564,7 @@ func main() {
 
 ## Global Settings
 
-Some settings can be changed and will by applied to all loggers:
+Some settings can be changed and will be applied to all loggers:
 
 * `log.Logger`: You can set this value to customize the global logger (the one used by package level methods).
 * `zerolog.SetGlobalLevel`: Can raise the minimum level of all loggers. Call this with `zerolog.Disabled` to disable logging altogether (quiet mode).
