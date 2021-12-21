@@ -510,7 +510,7 @@ func ExampleContext_IPPrefix() {
 	// Output: {"Route":"192.168.0.0/24","message":"hello world"}
 }
 
-func ExampleContext_MacAddr() {
+func ExampleContext_MACAddr() {
 	mac := net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45}
 	log := zerolog.New(os.Stdout).With().
 		MACAddr("hostMAC", mac).

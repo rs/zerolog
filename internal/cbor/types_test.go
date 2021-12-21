@@ -115,7 +115,6 @@ var integerTestCases = []struct {
 	{-0x10001, "\x3a\x00\x01\x00\x00"},
 	{-0x7FFFFFFE, "\x3a\x7f\xff\xff\xfd"},
 	{-1000000, "\x3a\x00\x0f\x42\x3f"},
-
 }
 
 func TestAppendInt(t *testing.T) {
@@ -212,7 +211,7 @@ var macAddrTestCases = []struct {
 	{net.HardwareAddr{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3}, "\"20:01:0d:b8:85:a3\"", "\xd9\x01\x04\x46\x20\x01\x0d\xb8\x85\xa3"},
 }
 
-func TestAppendMacAddr(t *testing.T) {
+func TestAppendMACAddr(t *testing.T) {
 	for _, tc := range macAddrTestCases {
 		s := enc.AppendMACAddr([]byte{}, tc.macaddr)
 		got := string(s)
