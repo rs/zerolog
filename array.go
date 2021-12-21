@@ -49,7 +49,7 @@ func (*Array) MarshalZerologArray(*Array) {
 func (a *Array) write(dst []byte) []byte {
 	dst = enc.AppendArrayStart(dst)
 	if len(a.buf) > 0 {
-		dst = append(append(dst, a.buf...))
+		dst = append(dst, a.buf...)
 	}
 	dst = enc.AppendArrayEnd(dst)
 	putArray(a)
