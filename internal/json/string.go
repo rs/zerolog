@@ -99,7 +99,7 @@ func appendStringComplex(dst []byte, s string, i int) []byte {
 			r, size := utf8.DecodeRuneInString(s[i:])
 			if r == utf8.RuneError && size == 1 {
 				// In case of error, first append previous simple characters to
-				// the byte slice if any and append a remplacement character code
+				// the byte slice if any and append a replacement character code
 				// in place of the invalid sequence.
 				if start < i {
 					dst = append(dst, s[start:i]...)

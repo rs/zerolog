@@ -63,11 +63,11 @@ func Example_handler() {
 		hlog.FromRequest(r).Info().
 			Str("user", "current user").
 			Str("status", "ok").
-			Msg("Something happend")
+			Msg("Something happened")
 	}))
 	http.Handle("/", h)
 
 	h.ServeHTTP(httptest.NewRecorder(), &http.Request{})
 
-	// Output: {"level":"info","role":"my-service","host":"local-hostname","user":"current user","status":"ok","time":"2001-02-03T04:05:06Z","message":"Something happend"}
+	// Output: {"level":"info","role":"my-service","host":"local-hostname","user":"current user","status":"ok","time":"2001-02-03T04:05:06Z","message":"Something happened"}
 }

@@ -16,7 +16,7 @@ type ManyToOne struct {
 }
 
 // NewManyToOne creates a new diode (ring buffer). The ManyToOne diode
-// is optimzed for many writers (on go-routines B-n) and a single reader
+// is optimized for many writers (on go-routines B-n) and a single reader
 // (on go-routine A). The alerter is invoked on the read's go-routine. It is
 // called when it notices that the writer go-routine has passed it and wrote
 // over data. A nil can be used to ignore alerts.

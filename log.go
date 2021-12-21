@@ -361,7 +361,7 @@ func (l *Logger) Panic() *Event {
 
 // WithLevel starts a new message with level. Unlike Fatal and Panic
 // methods, WithLevel does not terminate the program or stop the ordinary
-// flow of a gourotine when used with their respective levels.
+// flow of a goroutine when used with their respective levels.
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) WithLevel(level Level) *Event {
