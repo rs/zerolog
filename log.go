@@ -428,6 +428,9 @@ func (l Logger) Write(p []byte) (n int, err error) {
 func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	enabled := l.should(level)
 	if !enabled {
+		if done != nil {
+			done("")
+		}
 		return nil
 	}
 	e := newEvent(l.w, level)
