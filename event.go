@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -27,6 +28,7 @@ type Event struct {
 	stack     bool   // enable error stack trace
 	ch        []Hook // hooks from context
 	skipFrame int    // The number of additional frames to skip when printing the caller.
+	ctx       context.Context
 }
 
 func putEvent(e *Event) {
@@ -770,4 +772,23 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	}
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
 	return e
+}
+
+// WithContext adds a context to the event
+func (e *Event) WithContext(ctx context.Context) *Event {
+	if e == nil {
+		return e
+	}
+	e.ctx = ctx
+	return e
+}
+
+// Context returns the event context
+//
+// A nil event will return a background context
+func (e *Event) Context() context.Context {
+	if e == nil {
+		return context.Background()
+	}
+	return e.ctx
 }
