@@ -129,6 +129,13 @@ func (e *Event) Msgf(format string, v ...interface{}) {
 	e.msg(fmt.Sprintf(format, v...))
 }
 
+func (e *Event) MsgFunc(createMsg func() string) {
+	if e == nil {
+		return
+	}
+	e.msg(createMsg())
+}
+
 func (e *Event) msg(msg string) {
 	for _, hook := range e.ch {
 		hook.Run(e, e.level, msg)
