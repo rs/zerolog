@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 // Package journald provides a io.Writer to send the logs
@@ -69,11 +70,6 @@ func levelToJPrio(zLevel string) journal.Priority {
 }
 
 func (w journalWriter) Write(p []byte) (n int, err error) {
-	if !journal.Enabled() {
-		err = fmt.Errorf("cannot connect to journalD")
-		return
-	}
-
 	var event map[string]interface{}
 	origPLen := len(p)
 	p = cbor.DecodeIfBinaryToBytes(p)
@@ -81,7 +77,7 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 	d.UseNumber()
 	err = d.Decode(&event)
 	jPrio := defaultJournalDPrio
-	args := make(map[string]string, 0)
+	args := make(map[string]string)
 	if err != nil {
 		return
 	}
@@ -100,9 +96,9 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 			continue
 		}
 
-		switch value.(type) {
+		switch v := value.(type) {
 		case string:
-			args[jKey], _ = value.(string)
+			args[jKey] = v
 		case json.Number:
 			args[jKey] = fmt.Sprint(value)
 		default:
