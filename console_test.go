@@ -196,7 +196,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> DBG  foo=bar\n"
+		expectedOutput := "<nil> DBG foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
