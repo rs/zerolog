@@ -145,7 +145,8 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 	}
 	sort.Strings(fields)
 
-	if len(fields) > 0 {
+	// Write space only if something has already been written to the buffer, and if there are fields.
+	if buf.Len() > 0 && len(fields) > 0 {
 		buf.WriteByte(' ')
 	}
 
@@ -268,10 +269,10 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 	var s = f(evt[p])
 
 	if len(s) > 0 {
-		buf.WriteString(s)
-		if p != w.PartsOrder[len(w.PartsOrder)-1] { // Skip space for last part
-			buf.WriteByte(' ')
+		if buf.Len() > 0 {
+			buf.WriteByte(' ') // Write space only if not the first part
 		}
+		buf.WriteString(s)
 	}
 }
 
