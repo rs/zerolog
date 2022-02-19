@@ -102,7 +102,7 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 		case json.Number:
 			args[jKey] = fmt.Sprint(value)
 		default:
-			b, err := json.Marshal(value)
+			b, err := zerolog.InterfaceMarshalFunc(value)
 			if err != nil {
 				args[jKey] = fmt.Sprintf("[error: %v]", err)
 			} else {
