@@ -108,13 +108,14 @@ func TestConsoleWriter(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
 
-		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
+		ts := time.Unix(0, 0)
+		d := ts.UTC().Format(time.RFC3339)
 		_, err := w.Write([]byte(`{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar"}`))
 		if err != nil {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "12:00AM DBG Foobar foo=bar\n"
+		expectedOutput := ts.Format(time.Kitchen) + " DBG Foobar foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -136,7 +137,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "Jan  1 00:20:34.000 DBG Foobar foo=bar\n"
+		expectedOutput := time.Unix(1234, 0).Format(time.StampMilli) + " DBG Foobar foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -158,7 +159,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "Jan  1 00:20:34.567 DBG Foobar foo=bar\n"
+		expectedOutput := time.Unix(1234, 567000000).Format(time.StampMilli) + " DBG Foobar foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -180,7 +181,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "Jan  1 00:20:34.567891 DBG Foobar foo=bar\n"
+		expectedOutput := time.Unix(1234, 567891000).Format(time.StampMicro) + " DBG Foobar foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -239,7 +240,8 @@ func TestConsoleWriter(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
 
-		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
+		ts := time.Unix(0, 0)
+		d := ts.UTC().Format(time.RFC3339)
 		evt := `{"time": "` + d + `", "level": "error", "message": "Foobar", "aaa": "bbb", "error": "Error"}`
 		// t.Log(evt)
 
@@ -248,7 +250,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "12:00AM ERR Foobar error=Error aaa=bbb\n"
+		expectedOutput := ts.Format(time.Kitchen) + " ERR Foobar error=Error aaa=bbb\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -264,7 +266,8 @@ func TestConsoleWriter(t *testing.T) {
 			t.Fatalf("Cannot get working directory: %s", err)
 		}
 
-		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
+		ts := time.Unix(0, 0)
+		d := ts.UTC().Format(time.RFC3339)
 		evt := `{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar", "caller": "` + cwd + `/foo/bar.go"}`
 		// t.Log(evt)
 
@@ -273,7 +276,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "12:00AM DBG foo/bar.go > Foobar foo=bar\n"
+		expectedOutput := ts.Format(time.Kitchen) + " DBG foo/bar.go > Foobar foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -305,7 +308,8 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, TimeFormat: time.RFC3339}
 
-		d := time.Unix(0, 0).UTC().Format(time.RFC3339)
+		ts := time.Unix(0, 0)
+		d := ts.UTC().Format(time.RFC3339)
 		evt := `{"time": "` + d + `", "level": "info", "message": "Foobar"}`
 
 		_, err := w.Write([]byte(evt))
@@ -313,7 +317,7 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "1970-01-01T00:00:00Z INF Foobar\n"
+		expectedOutput := ts.Format(time.RFC3339) + " INF Foobar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
