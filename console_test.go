@@ -375,6 +375,29 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
 	})
+
+	t.Run("Sets FormatExtra", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out: buf, NoColor: true, PartsOrder: []string{"level", "message"},
+			FormatExtra: func(evt map[string]interface{}, buf *bytes.Buffer) error {
+				buf.WriteString("\nAdditional stacktrace")
+				return nil
+			},
+		}
+
+		evt := `{"level": "info", "message": "Foobar"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF Foobar\nAdditional stacktrace\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
 }
 
 func BenchmarkConsoleWriter(b *testing.B) {
