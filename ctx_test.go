@@ -45,7 +45,7 @@ func TestCtxDisabled(t *testing.T) {
 
 	l := New(ioutil.Discard).With().Str("foo", "bar").Logger()
 	ctx = l.WithContext(ctx)
-	if Ctx(ctx) != &l {
+	if !reflect.DeepEqual(Ctx(ctx), &l) {
 		t.Error("WithContext did not store logger")
 	}
 
@@ -53,18 +53,18 @@ func TestCtxDisabled(t *testing.T) {
 		return c.Str("bar", "baz")
 	})
 	ctx = l.WithContext(ctx)
-	if Ctx(ctx) != &l {
+	if !reflect.DeepEqual(Ctx(ctx), &l) {
 		t.Error("WithContext did not store updated logger")
 	}
 
 	l = l.Level(DebugLevel)
 	ctx = l.WithContext(ctx)
-	if Ctx(ctx) != &l {
+	if !reflect.DeepEqual(Ctx(ctx), &l) {
 		t.Error("WithContext did not store copied logger")
 	}
 
 	ctx = dl.WithContext(ctx)
-	if Ctx(ctx) != &dl {
+	if !reflect.DeepEqual(Ctx(ctx), &dl) {
 		t.Error("WithContext did not override logger with a disabled logger")
 	}
 }
