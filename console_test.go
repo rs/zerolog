@@ -354,6 +354,23 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
 	})
+
+	t.Run("Sets FieldsExclude", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, FieldsExclude: []string{"foo"}}
+
+		evt := `{"level": "info", "message": "Foobar", "foo":"bar", "baz":"quux"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "<nil> INF Foobar baz=quux\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
 }
 
 func BenchmarkConsoleWriter(b *testing.B) {

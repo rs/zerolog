@@ -63,6 +63,9 @@ type ConsoleWriter struct {
 	// PartsExclude defines parts to not display in output.
 	PartsExclude []string
 
+	// FieldsExclude defines contextual fields to not display in output.
+	FieldsExclude []string
+
 	FormatTimestamp     Formatter
 	FormatLevel         Formatter
 	FormatCaller        Formatter
@@ -137,6 +140,17 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
 	var fields = make([]string, 0, len(evt))
 	for field := range evt {
+		var isExcluded bool
+		for _, excluded := range w.FieldsExclude {
+			if field == excluded {
+				isExcluded = true
+				break
+			}
+		}
+		if isExcluded {
+			continue
+		}
+
 		switch field {
 		case LevelFieldName, TimestampFieldName, MessageFieldName, CallerFieldName:
 			continue
