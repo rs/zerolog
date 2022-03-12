@@ -399,6 +399,8 @@ log.Logger = log.With().Str("foo", "bar").Logger()
 
 ### Add file and line number to log
 
+Equivalent of `Llongfile`:
+
 ```go
 log.Logger = log.With().Caller().Logger()
 log.Info().Msg("hello world")
@@ -406,6 +408,25 @@ log.Info().Msg("hello world")
 // Output: {"level": "info", "message": "hello world", "caller": "/go/src/your_project/some_file:21"}
 ```
 
+Equivalent of `Lshortfile`:
+
+```go
+zerolog.CallerMarshalFunc = func(file string, line int) string {
+    short := file
+    for i := len(file) - 1; i > 0; i-- {
+        if file[i] == '/' {
+            short = file[i+1:]
+            break
+        }
+    }
+    file = short
+    return file + ":" + strconv.Itoa(line)
+}
+log.Logger = log.With().Caller().Logger()
+log.Info().Msg("hello world")
+
+// Output: {"level": "info", "message": "hello world", "caller": "some_file:21"}
+```
 
 ### Thread-safe, lock-free, non-blocking writer
 
@@ -560,7 +581,7 @@ func main() {
 // Output (Line 1: Console; Line 2: Stdout)
 // 12:36PM INF Hello World!
 // {"level":"info","time":"2019-11-07T12:36:38+03:00","message":"Hello World!"}
-``` 
+```
 
 ## Global Settings
 
