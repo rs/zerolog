@@ -175,6 +175,21 @@ func RequestIDHandler(fieldKey, headerName string) func(next http.Handler) http.
 	}
 }
 
+// CustomFieldHandler adds given key and value to the context's logger.
+func CustomFieldHandler(fieldKey, val string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if fieldKey != "" {
+				log := zerolog.Ctx(r.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, val)
+				})
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // CustomHeaderHandler adds given header from request's header as a field to
 // the context's logger using fieldKey as field key.
 func CustomHeaderHandler(fieldKey, header string) func(next http.Handler) http.Handler {

@@ -521,7 +521,7 @@ In this example we use [alice](https://github.com/justinas/alice) to install log
 log := zerolog.New(os.Stdout).With().
     Timestamp().
     Str("role", "my-service").
-    Str("host", host).
+    Str("host", "local-hostname").
     Logger()
 
 c := alice.New()
@@ -544,6 +544,7 @@ c = c.Append(hlog.RemoteAddrHandler("ip"))
 c = c.Append(hlog.UserAgentHandler("user_agent"))
 c = c.Append(hlog.RefererHandler("referer"))
 c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
+c = c.Append(hlog.CustomFieldHandler("custom_field", "abc"))
 
 // Here is your final handler
 h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -555,7 +556,7 @@ h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         Str("status", "ok").
         Msg("Something happened")
 
-    // Output: {"level":"info","time":"2001-02-03T04:05:06Z","role":"my-service","host":"local-hostname","req_id":"b4g0l5t6tfid6dtrapu0","user":"current user","status":"ok","message":"Something happened"}
+    // Output: {"level":"info","time":"2001-02-03T04:05:06Z","role":"my-service","host":"local-hostname","req_id":"b4g0l5t6tfid6dtrapu0","custom_field":"abc","user":"current user","status":"ok","message":"Something happened"}
 }))
 http.Handle("/", h)
 
@@ -567,6 +568,7 @@ if err := http.ListenAndServe(":8080", nil); err != nil {
 ## Multiple Log Output
 `zerolog.MultiLevelWriter` may be used to send the log message to multiple outputs. 
 In this example, we send the log message to both `os.Stdout` and the in-built ConsoleWriter.
+
 ```go
 func main() {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}

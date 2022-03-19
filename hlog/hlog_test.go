@@ -182,6 +182,20 @@ func TestRequestIDHandler(t *testing.T) {
 	h.ServeHTTP(httptest.NewRecorder(), r)
 }
 
+func TestCustomFieldHandler(t *testing.T) {
+	out := &bytes.Buffer{}
+	r := &http.Request{}
+	h := CustomFieldHandler("testField", "testValue")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := FromRequest(r)
+		l.Log().Msg("")
+	}))
+	h = NewHandler(zerolog.New(out))(h)
+	h.ServeHTTP(nil, r)
+	if want, got := `{"testField":"testValue"}`+"\n", decodeIfBinary(out); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
+}
+
 func TestCustomHeaderHandler(t *testing.T) {
 	out := &bytes.Buffer{}
 	r := &http.Request{

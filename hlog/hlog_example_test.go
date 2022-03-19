@@ -54,6 +54,7 @@ func Example_handler() {
 	c = c.Append(hlog.UserAgentHandler("user_agent"))
 	c = c.Append(hlog.RefererHandler("referer"))
 	//c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
+	c = c.Append(hlog.CustomFieldHandler("custom_field", "abc"))
 
 	// Here is your final handler
 	h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -69,5 +70,5 @@ func Example_handler() {
 
 	h.ServeHTTP(httptest.NewRecorder(), &http.Request{})
 
-	// Output: {"level":"info","role":"my-service","host":"local-hostname","user":"current user","status":"ok","time":"2001-02-03T04:05:06Z","message":"Something happened"}
+	// Output: {"level":"info","role":"my-service","host":"local-hostname","custom_field":"abc","user":"current user","status":"ok","time":"2001-02-03T04:05:06Z","message":"Something happened"}
 }
