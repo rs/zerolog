@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/yinyajun/zerolog"
+	"github.com/rs/zerolog"
 )
 
 func writeLog(fname string, count int, useCompress bool) {

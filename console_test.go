@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yinyajun/zerolog"
+	"github.com/rs/zerolog"
 )
 
 func ExampleConsoleWriter() {

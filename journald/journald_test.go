@@ -7,8 +7,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/yinyajun/zerolog"
-	"github.com/yinyajun/zerolog/journald"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/journald"
 )
 
 func ExampleNewJournalDWriter() {
