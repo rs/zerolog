@@ -338,6 +338,16 @@ func (c Context) Timestamp() Context {
 	return c
 }
 
+// TimestampPrefix adds the current local time as UNIX timestamp to the logger context with the "time" key.
+// To customize the key name, change zerolog.TimestampFieldName.
+//
+// NOTE: It won't dedupe the "time" key if the *Context has one already.
+// Comparing to Timestamp(), this function immediately add the "time" key
+func (c Context) TimestampPrefix() Context {
+	c.l.context = enc.AppendTime(enc.AppendKey(c.l.context, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
+	return c
+}
+
 // Time adds the field key with t formated as string using zerolog.TimeFieldFormat.
 func (c Context) Time(key string, t time.Time) Context {
 	c.l.context = enc.AppendTime(enc.AppendKey(c.l.context, key), t, TimeFieldFormat)
