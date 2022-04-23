@@ -371,11 +371,8 @@ func decodeTagData(src *bufio.Reader) []byte {
 			case 6: // MAC address.
 				ha := net.HardwareAddr(octets)
 				ss = append(append(ss, ha.String()...), '"')
-			case 4: // IPv4 address.
-				fallthrough
-			case 16: // IPv6 address.
-				ip := net.IP(octets)
-				ss = append(append(ss, ip.String()...), '"')
+			case 4, 16: // IPv4 or IPv6 address.
+				ss = append(append(ss, ipString(octets)...), '"')
 			default:
 				panic(fmt.Errorf("Unexpected Network Address length: %d (expected 4,6,16)", len(octets)))
 			}
@@ -388,17 +385,8 @@ func decodeTagData(src *bufio.Reader) []byte {
 			}
 			octets := decodeString(src, true)
 			val := decodeInteger(src)
-			ip := net.IP(octets)
-			var mask net.IPMask
-			pfxLen := int(val)
-			if len(octets) == 4 {
-				mask = net.CIDRMask(pfxLen, 32)
-			} else {
-				mask = net.CIDRMask(pfxLen, 128)
-			}
-			ipPfx := net.IPNet{IP: ip, Mask: mask}
 			ss := []byte{'"'}
-			ss = append(append(ss, ipPfx.String()...), '"')
+			ss = append(append(ss, ipPfxString(octets, int(val))...), '"')
 			return ss
 
 		case additionalTypeTagHexString:
