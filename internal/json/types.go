@@ -369,6 +369,11 @@ func (e Encoder) AppendInterface(dst []byte, i interface{}) []byte {
 	return append(dst, marshaled...)
 }
 
+// AppendType appends the parameter type (as a string) to the input byte slice.
+func (e Encoder) AppendType(dst []byte, i interface{}) []byte {
+	return e.AppendString(dst, fmt.Sprintf("%T", i))
+}
+
 // AppendObjectData takes in an object that is already in a byte array
 // and adds it to the dst.
 func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
