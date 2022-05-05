@@ -625,7 +625,7 @@ Most fields are also available in the slice format (`Strs` for `[]string`, `Errs
 
 ## Binary Encoding
 
-In addition to the default JSON encoding, `zerolog` can produce binary logs using [CBOR](http://cbor.io) encoding. The choice of encoding can be decided at compile time using the build tag `binary_log` as follows:
+In addition to the default JSON encoding, `zerolog` can produce binary logs using [CBOR](https://cbor.io) encoding. The choice of encoding can be decided at compile time using the build tag `binary_log` as follows:
 
 ```bash
 go build -tags binary_log .
