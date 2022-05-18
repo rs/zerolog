@@ -999,11 +999,11 @@ func TestUnmarshalTextLevel(t *testing.T) {
 			var l Level
 			err := l.UnmarshalText([]byte(tt.args.levelStr))
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseLevel() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("UnmarshalText() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if l != tt.want {
-				t.Errorf("ParseLevel() got = %v, want %v", l, tt.want)
+				t.Errorf("UnmarshalText() got = %v, want %v", l, tt.want)
 			}
 		})
 	}
