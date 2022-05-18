@@ -99,6 +99,7 @@
 package zerolog
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -187,6 +188,49 @@ func ParseLevel(levelStr string) (Level, error) {
 		return NoLevel, fmt.Errorf("Out-Of-Bounds Level: '%d', defaulting to NoLevel", i)
 	}
 	return Level(i), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler to allow for easy reading from toml/yaml/json formats
+func (l *Level) UnmarshalText(text []byte) error {
+	if l == nil {
+		return errors.New("can't unmarshal a nil *Level")
+	}
+	*l = NoLevel
+	switch string(text) {
+	case LevelFieldMarshalFunc(TraceLevel):
+		*l = TraceLevel
+	case LevelFieldMarshalFunc(DebugLevel):
+		*l = DebugLevel
+	case LevelFieldMarshalFunc(InfoLevel):
+		*l = InfoLevel
+	case LevelFieldMarshalFunc(WarnLevel):
+		*l = WarnLevel
+	case LevelFieldMarshalFunc(ErrorLevel):
+		*l = ErrorLevel
+	case LevelFieldMarshalFunc(FatalLevel):
+		*l = FatalLevel
+	case LevelFieldMarshalFunc(PanicLevel):
+		*l = PanicLevel
+	case LevelFieldMarshalFunc(Disabled):
+		*l = Disabled
+	case LevelFieldMarshalFunc(NoLevel):
+		*l = NoLevel
+	default:
+		i, err := strconv.Atoi(string(text))
+		if err != nil {
+			return fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", string(text))
+		}
+		if i > 127 || i < -128 {
+			return fmt.Errorf("Out-Of-Bounds Level: '%d', defaulting to NoLevel", i)
+		}
+		*l = Level(i)
+	}
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler to allow for easy writing into toml/yaml/json formats
+func (l Level) MarshalText() ([]byte, error) {
+	return []byte(LevelFieldMarshalFunc(l)), nil
 }
 
 // A Logger represents an active logging object that generates lines
