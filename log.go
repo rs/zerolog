@@ -195,37 +195,9 @@ func (l *Level) UnmarshalText(text []byte) error {
 	if l == nil {
 		return errors.New("can't unmarshal a nil *Level")
 	}
-	*l = NoLevel
-	switch string(text) {
-	case LevelFieldMarshalFunc(TraceLevel):
-		*l = TraceLevel
-	case LevelFieldMarshalFunc(DebugLevel):
-		*l = DebugLevel
-	case LevelFieldMarshalFunc(InfoLevel):
-		*l = InfoLevel
-	case LevelFieldMarshalFunc(WarnLevel):
-		*l = WarnLevel
-	case LevelFieldMarshalFunc(ErrorLevel):
-		*l = ErrorLevel
-	case LevelFieldMarshalFunc(FatalLevel):
-		*l = FatalLevel
-	case LevelFieldMarshalFunc(PanicLevel):
-		*l = PanicLevel
-	case LevelFieldMarshalFunc(Disabled):
-		*l = Disabled
-	case LevelFieldMarshalFunc(NoLevel):
-		*l = NoLevel
-	default:
-		i, err := strconv.Atoi(string(text))
-		if err != nil {
-			return fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", string(text))
-		}
-		if i > 127 || i < -128 {
-			return fmt.Errorf("Out-Of-Bounds Level: '%d', defaulting to NoLevel", i)
-		}
-		*l = Level(i)
-	}
-	return nil
+	var err error
+	*l, err = ParseLevel(string(text))
+	return err
 }
 
 // MarshalText implements encoding.TextMarshaler to allow for easy writing into toml/yaml/json formats
