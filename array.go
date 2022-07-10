@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"bytes"
 	"net"
 	"sync"
 	"time"
@@ -87,6 +88,13 @@ func (a *Array) Hex(val []byte) *Array {
 
 // RawJSON adds already encoded JSON to the array.
 func (a *Array) RawJSON(val []byte) *Array {
+	a.buf = appendJSON(enc.AppendArrayDelim(a.buf), val)
+	return a
+}
+
+// CleanJSON replaces newline character from already encoded JSON and adds to the array.
+func (a *Array) CleanJSON(val []byte) *Array {
+	val = bytes.ReplaceAll(val, []byte{'\n'}, nil)
 	a.buf = appendJSON(enc.AppendArrayDelim(a.buf), val)
 	return a
 }

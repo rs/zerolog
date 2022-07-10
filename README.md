@@ -618,6 +618,7 @@ Some settings can be changed and will be applied to all loggers:
 * `Dur`: Adds a field with `time.Duration`.
 * `Dict`: Adds a sub-key/value as a field of the event.
 * `RawJSON`: Adds a field with an already encoded JSON (`[]byte`)
+* `CleanJSON`: Adds a field with an already encoded JSON (`[]byte`) but removes the newline characters (`\n`).
 * `Hex`: Adds a field with value formatted as a hexadecimal string (`[]byte`)
 * `Interface`: Uses reflection to marshal the type.
 

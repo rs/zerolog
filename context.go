@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -112,6 +113,16 @@ func (c Context) Hex(key string, val []byte) Context {
 // No sanity check is performed on b; it must not contain carriage returns and
 // be valid JSON.
 func (c Context) RawJSON(key string, b []byte) Context {
+	c.l.context = appendJSON(enc.AppendKey(c.l.context, key), b)
+	return c
+}
+
+// CleanJSON replaces newline character of already encoded JSON and adds to the log line under key.
+//
+// In contrast to RawJSON, the sanity check is performed on b;
+// it must not contain carriage returns and be valid JSON.
+func (c Context) CleanJSON(key string, b []byte) Context {
+	b = bytes.ReplaceAll(b, []byte{'\n'}, nil)
 	c.l.context = appendJSON(enc.AppendKey(c.l.context, key), b)
 	return c
 }

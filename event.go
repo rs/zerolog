@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -314,6 +315,19 @@ func (e *Event) RawJSON(key string, b []byte) *Event {
 	if e == nil {
 		return e
 	}
+	e.buf = appendJSON(enc.AppendKey(e.buf, key), b)
+	return e
+}
+
+// CleanJSON replaces newline character of already encoded JSON and adds to the log line under key.
+//
+// In contrast to RawJSON, the sanity check is performed on b;
+// it must not contain carriage returns and be valid JSON.
+func (e *Event) CleanJSON(key string, b []byte) *Event {
+	if e == nil {
+		return e
+	}
+	b = bytes.ReplaceAll(b, []byte{'\n'}, nil)
 	e.buf = appendJSON(enc.AppendKey(e.buf, key), b)
 	return e
 }
