@@ -332,7 +332,7 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 			if err != nil {
 				t = tt
 			} else {
-				t = ts.Format(timeFormat)
+				t = ts.Local().Format(timeFormat)
 			}
 		case json.Number:
 			i, err := tt.Int64()
@@ -348,7 +348,7 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 					nsec = int64(time.Duration(i) * time.Microsecond)
 					sec = 0
 				}
-				ts := time.Unix(sec, nsec).UTC()
+				ts := time.Unix(sec, nsec)
 				t = ts.Format(timeFormat)
 			}
 		}
