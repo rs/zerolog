@@ -121,6 +121,20 @@ func RefererHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
+// ProtoHandler adds the requests protocol version as a field to the context logger
+// using fieldKey as field Key.
+func ProtoHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log := zerolog.Ctx(r.Context())
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, r.Proto)
+			})
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 type idKey struct{}
 
 // IDFromRequest returns the unique id associated to the request if any.

@@ -1,3 +1,4 @@
+//go:build go1.7
 // +build go1.7
 
 package hlog
@@ -196,6 +197,22 @@ func TestCustomHeaderHandler(t *testing.T) {
 	h = NewHandler(zerolog.New(out))(h)
 	h.ServeHTTP(nil, r)
 	if want, got := `{"reqID":"514bbe5bb5251c92bd07a9846f4a1ab6"}`+"\n", decodeIfBinary(out); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
+}
+
+func TestProtoHandler(t *testing.T) {
+	out := &bytes.Buffer{}
+	r := &http.Request{
+		Proto: "test",
+	}
+	h := ProtoHandler("proto")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := FromRequest(r)
+		l.Log().Msg("")
+	}))
+	h = NewHandler(zerolog.New(out))(h)
+	h.ServeHTTP(nil, r)
+	if want, got := `{"proto":"test"}`+"\n", decodeIfBinary(out); want != got {
 		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
 	}
 }
