@@ -222,7 +222,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		case json.Number:
 			buf.WriteString(fv(fValue))
 		default:
-			b, err := json.Marshal(fValue)
+			b, err := InterfaceMarshalFunc(fValue)
 			if err != nil {
 				fmt.Fprintf(buf, colorize("[error: %v]", colorRed, w.NoColor), err)
 			} else {
