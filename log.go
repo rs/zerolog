@@ -99,6 +99,7 @@
 package zerolog
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -187,6 +188,21 @@ func ParseLevel(levelStr string) (Level, error) {
 		return NoLevel, fmt.Errorf("Out-Of-Bounds Level: '%d', defaulting to NoLevel", i)
 	}
 	return Level(i), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler to allow for easy reading from toml/yaml/json formats
+func (l *Level) UnmarshalText(text []byte) error {
+	if l == nil {
+		return errors.New("can't unmarshal a nil *Level")
+	}
+	var err error
+	*l, err = ParseLevel(string(text))
+	return err
+}
+
+// MarshalText implements encoding.TextMarshaler to allow for easy writing into toml/yaml/json formats
+func (l Level) MarshalText() ([]byte, error) {
+	return []byte(LevelFieldMarshalFunc(l)), nil
 }
 
 // A Logger represents an active logging object that generates lines

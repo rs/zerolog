@@ -907,6 +907,33 @@ func TestLevel_String(t *testing.T) {
 	}
 }
 
+func TestLevel_MarshalText(t *testing.T) {
+	tests := []struct {
+		name string
+		l    Level
+		want string
+	}{
+		{"trace", TraceLevel, "trace"},
+		{"debug", DebugLevel, "debug"},
+		{"info", InfoLevel, "info"},
+		{"warn", WarnLevel, "warn"},
+		{"error", ErrorLevel, "error"},
+		{"fatal", FatalLevel, "fatal"},
+		{"panic", PanicLevel, "panic"},
+		{"disabled", Disabled, "disabled"},
+		{"nolevel", NoLevel, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got, err := tt.l.MarshalText(); err != nil {
+				t.Errorf("MarshalText couldn't marshal: %v", tt.l)
+			} else if string(got) != tt.want {
+				t.Errorf("String() = %v, want %v", string(got), tt.want)
+			}
+		})
+	}
+}
+
 func TestParseLevel(t *testing.T) {
 	type args struct {
 		levelStr string
@@ -939,6 +966,44 @@ func TestParseLevel(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("ParseLevel() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUnmarshalTextLevel(t *testing.T) {
+	type args struct {
+		levelStr string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    Level
+		wantErr bool
+	}{
+		{"trace", args{"trace"}, TraceLevel, false},
+		{"debug", args{"debug"}, DebugLevel, false},
+		{"info", args{"info"}, InfoLevel, false},
+		{"warn", args{"warn"}, WarnLevel, false},
+		{"error", args{"error"}, ErrorLevel, false},
+		{"fatal", args{"fatal"}, FatalLevel, false},
+		{"panic", args{"panic"}, PanicLevel, false},
+		{"disabled", args{"disabled"}, Disabled, false},
+		{"nolevel", args{""}, NoLevel, false},
+		{"-1", args{"-1"}, TraceLevel, false},
+		{"-2", args{"-2"}, Level(-2), false},
+		{"-3", args{"-3"}, Level(-3), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var l Level
+			err := l.UnmarshalText([]byte(tt.args.levelStr))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UnmarshalText() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if l != tt.want {
+				t.Errorf("UnmarshalText() got = %v, want %v", l, tt.want)
 			}
 		})
 	}
