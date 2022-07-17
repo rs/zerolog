@@ -21,16 +21,21 @@ func main() {
 		return
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
+	reader := bufio.NewReader(os.Stdin)
 	writer := zerolog.NewConsoleWriter()
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	for {
+		line, readErr := reader.ReadString('\n')
+		if len(line) > 0 {
+			_, err := writer.Write([]byte(line))
 
-		_, err := writer.Write([]byte(line))
+			if err != nil {
+				println(line)
+			}
+		}
 
-		if err != nil {
-			println(line)
+		if readErr != nil {
+			break
 		}
 	}
 }
