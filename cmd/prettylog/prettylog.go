@@ -3,8 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/rs/zerolog"
 	"os"
+
+	"github.com/rs/zerolog"
 )
 
 func isInputFromPipe() bool {
@@ -15,7 +16,7 @@ func isInputFromPipe() bool {
 func main() {
 	if !isInputFromPipe() {
 		fmt.Println("The command is intended to work with pipes.")
-		fmt.Println("Usage: app_with_zerolog |  2> >(pretty_pipe)")
+		fmt.Println("Usage: app_with_zerolog |  2> >(prettylog)")
 		os.Exit(1)
 		return
 	}

@@ -1,10 +1,10 @@
-# Zerolog Pretty Pipe
+# Zerolog PrettyLog
 
 This is a basic CLI utility that will colorize and pretty print your JSON logs.
 
 ## Problem
 
-When using zerolog it's sometimes difficult to do an environment based log formatting. 
+When using zerolog it's sometimes difficult to do an environment based log formatting.
 For production purposes it is useful to have JSON logs to pipe them through Kibana for efficient log entry analysis.
 
 However, when using such applications in development environment there is little use for structured JSON logs.
@@ -31,6 +31,7 @@ func GetLogger(component string) zerolog.Logger {
 
 Here `init` is called automatically before `main` by go. `GetLogger` function is used to initialize new loggers.
 If you do something like this:
+
 ```go
 func init() {
 	if !IsProductionEnv() {
@@ -49,33 +50,37 @@ A basic CLI tool to pipe application output through it to pretty print & coloriz
 
 ## Usage
 
-You can compile it or run it directly. The only issue is that by default Zerolog does not output to `stdout` 
+You can compile it or run it directly. The only issue is that by default Zerolog does not output to `stdout`
 but rather to `stderr` so we must pipe `stderr` stream to this CLI tool.
 
 ### Linux
 
-These commands will redirect `stderr` to our `pretty_pipe` tool and `stdout` will remain unaffected.
+These commands will redirect `stderr` to our `prettylog` tool and `stdout` will remain unaffected.
 
 1. Compiled version
+
 ```shell
-some_program_with_zerolog 2> >(pretty_pipe)
+some_program_with_zerolog 2> >(prettylog)
 ```
 
 2. Run it directly with `go run`
+
 ```shell
-some_program_with_zerolog 2> >(go run cmd/pretty_pipe/pretty_pipe.go)
+some_program_with_zerolog 2> >(go run cmd/prettylog/prettylog.go)
 ```
 
 ### Windows
 
-These commands will redirect `stderr` to `stdout` and then pipe it to our `pretty_pipe` tool.
+These commands will redirect `stderr` to `stdout` and then pipe it to our `prettylog` tool.
 
 1. Compiled version
+
 ```shell
-some_program_with_zerolog 2>&1 | pretty_pipe 
+some_program_with_zerolog 2>&1 | prettylog
 ```
 
 2. Run it directly with `go run`
+
 ```shell
-some_program_with_zerolog 2>&1 | go run cmd/pretty_pipe/pretty_pipe.go
+some_program_with_zerolog 2>&1 | go run cmd/prettylog/prettylog.go
 ```
