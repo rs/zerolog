@@ -74,6 +74,8 @@ type ConsoleWriter struct {
 	FormatFieldValue    Formatter
 	FormatErrFieldName  Formatter
 	FormatErrFieldValue Formatter
+
+	FormatExtra func(map[string]interface{}, *bytes.Buffer) error
 }
 
 // NewConsoleWriter creates and initializes a new ConsoleWriter.
@@ -128,10 +130,18 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 
 	w.writeFields(evt, buf)
 
+	if w.FormatExtra != nil {
+		err = w.FormatExtra(evt, buf)
+		if err != nil {
+			return n, err
+		}
+	}
+
 	err = buf.WriteByte('\n')
 	if err != nil {
 		return n, err
 	}
+
 	_, err = buf.WriteTo(w.Out)
 	return len(p), err
 }
