@@ -19,6 +19,10 @@ const (
 	// TimeFormatUnixMicro defines a time format that makes time fields to be
 	// serialized as Unix timestamp integers in microseconds.
 	TimeFormatUnixMicro = "UNIXMICRO"
+
+	// TimeFormatUnixNano defines a time format that makes time fields to be
+	// serialized as Unix timestamp integers in nanoseconds.
+	TimeFormatUnixNano = "UNIXNANO"
 )
 
 var (
@@ -81,7 +85,7 @@ var (
 	InterfaceMarshalFunc = json.Marshal
 
 	// TimeFieldFormat defines the time format of the Time field type. If set to
-	// TimeFormatUnix, TimeFormatUnixMs or TimeFormatUnixMicro, the time is formatted as a UNIX
+	// TimeFormatUnix, TimeFormatUnixMs, TimeFormatUnixMicro or TimeFormatUnixNano, the time is formatted as a UNIX
 	// timestamp as integer.
 	TimeFieldFormat = time.RFC3339
 
