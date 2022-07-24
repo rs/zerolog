@@ -1,3 +1,4 @@
+//go:build binary_log
 // +build binary_log
 
 package zerolog
@@ -6,8 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
-	//	"io/ioutil"
 	stdlog "log"
 	"time"
 )
@@ -16,9 +15,9 @@ func ExampleBinaryNew() {
 	dst := bytes.Buffer{}
 	log := New(&dst)
 
-	log.Info().Msg("hello world")
+	log.Info().LogLevel().Msg("hello world")
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
-	// Output: {"level":"info","message":"hello world"}
+	// Output: {"level":"info","level":"info","message":"hello world"}
 }
 
 func ExampleLogger_With() {
@@ -28,7 +27,7 @@ func ExampleLogger_With() {
 		Str("foo", "bar").
 		Logger()
 
-	log.Info().Msg("hello world")
+	log.Info().LogLevel().Msg("hello world")
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 
 	// Output: {"level":"info","foo":"bar","message":"hello world"}
@@ -38,8 +37,8 @@ func ExampleLogger_Level() {
 	dst := bytes.Buffer{}
 	log := New(&dst).Level(WarnLevel)
 
-	log.Info().Msg("filtered out message")
-	log.Error().Msg("kept message")
+	log.Info().LogLevel().Msg("filtered out message")
+	log.Error().LogLevel().Msg("kept message")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"level":"error","message":"kept message"}
@@ -49,10 +48,10 @@ func ExampleLogger_Sample() {
 	dst := bytes.Buffer{}
 	log := New(&dst).Sample(&BasicSampler{N: 2})
 
-	log.Info().Msg("message 1")
-	log.Info().Msg("message 2")
-	log.Info().Msg("message 3")
-	log.Info().Msg("message 4")
+	log.Info().LogLevel().Msg("message 1")
+	log.Info().LogLevel().Msg("message 2")
+	log.Info().LogLevel().Msg("message 3")
+	log.Info().LogLevel().Msg("message 4")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"level":"info","message":"message 1"}
@@ -82,7 +81,7 @@ func ExampleLogger_Hook() {
 	dst := bytes.Buffer{}
 	log := New(&dst).Hook(levelNameHook).Hook(messageHook)
 
-	log.Info().Msg("hello world")
+	log.Info().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"level":"info","level_name":"info","the_message":"hello world","message":"hello world"}
@@ -90,7 +89,7 @@ func ExampleLogger_Hook() {
 
 func ExampleLogger_Print() {
 	dst := bytes.Buffer{}
-	log := New(&dst)
+	log := New(&dst).LogLevel()
 
 	log.Print("hello world")
 
@@ -100,7 +99,7 @@ func ExampleLogger_Print() {
 
 func ExampleLogger_Printf() {
 	dst := bytes.Buffer{}
-	log := New(&dst)
+	log := New(&dst).LogLevel()
 
 	log.Printf("hello %s", "world")
 
@@ -115,6 +114,7 @@ func ExampleLogger_Trace() {
 	log.Trace().
 		Str("foo", "bar").
 		Int("n", 123).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -128,6 +128,7 @@ func ExampleLogger_Debug() {
 	log.Debug().
 		Str("foo", "bar").
 		Int("n", 123).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -141,6 +142,7 @@ func ExampleLogger_Info() {
 	log.Info().
 		Str("foo", "bar").
 		Int("n", 123).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -153,6 +155,7 @@ func ExampleLogger_Warn() {
 
 	log.Warn().
 		Str("foo", "bar").
+		LogLevel().
 		Msg("a warning message")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -165,6 +168,7 @@ func ExampleLogger_Error() {
 
 	log.Error().
 		Err(errors.New("some error")).
+		LogLevel().
 		Msg("error doing something")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -176,6 +180,7 @@ func ExampleLogger_WithLevel() {
 	log := New(&dst)
 
 	log.WithLevel(InfoLevel).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -186,6 +191,7 @@ func ExampleLogger_Write() {
 	dst := bytes.Buffer{}
 	log := New(&dst).With().
 		Str("foo", "bar").
+		LogLevel().
 		Logger()
 
 	stdlog.SetFlags(0)
@@ -204,6 +210,7 @@ func ExampleLogger_Log() {
 	log.Log().
 		Str("foo", "bar").
 		Str("bar", "baz").
+		LogLevel().
 		Msg("")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -220,6 +227,7 @@ func ExampleEvent_Dict() {
 			Str("bar", "baz").
 			Int("n", 1),
 		).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -256,6 +264,7 @@ func ExampleEvent_Array() {
 			Str("baz").
 			Int(1),
 		).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -275,6 +284,7 @@ func ExampleEvent_Array_object() {
 	log.Log().
 		Str("foo", "bar").
 		Array("users", u).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -291,6 +301,7 @@ func ExampleEvent_Object() {
 	log.Log().
 		Str("foo", "bar").
 		Object("user", u).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -306,6 +317,7 @@ func ExampleEvent_EmbedObject() {
 	log.Log().
 		Str("foo", "bar").
 		EmbedObject(price).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -325,6 +337,7 @@ func ExampleEvent_Interface() {
 	log.Log().
 		Str("foo", "bar").
 		Interface("obj", obj).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -340,6 +353,7 @@ func ExampleEvent_Dur() {
 	log.Log().
 		Str("foo", "bar").
 		Dur("dur", d).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -358,6 +372,7 @@ func ExampleEvent_Durs() {
 	log.Log().
 		Str("foo", "bar").
 		Durs("durs", d).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -376,6 +391,7 @@ func ExampleEvent_Fields_map() {
 	log.Log().
 		Str("foo", "bar").
 		Fields(fields).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -394,6 +410,7 @@ func ExampleEvent_Fields_slice() {
 	log.Log().
 		Str("foo", "bar").
 		Fields(fields).
+		LogLevel().
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -409,7 +426,7 @@ func ExampleContext_Dict() {
 			Int("n", 1),
 		).Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
@@ -424,7 +441,7 @@ func ExampleContext_Array() {
 			Int(1),
 		).Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","array":["baz",1],"message":"hello world"}
@@ -443,7 +460,7 @@ func ExampleContext_Array_object() {
 		Array("users", u).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
@@ -474,7 +491,7 @@ func ExampleContext_EmbedObject() {
 		EmbedObject(price).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
@@ -489,7 +506,7 @@ func ExampleContext_Object() {
 		Object("user", u).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
@@ -508,7 +525,7 @@ func ExampleContext_Interface() {
 		Interface("obj", obj).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
@@ -523,7 +540,7 @@ func ExampleContext_Dur() {
 		Dur("dur", d).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","dur":10000,"message":"hello world"}
@@ -541,7 +558,7 @@ func ExampleContext_Durs() {
 		Durs("durs", d).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
@@ -559,7 +576,7 @@ func ExampleContext_Fields_map() {
 		Fields(fields).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
@@ -577,7 +594,7 @@ func ExampleContext_Fields_slice() {
 		Fields(fields).
 		Logger()
 
-	log.Log().Msg("hello world")
+	log.Log().LogLevel().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}

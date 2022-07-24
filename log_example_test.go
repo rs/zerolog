@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog_test
@@ -16,7 +17,7 @@ import (
 func ExampleNew() {
 	log := zerolog.New(os.Stdout)
 
-	log.Info().Msg("hello world")
+	log.Info().LogLevel().Msg("hello world")
 	// Output: {"level":"info","message":"hello world"}
 }
 
@@ -26,16 +27,16 @@ func ExampleLogger_With() {
 		Str("foo", "bar").
 		Logger()
 
-	log.Info().Msg("hello world")
+	log.Info().LogLevel().Msg("hello world")
 
-	// Output: {"level":"info","foo":"bar","message":"hello world"}
+	// Output: {"foo":"bar","level":"info","message":"hello world"}
 }
 
 func ExampleLogger_Level() {
 	log := zerolog.New(os.Stdout).Level(zerolog.WarnLevel)
 
-	log.Info().Msg("filtered out message")
-	log.Error().Msg("kept message")
+	log.Info().LogLevel().Msg("filtered out message")
+	log.Error().LogLevel().Msg("kept message")
 
 	// Output: {"level":"error","message":"kept message"}
 }
@@ -43,10 +44,10 @@ func ExampleLogger_Level() {
 func ExampleLogger_Sample() {
 	log := zerolog.New(os.Stdout).Sample(&zerolog.BasicSampler{N: 2})
 
-	log.Info().Msg("message 1")
-	log.Info().Msg("message 2")
-	log.Info().Msg("message 3")
-	log.Info().Msg("message 4")
+	log.Info().LogLevel().Msg("message 1")
+	log.Info().LogLevel().Msg("message 2")
+	log.Info().LogLevel().Msg("message 3")
+	log.Info().LogLevel().Msg("message 4")
 
 	// Output: {"level":"info","message":"message 1"}
 	// {"level":"info","message":"message 3"}
@@ -74,13 +75,15 @@ func ExampleLogger_Hook() {
 
 	log := zerolog.New(os.Stdout).Hook(levelNameHook).Hook(messageHook)
 
-	log.Info().Msg("hello world")
+	log.Info().
+		LogLevel().
+		Msg("hello world")
 
 	// Output: {"level":"info","level_name":"info","the_message":"hello world","message":"hello world"}
 }
 
 func ExampleLogger_Print() {
-	log := zerolog.New(os.Stdout)
+	log := zerolog.New(os.Stdout).LogLevel()
 
 	log.Print("hello world")
 
@@ -88,7 +91,7 @@ func ExampleLogger_Print() {
 }
 
 func ExampleLogger_Printf() {
-	log := zerolog.New(os.Stdout)
+	log := zerolog.New(os.Stdout).LogLevel()
 
 	log.Printf("hello %s", "world")
 
@@ -101,9 +104,10 @@ func ExampleLogger_Trace() {
 	log.Trace().
 		Str("foo", "bar").
 		Int("n", 123).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"level":"trace","foo":"bar","n":123,"message":"hello world"}
+	// Output: {"foo":"bar","n":123,"level":"trace","message":"hello world"}
 }
 
 func ExampleLogger_Debug() {
@@ -112,9 +116,10 @@ func ExampleLogger_Debug() {
 	log.Debug().
 		Str("foo", "bar").
 		Int("n", 123).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"level":"debug","foo":"bar","n":123,"message":"hello world"}
+	// Output: {"foo":"bar","n":123,"level":"debug","message":"hello world"}
 }
 
 func ExampleLogger_Info() {
@@ -123,9 +128,10 @@ func ExampleLogger_Info() {
 	log.Info().
 		Str("foo", "bar").
 		Int("n", 123).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"level":"info","foo":"bar","n":123,"message":"hello world"}
+	// Output: {"foo":"bar","n":123,"level":"info","message":"hello world"}
 }
 
 func ExampleLogger_Warn() {
@@ -133,9 +139,10 @@ func ExampleLogger_Warn() {
 
 	log.Warn().
 		Str("foo", "bar").
+		LogLevel().
 		Msg("a warning message")
 
-	// Output: {"level":"warn","foo":"bar","message":"a warning message"}
+	// Output: {"foo":"bar","level":"warn","message":"a warning message"}
 }
 
 func ExampleLogger_Error() {
@@ -143,15 +150,17 @@ func ExampleLogger_Error() {
 
 	log.Error().
 		Err(errors.New("some error")).
+		LogLevel().
 		Msg("error doing something")
 
-	// Output: {"level":"error","error":"some error","message":"error doing something"}
+	// Output: {"error":"some error","level":"error","message":"error doing something"}
 }
 
 func ExampleLogger_WithLevel() {
 	log := zerolog.New(os.Stdout)
 
 	log.WithLevel(zerolog.InfoLevel).
+		LogLevel().
 		Msg("hello world")
 
 	// Output: {"level":"info","message":"hello world"}
@@ -160,6 +169,7 @@ func ExampleLogger_WithLevel() {
 func ExampleLogger_Write() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
+		LogLevel().
 		Logger()
 
 	stdlog.SetFlags(0)
@@ -167,7 +177,7 @@ func ExampleLogger_Write() {
 
 	stdlog.Print("hello world")
 
-	// Output: {"foo":"bar","message":"hello world"}
+	// Output: {"foo":"bar","level":"trace","message":"hello world"}
 }
 
 func ExampleLogger_Log() {
@@ -176,9 +186,10 @@ func ExampleLogger_Log() {
 	log.Log().
 		Str("foo", "bar").
 		Str("bar", "baz").
+		LogLevel().
 		Msg("")
 
-	// Output: {"foo":"bar","bar":"baz"}
+	// Output: {"foo":"bar","bar":"baz","level":""}
 }
 
 func ExampleEvent_Dict() {
@@ -190,9 +201,10 @@ func ExampleEvent_Dict() {
 			Str("bar", "baz").
 			Int("n", 1),
 		).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"level":"","message":"hello world"}
 }
 
 type User struct {
@@ -244,9 +256,10 @@ func ExampleEvent_Array() {
 				Int("n", 1),
 			),
 		).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","array":["baz",1,{"bar":"baz","n":1}],"message":"hello world"}
+	// Output: {"foo":"bar","array":["baz",1,{"bar":"baz","n":1}],"level":"","message":"hello world"}
 }
 
 func ExampleEvent_Array_object() {
@@ -261,9 +274,10 @@ func ExampleEvent_Array_object() {
 	log.Log().
 		Str("foo", "bar").
 		Array("users", u).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"level":"","message":"hello world"}
 }
 
 func ExampleEvent_Object() {
@@ -275,9 +289,10 @@ func ExampleEvent_Object() {
 	log.Log().
 		Str("foo", "bar").
 		Object("user", u).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
+	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"level":"","message":"hello world"}
 }
 
 func ExampleEvent_EmbedObject() {
@@ -288,9 +303,10 @@ func ExampleEvent_EmbedObject() {
 	log.Log().
 		Str("foo", "bar").
 		EmbedObject(price).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
+	// Output: {"foo":"bar","price":"$64.49","level":"","message":"hello world"}
 }
 
 func ExampleEvent_Interface() {
@@ -305,9 +321,10 @@ func ExampleEvent_Interface() {
 	log.Log().
 		Str("foo", "bar").
 		Interface("obj", obj).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
+	// Output: {"foo":"bar","obj":{"name":"john"},"level":"","message":"hello world"}
 }
 
 func ExampleEvent_Dur() {
@@ -318,9 +335,10 @@ func ExampleEvent_Dur() {
 	log.Log().
 		Str("foo", "bar").
 		Dur("dur", d).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","dur":10000,"message":"hello world"}
+	// Output: {"foo":"bar","dur":10000,"level":"","message":"hello world"}
 }
 
 func ExampleEvent_Durs() {
@@ -334,9 +352,10 @@ func ExampleEvent_Durs() {
 	log.Log().
 		Str("foo", "bar").
 		Durs("durs", d).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+	// Output: {"foo":"bar","durs":[10000,20000],"level":"","message":"hello world"}
 }
 
 func ExampleEvent_Fields_map() {
@@ -350,9 +369,10 @@ func ExampleEvent_Fields_map() {
 	log.Log().
 		Str("foo", "bar").
 		Fields(fields).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+	// Output: {"foo":"bar","bar":"baz","n":1,"level":"","message":"hello world"}
 }
 
 func ExampleEvent_Fields_slice() {
@@ -366,9 +386,10 @@ func ExampleEvent_Fields_slice() {
 	log.Log().
 		Str("foo", "bar").
 		Fields(fields).
+		LogLevel().
 		Msg("hello world")
 
-	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+	// Output: {"foo":"bar","bar":"baz","n":1,"level":"","message":"hello world"}
 }
 
 func ExampleContext_Dict() {
@@ -377,11 +398,12 @@ func ExampleContext_Dict() {
 		Dict("dict", zerolog.Dict().
 			Str("bar", "baz").
 			Int("n", 1),
-		).Logger()
+		).Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Array() {
@@ -390,11 +412,12 @@ func ExampleContext_Array() {
 		Array("array", zerolog.Arr().
 			Str("baz").
 			Int(1),
-		).Logger()
+		).Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","array":["baz",1],"message":"hello world"}
+	// Output: {"foo":"bar","array":["baz",1],"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Array_object() {
@@ -407,11 +430,12 @@ func ExampleContext_Array_object() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Array("users", u).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Object() {
@@ -421,11 +445,12 @@ func ExampleContext_Object() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Object("user", u).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
+	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_EmbedObject() {
@@ -435,11 +460,12 @@ func ExampleContext_EmbedObject() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		EmbedObject(price).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
+	// Output: {"foo":"bar","price":"$64.49","level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Interface() {
@@ -452,11 +478,12 @@ func ExampleContext_Interface() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Interface("obj", obj).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","obj":{"name":"john"},"message":"hello world"}
+	// Output: {"foo":"bar","obj":{"name":"john"},"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Dur() {
@@ -465,11 +492,12 @@ func ExampleContext_Dur() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Dur("dur", d).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","dur":10000,"message":"hello world"}
+	// Output: {"foo":"bar","dur":10000,"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Durs() {
@@ -481,44 +509,48 @@ func ExampleContext_Durs() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Durs("durs", d).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","durs":[10000,20000],"message":"hello world"}
+	// Output: {"foo":"bar","durs":[10000,20000],"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_IPAddr() {
 	hostIP := net.IP{192, 168, 0, 100}
 	log := zerolog.New(os.Stdout).With().
 		IPAddr("HostIP", hostIP).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"HostIP":"192.168.0.100","message":"hello world"}
+	// Output: {"HostIP":"192.168.0.100","level":"trace","message":"hello world"}
 }
 
 func ExampleContext_IPPrefix() {
 	route := net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(24, 32)}
 	log := zerolog.New(os.Stdout).With().
 		IPPrefix("Route", route).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"Route":"192.168.0.0/24","message":"hello world"}
+	// Output: {"Route":"192.168.0.0/24","level":"trace","message":"hello world"}
 }
 
 func ExampleContext_MACAddr() {
 	mac := net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45}
 	log := zerolog.New(os.Stdout).With().
 		MACAddr("hostMAC", mac).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"hostMAC":"00:14:22:01:23:45","message":"hello world"}
+	// Output: {"hostMAC":"00:14:22:01:23:45","level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Fields_map() {
@@ -530,11 +562,11 @@ func ExampleContext_Fields_map() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Fields(fields).
-		Logger()
+		Logger().LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+	// Output: {"foo":"bar","bar":"baz","n":1,"level":"trace","message":"hello world"}
 }
 
 func ExampleContext_Fields_slice() {
@@ -546,9 +578,10 @@ func ExampleContext_Fields_slice() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Fields(fields).
-		Logger()
+		Logger().
+		LogLevel()
 
 	log.Log().Msg("hello world")
 
-	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+	// Output: {"foo":"bar","bar":"baz","n":1,"level":"trace","message":"hello world"}
 }

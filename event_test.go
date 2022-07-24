@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog
@@ -5,6 +6,7 @@ package zerolog
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -61,5 +63,36 @@ func TestEvent_EmbedObjectWithNil(t *testing.T) {
 	got := strings.TrimSpace(buf.String())
 	if got != want {
 		t.Errorf("Event.EmbedObject() = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_LogLevel(t *testing.T) {
+	levels := []Level{
+		TraceLevel,
+		DebugLevel,
+		InfoLevel,
+		WarnLevel,
+		ErrorLevel,
+		FatalLevel,
+		PanicLevel,
+		NoLevel,
+		Disabled,
+	}
+
+	for _, l := range levels {
+		t.Run(l.String(), func(t *testing.T) {
+			out := &bytes.Buffer{}
+			log := New(out)
+			log.WithLevel(l).LogLevel().Msg("test")
+			if l == Disabled {
+				if got := decodeIfBinaryToString(out.Bytes()); got != `` {
+					t.Errorf("invalid log output:\ngot:  %v\nwant: ", got)
+				}
+				return
+			}
+			if got, want := decodeIfBinaryToString(out.Bytes()), fmt.Sprintf(`{"level":"%s","message":"test"}`+"\n", l); got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
 	}
 }

@@ -312,6 +312,19 @@ func (l Logger) Hook(h Hook) Logger {
 	return l
 }
 
+// LogLevel explicitly adds the key "level" with log level as string as value,
+// replaces if the key-value pair(s) already exists
+func (l Logger) LogLevel() *Logger {
+	if l.context == nil {
+		return &l
+	}
+
+	bufRemoveLevelItems(&l.context)
+	key := enc.AppendKey(l.context, LevelFieldName)
+	l.context = enc.AppendStringer(key, l.level)
+	return &l
+}
+
 // Trace starts a new message with trace level.
 //
 // You must call Msg on the returned event in order to send the event.

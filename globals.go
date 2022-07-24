@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"encoding/json"
+	"regexp"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -108,6 +109,12 @@ var (
 	// DefaultContextLogger is returned from Ctx() if there is no logger associated
 	// with the context.
 	DefaultContextLogger *Logger
+
+	// LevelItemPattern regex matches the level key-value pair if already added to buffer
+	// Example: In the following string:
+	// 	{"level":"trace", "time":"2022-07-24T14:00:26+05:30","message":"text here", "level":"info"}
+	// this pattern matches `"level":"trace",` and `"level":"info"`
+	LevelItemPattern = regexp.MustCompile(`"level":"[a-z]{4,5}",?`)
 )
 
 var (
@@ -139,4 +146,9 @@ func DisableSampling(v bool) {
 
 func samplingDisabled() bool {
 	return atomic.LoadInt32(disableSampling) == 1
+}
+
+// bufRemoveLevelItems removes all byte strings that match LevelItemPattern from buf
+func bufRemoveLevelItems(buf *[]byte) {
+	*buf = LevelItemPattern.ReplaceAll(*buf, nil)
 }

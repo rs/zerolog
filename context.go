@@ -431,3 +431,12 @@ func (c Context) MACAddr(key string, ha net.HardwareAddr) Context {
 	c.l.context = enc.AppendMACAddr(enc.AppendKey(c.l.context, key), ha)
 	return c
 }
+
+// LogLevel explicitly adds the key "level" with log level as string as value,
+// replaces if the key-value pair(s) already exists
+func (c Context) LogLevel() Context {
+	bufRemoveLevelItems(&c.l.context)
+	key := enc.AppendKey(c.l.context, LevelFieldName)
+	c.l.context = enc.AppendStringer(key, c.l.level)
+	return c
+}

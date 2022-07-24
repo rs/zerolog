@@ -778,3 +778,16 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
 	return e
 }
+
+// LogLevel explicitly adds the key "level" with log level as string as value,
+// replaces if the key-value pair(s) already exists
+func (e *Event) LogLevel() *Event {
+	if e == nil {
+		return e
+	}
+
+	bufRemoveLevelItems(&e.buf)
+	key := enc.AppendKey(e.buf, LevelFieldName)
+	e.buf = enc.AppendStringer(key, e.level)
+	return e
+}
