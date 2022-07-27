@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/rs/zerolog"
@@ -21,21 +21,6 @@ func main() {
 		return
 	}
 
-	reader := bufio.NewReader(os.Stdin)
 	writer := zerolog.NewConsoleWriter()
-
-	for {
-		line, readErr := reader.ReadString('\n')
-		if len(line) > 0 {
-			_, err := writer.Write([]byte(line))
-
-			if err != nil {
-				println(line)
-			}
-		}
-
-		if readErr != nil {
-			break
-		}
-	}
+	_, _ = io.Copy(writer, os.Stdin)
 }
