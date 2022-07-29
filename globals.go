@@ -65,7 +65,7 @@ var (
 	CallerSkipFrameCount = 2
 
 	// CallerMarshalFunc allows customization of global caller marshaling
-	CallerMarshalFunc = func(file string, line int) string {
+	CallerMarshalFunc = func(pc uintptr, file string, line int) string {
 		return file + ":" + strconv.Itoa(line)
 	}
 
