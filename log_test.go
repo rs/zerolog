@@ -782,7 +782,7 @@ func TestCallerMarshalFunc(t *testing.T) {
 
 	// test default behaviour this is really brittle due to the line numbers
 	// actually mattering for validation
-	_, file, line, _ := runtime.Caller(0)
+	pc, file, line, _ := runtime.Caller(0)
 	caller := fmt.Sprintf("%s:%d", file, line+2)
 	log.Log().Caller().Msg("msg")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","message":"msg"}`+"\n"; got != want {
@@ -793,16 +793,16 @@ func TestCallerMarshalFunc(t *testing.T) {
 	// test custom behavior. In this case we'll take just the last directory
 	origCallerMarshalFunc := CallerMarshalFunc
 	defer func() { CallerMarshalFunc = origCallerMarshalFunc }()
-	CallerMarshalFunc = func(file string, line int) string {
+	CallerMarshalFunc = func(pc uintptr, file string, line int) string {
 		parts := strings.Split(file, "/")
 		if len(parts) > 1 {
 			return strings.Join(parts[len(parts)-2:], "/") + ":" + strconv.Itoa(line)
 		}
 
-		return file + ":" + strconv.Itoa(line)
+		return runtime.FuncForPC(pc).Name() + ":" + file + ":" + strconv.Itoa(line)
 	}
-	_, file, line, _ = runtime.Caller(0)
-	caller = CallerMarshalFunc(file, line+2)
+	pc, file, line, _ = runtime.Caller(0)
+	caller = CallerMarshalFunc(pc, file, line+2)
 	log.Log().Caller().Msg("msg")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","message":"msg"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
