@@ -799,7 +799,7 @@ func TestCallerMarshalFunc(t *testing.T) {
 			return strings.Join(parts[len(parts)-2:], "/") + ":" + strconv.Itoa(line)
 		}
 
-		return file + ":" + strconv.Itoa(line) + " " + runtime.FuncForPC(pc).Name()
+		return runtime.FuncForPC(pc).Name() + ":" + file + ":" + strconv.Itoa(line)
 	}
 	pc, file, line, _ = runtime.Caller(0)
 	caller = CallerMarshalFunc(pc, file, line+2)
