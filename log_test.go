@@ -718,6 +718,32 @@ func TestOutputWithTimestamp(t *testing.T) {
 	}
 }
 
+func TestContextPretimestamp(t *testing.T) {
+	now := time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC)
+	TimestampFunc = func() time.Time {
+		return now
+	}
+	defer func() {
+		TimestampFunc = time.Now
+	}()
+	out := &bytes.Buffer{}
+	log := New(out).With().Pretimestamp().Str("foo", "bar").Logger()
+	log.Debug().Msg("hello world")
+
+	// timestamp comes first
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"time":"2001-02-03T04:05:06Z","level":"debug","foo":"bar","message":"hello world"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+
+	// of course, timestamp changes
+	now = time.Date(2002, time.March, 4, 5, 6, 7, 8, time.UTC)
+	out.Reset()
+	log.Debug().Msg("hello world")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"time":"2002-03-04T05:06:07Z","level":"debug","foo":"bar","message":"hello world"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 type loggableError struct {
 	error
 }

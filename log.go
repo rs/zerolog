@@ -82,6 +82,15 @@
 //     log.Warn().Msg("")
 //     // Output: {"level":"warn","severity":"warn"}
 //
+// Prehooks are also available. It's called just before "level" is added to a log.
+// `msg` always gets empty in `Run()`:
+//
+//     // Use as prehook:
+//     var h SeverityHook
+//     log := zerolog.New(os.Stdout).Prehook(h)
+//     log.Warn().Msg("")
+//     // Output: {"severity":"warn", "level":"warn"}
+//
 //
 // Caveats
 //
@@ -211,12 +220,13 @@ func (l Level) MarshalText() ([]byte, error) {
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
-	w       LevelWriter
-	level   Level
-	sampler Sampler
-	context []byte
-	hooks   []Hook
-	stack   bool
+	w        LevelWriter
+	level    Level
+	sampler  Sampler
+	context  []byte
+	hooks    []Hook
+	prehooks []Hook
+	stack    bool
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -250,6 +260,9 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2.stack = l.stack
 	if len(l.hooks) > 0 {
 		l2.hooks = append(l2.hooks, l.hooks...)
+	}
+	if len(l.prehooks) > 0 {
+		l2.prehooks = append(l2.prehooks, l.prehooks...)
 	}
 	if l.context != nil {
 		l2.context = make([]byte, len(l.context), cap(l.context))
@@ -309,6 +322,13 @@ func (l Logger) Sample(s Sampler) Logger {
 // Hook returns a logger with the h Hook.
 func (l Logger) Hook(h Hook) Logger {
 	l.hooks = append(l.hooks, h)
+	return l
+}
+
+// Hook returns a logger with the h Prehook.
+// The `message` parameter for `Run()` gets always an empty string.
+func (l Logger) Prehook(h Hook) Logger {
+	l.prehooks = append(l.prehooks, h)
 	return l
 }
 
@@ -452,6 +472,9 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	e := newEvent(l.w, level)
 	e.done = done
 	e.ch = l.hooks
+	for _, hook := range l.prehooks {
+		hook.Run(e, e.level, "")
+	}
 	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}

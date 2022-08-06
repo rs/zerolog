@@ -137,6 +137,112 @@ func TestHook(t *testing.T) {
 	}
 }
 
+func TestPrehook(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+		test func(log Logger)
+	}{
+		{"Message", `{"level_name":"nolevel","message":"test message"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook)
+			log.Log().Msg("test message")
+		}},
+		{"NoLevel", `{"level_name":"nolevel"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook)
+			log.Log().Msg("")
+		}},
+		// Note: Prehooks come before "level"
+		{"Print", `{"level_name":"debug","level":"debug"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook)
+			log.Print("")
+		}},
+		{"Error", `{"level_name":"error","level":"error"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook)
+			log.Error().Msg("")
+		}},
+		{"Copy/1", `{"copy_has_level":false,"copy_msg":""}` + "\n", func(log Logger) {
+			log = log.Prehook(copyHook)
+			log.Log().Msg("")
+		}},
+		// Note: Prehooks receives message always as empty
+		{"Copy/2", `{"copy_has_level":true,"copy_level":"info","copy_msg":"","level":"info","message":"a message"}` + "\n", func(log Logger) {
+			log = log.Prehook(copyHook)
+			log.Info().Msg("a message")
+		}},
+		{"Multi", `{"level_name":"error","has_level":true,"test":"logged","level":"error"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook).Prehook(simpleHook)
+			log.Error().Msg("")
+		}},
+		{"Multi/Message", `{"level_name":"error","has_level":true,"test":"logged","level":"error","message":"a message"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook).Prehook(simpleHook)
+			log.Error().Msg("a message")
+		}},
+		{"Output/single/pre", `{"level_name":"error","level":"error"}` + "\n", func(log Logger) {
+			ignored := &bytes.Buffer{}
+			log = New(ignored).Prehook(levelNameHook).Output(log.w)
+			log.Error().Msg("")
+		}},
+		{"Output/single/post", `{"level_name":"error","level":"error"}` + "\n", func(log Logger) {
+			ignored := &bytes.Buffer{}
+			log = New(ignored).Output(log.w).Prehook(levelNameHook)
+			log.Error().Msg("")
+		}},
+		{"Output/multi/pre", `{"level_name":"error","has_level":true,"test":"logged","level":"error"}` + "\n", func(log Logger) {
+			ignored := &bytes.Buffer{}
+			log = New(ignored).Prehook(levelNameHook).Prehook(simpleHook).Output(log.w)
+			log.Error().Msg("")
+		}},
+		{"Output/multi/post", `{"level_name":"error","has_level":true,"test":"logged","level":"error"}` + "\n", func(log Logger) {
+			ignored := &bytes.Buffer{}
+			log = New(ignored).Output(log.w).Prehook(levelNameHook).Prehook(simpleHook)
+			log.Error().Msg("")
+		}},
+		{"Output/mixed", `{"level_name":"error","has_level":true,"test":"logged","level":"error"}` + "\n", func(log Logger) {
+			ignored := &bytes.Buffer{}
+			log = New(ignored).Prehook(levelNameHook).Output(log.w).Prehook(simpleHook)
+			log.Error().Msg("")
+		}},
+		{"With/single/pre", `{"level_name":"error","level":"error","with":"pre"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook).With().Str("with", "pre").Logger()
+			log.Error().Msg("")
+		}},
+		{"With/single/post", `{"level_name":"error","level":"error","with":"post"}` + "\n", func(log Logger) {
+			log = log.With().Str("with", "post").Logger().Prehook(levelNameHook)
+			log.Error().Msg("")
+		}},
+		{"With/multi/pre", `{"level_name":"error","has_level":true,"test":"logged","level":"error","with":"pre"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook).Prehook(simpleHook).With().Str("with", "pre").Logger()
+			log.Error().Msg("")
+		}},
+		{"With/multi/post", `{"level_name":"error","has_level":true,"test":"logged","level":"error","with":"post"}` + "\n", func(log Logger) {
+			log = log.With().Str("with", "post").Logger().Prehook(levelNameHook).Prehook(simpleHook)
+			log.Error().Msg("")
+		}},
+		{"With/mixed", `{"level_name":"error","has_level":true,"test":"logged","level":"error","with":"mixed"}` + "\n", func(log Logger) {
+			log = log.Prehook(levelNameHook).With().Str("with", "mixed").Logger().Prehook(simpleHook)
+			log.Error().Msg("")
+		}},
+		{"Discard", "", func(log Logger) {
+			log = log.Prehook(discardHook)
+			log.Log().Msg("test message")
+		}},
+		{"None", `{"level":"error"}` + "\n", func(log Logger) {
+			log.Error().Msg("")
+		}},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			log := New(out)
+			tt.test(log)
+			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+	}
+}
+
 func BenchmarkHooks(b *testing.B) {
 	logger := New(ioutil.Discard)
 	b.ResetTimer()

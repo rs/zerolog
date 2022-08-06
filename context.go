@@ -338,6 +338,16 @@ func (c Context) Timestamp() Context {
 	return c
 }
 
+// Pretimestamp adds the timestamp to the logger like `Timestamp` does.
+// It adds the "time" key before "level" key. Useful when sorting logs as text in time-order.
+//
+// NOTE: It adds timestamp not when sending log, but when starting a new message.
+// NOTE: Applying both `Timestamp()` and `PreTimestamp()`results duplicated "time" keys.
+func (c Context) Pretimestamp() Context {
+	c.l = c.l.Prehook(th)
+	return c
+}
+
 // Time adds the field key with t formated as string using zerolog.TimeFieldFormat.
 func (c Context) Time(key string, t time.Time) Context {
 	c.l.context = enc.AppendTime(enc.AppendKey(c.l.context, key), t, TimeFieldFormat)
