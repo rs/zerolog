@@ -168,18 +168,19 @@ func Test_appendMac(t *testing.T) {
 
 func Test_appendType(t *testing.T) {
 	typeTests := []struct {
+		label string
 		input interface{}
 		want  []byte
 	}{
-		{42, []byte(`"int"`)},
-		{net.HardwareAddr{0x12, 0x34, 0x00, 0x00, 0x90, 0xab}, []byte(`"net.HardwareAddr"`)},
-		{float64(2.50), []byte(`"float64"`)},
-		{nil, []byte(`"<nil>"`)},
-		{true, []byte(`"bool"`)},
+		{"int", 42, []byte(`"int"`)},
+		{"MAC", net.HardwareAddr{0x12, 0x34, 0x00, 0x00, 0x90, 0xab}, []byte(`"net.HardwareAddr"`)},
+		{"float64", float64(2.50), []byte(`"float64"`)},
+		{"nil", nil, []byte(`"<nil>"`)},
+		{"bool", true, []byte(`"bool"`)},
 	}
 
 	for _, tt := range typeTests {
-		t.Run("MAC", func(t *testing.T) {
+		t.Run(tt.label, func(t *testing.T) {
 			if got := enc.AppendType([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("appendType() = %s, want %s", got, tt.want)
 			}
