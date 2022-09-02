@@ -1,52 +1,6 @@
 # Zerolog PrettyLog
 
-This is a basic CLI utility that will colorize and pretty print your JSON logs.
-
-## Problem
-
-When using zerolog it's sometimes difficult to do an environment based log formatting.
-For production purposes it is useful to have JSON logs to pipe them through Kibana for efficient log entry analysis.
-
-However, when using such applications in development environment there is little use for structured JSON logs.
-Humans are visual beings so the preferred format should be ordinary `Console` format with colors if possible.
-
-Zerolog ships with `ConsoleWriter` which does exactly that. But modifying your code to get pretty printed and colorized
-logs is somewhat difficult.
-
-My solution to do this programmatically was something like this:
-
-```go
-func init() {
-	if !IsProductionEnv() {
-		log.Logger = log.Output(zerolog.NewConsoleWriter())
-	}
-}
-
-func GetLogger(component string) zerolog.Logger {
-	return log.With().
-		Str("Component", module).
-		Logger()
-}
-```
-
-Here `init` is called automatically before `main` by go. `GetLogger` function is used to initialize new loggers.
-If you do something like this:
-
-```go
-func init() {
-	if !IsProductionEnv() {
-		log.Logger = log.Output(zerolog.NewConsoleWriter())
-	}
-}
-
-var logger = log.With().Str("Component", "Module").Logger()
-```
-
-It won't work since global variables are initialized before `init` is called.
-
-## Solution
-
-A basic CLI tool to pipe application output through it to pretty print & colorize JSON logs to console friendly logs.
+This is a basic CLI utility that will colorize and pretty print your structured JSON logs.
 
 ## Usage
 
