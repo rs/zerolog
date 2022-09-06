@@ -1,7 +1,7 @@
 package pkgerrors
 
 import (
-	"github.com/pkg/errors"
+	"github.com/rs/zerolog/internal/errors"
 )
 
 var (
