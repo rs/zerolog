@@ -385,7 +385,7 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 			case LevelPanicValue:
 				l = colorize(colorize("PNC", colorRed, noColor), colorBold, noColor)
 			default:
-				l = colorize("???", colorBold, noColor)
+				l = colorize(ll, colorBold, noColor)
 			}
 		} else {
 			if i == nil {
