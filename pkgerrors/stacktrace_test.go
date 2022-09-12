@@ -1,6 +1,6 @@
 // +build !binary_log
 
-package pkgerrors
+package pkgerrors_test
 
 import (
 	"bytes"
@@ -8,16 +8,16 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/errors"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 func TestLogStack(t *testing.T) {
-	zerolog.ErrorStackMarshaler = MarshalStack
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 
 	out := &bytes.Buffer{}
 	log := zerolog.New(out)
 
-	err := errors.Wrap(errors.New("error message"), "from error")
+	err := pkgerrors.Wrap(pkgerrors.New("error message"), "from error")
 	log.Log().Stack().Err(err).Msg("")
 
 	got := out.String()
@@ -28,12 +28,12 @@ func TestLogStack(t *testing.T) {
 }
 
 func TestLogStackFromContext(t *testing.T) {
-	zerolog.ErrorStackMarshaler = MarshalStack
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 
 	out := &bytes.Buffer{}
 	log := zerolog.New(out).With().Stack().Logger() // calling Stack() on log context instead of event
 
-	err := errors.Wrap(errors.New("error message"), "from error")
+	err := pkgerrors.Wrap(pkgerrors.New("error message"), "from error")
 	log.Log().Err(err).Msg("") // not explicitly calling Stack()
 
 	got := out.String()
@@ -44,10 +44,10 @@ func TestLogStackFromContext(t *testing.T) {
 }
 
 func BenchmarkLogStack(b *testing.B) {
-	zerolog.ErrorStackMarshaler = MarshalStack
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	out := &bytes.Buffer{}
 	log := zerolog.New(out)
-	err := errors.Wrap(errors.New("error message"), "from error")
+	err := pkgerrors.Wrap(pkgerrors.New("error message"), "from error")
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {

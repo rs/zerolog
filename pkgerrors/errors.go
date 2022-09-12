@@ -1,4 +1,4 @@
-package errors
+package pkgerrors
 
 // New returns an error with the supplied message.
 // New also records the stack trace at the point it was called.

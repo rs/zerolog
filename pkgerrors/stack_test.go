@@ -1,4 +1,6 @@
-package errors_test
+// +build !binary_log
+
+package pkgerrors_test
 
 import (
 	"errors"
@@ -8,29 +10,29 @@ import (
 	"runtime"
 	"testing"
 
-	internalErrors "github.com/rs/zerolog/internal/errors"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 func Test_StackTrace(t *testing.T) {
 	tests := []struct {
 		name string
-		s    internalErrors.Stack
-		want internalErrors.StackTrace
+		s    pkgerrors.Stack
+		want pkgerrors.StackTrace
 	}{
 		{
 			name: "Nil-Stack",
-			s:    internalErrors.Stack(nil),
-			want: internalErrors.StackTrace([]internalErrors.Frame{}),
+			s:    pkgerrors.Stack(nil),
+			want: pkgerrors.StackTrace([]pkgerrors.Frame{}),
 		},
 		{
 			name: "Empty-Stack",
-			s:    internalErrors.Stack([]uintptr{}),
-			want: internalErrors.StackTrace([]internalErrors.Frame{}),
+			s:    pkgerrors.Stack([]uintptr{}),
+			want: pkgerrors.StackTrace([]pkgerrors.Frame{}),
 		},
 		{
 			name: "Success",
-			s:    internalErrors.Stack([]uintptr{1, 2, 3}),
-			want: internalErrors.StackTrace([]internalErrors.Frame{1, 2, 3}),
+			s:    pkgerrors.Stack([]uintptr{1, 2, 3}),
+			want: pkgerrors.StackTrace([]pkgerrors.Frame{1, 2, 3}),
 		},
 	}
 	for _, tt := range tests {
@@ -97,12 +99,12 @@ func TestFrame_Format(t *testing.T) {
 
 	tests := []struct {
 		name string
-		f    internalErrors.Frame
+		f    pkgerrors.Frame
 		args args
 	}{
 		{
 			name: "Source-File-With-Flag-False",
-			f:    internalErrors.Frame(1),
+			f:    pkgerrors.Frame(1),
 			args: args{
 				s:    &state{},
 				verb: verbSourceFile,
@@ -110,7 +112,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-File-Invalid-Frame-Number",
-			f:    internalErrors.Frame(0),
+			f:    pkgerrors.Frame(0),
 			args: args{
 				s: &state{
 					flag: true,
@@ -130,7 +132,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-File-Known-File-Name-and-Path",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					flag: true,
@@ -154,7 +156,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-File-Error-At-Write",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					flag: true,
@@ -178,7 +180,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-Line",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					inputOutput: map[string]writeResult{
@@ -193,7 +195,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-Line-Error-At-Write",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					inputOutput: map[string]writeResult{
@@ -208,7 +210,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-Line-Invalid-Frame-Number",
-			f:    internalErrors.Frame(1),
+			f:    pkgerrors.Frame(1),
 			args: args{
 				s: &state{
 					inputOutput: map[string]writeResult{
@@ -223,7 +225,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Func-Name",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					inputOutput: map[string]writeResult{
@@ -238,7 +240,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Func-Name-Error-At-Write",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					inputOutput: map[string]writeResult{
@@ -253,7 +255,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-File-and-Line",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					flag: true,
@@ -285,7 +287,7 @@ func TestFrame_Format(t *testing.T) {
 		},
 		{
 			name: "Source-File-and-Line-Error-At-Write",
-			f:    internalErrors.Frame(pc[0]),
+			f:    pkgerrors.Frame(pc[0]),
 			args: args{
 				s: &state{
 					flag: true,

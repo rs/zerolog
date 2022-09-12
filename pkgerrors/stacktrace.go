@@ -1,9 +1,5 @@
 package pkgerrors
 
-import (
-	"github.com/rs/zerolog/internal/errors"
-)
-
 var (
 	StackSourceFileName     = "source"
 	StackSourceLineName     = "line"
@@ -35,17 +31,17 @@ func (s *state) Flag(c int) bool {
 	return false
 }
 
-func frameField(f errors.Frame, s *state, c rune) string {
+func frameField(f Frame, s *state, c rune) string {
 	f.Format(s, c)
 	return string(s.b)
 }
 
-// MarshalStack implements pkg/errors stack trace marshaling.
+// MarshalStack implements errors stack trace marshaling.
 //
 //   zerolog.ErrorStackMarshaler = MarshalStack
 func MarshalStack(err error) interface{} {
 	type stackTracer interface {
-		StackTrace() errors.StackTrace
+		StackTrace() StackTrace
 	}
 	sterr, ok := err.(stackTracer)
 	if !ok {
