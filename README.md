@@ -232,17 +232,15 @@ func main() {
 
 #### Error Logging with Stacktrace
 
-Using `github.com/pkg/errors`, you can add a formatted stacktrace to your errors. 
+Using `github.com/rs/zerolog/pkgerrors` (formerly, `github.com/pkg/errors`), you can add a formatted stacktrace to your errors. 
 
 ```go
 package main
 
 import (
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog/pkgerrors"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 func main() {
@@ -254,7 +252,7 @@ func main() {
 }
 
 func inner() error {
-	return errors.New("seems we have an error here")
+	return pkgerrors.New("seems we have an error here")
 }
 
 func middle() error {
