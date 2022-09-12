@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"golang.org/x/tools/go/loader"
+	"golang.org/x/tools/go/packages"
 )
 
 var (
@@ -39,16 +39,22 @@ func init() {
 	rootPkg = args[0]
 }
 
+var mode = packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedDeps | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedTypesSizes | packages.NeedImports
+
 func main() {
 	// load the package and all its dependencies
-	conf := loader.Config{}
-	conf.Import(rootPkg)
-	p, err := conf.Load()
+	ps, err := packages.Load(&packages.Config{
+		Mode: mode,
+	}, rootPkg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: unable to load the root package. %s\n", err.Error())
 		os.Exit(1)
 	}
-
+	if len(ps) != 1 {
+		fmt.Fprintf(os.Stderr, "Error: unable to load the root package: go %d root packages, expected 1 %s\n", len(ps), err.Error())
+		os.Exit(1)
+	}
+	p := ps[0]
 	// get the github.com/rs/zerolog.Event type
 	event := getEvent(p)
 	if event == nil {
@@ -78,25 +84,27 @@ func main() {
 	os.Exit(1)
 }
 
-func getEvent(p *loader.Program) types.Type {
-	for _, pkg := range p.AllPackages {
-		if strings.HasSuffix(pkg.Pkg.Path(), "github.com/rs/zerolog") {
-			for _, d := range pkg.Defs {
-				if d != nil && d.Name() == "Event" {
-					return d.Type()
-				}
+func getEvent(p *packages.Package) types.Type {
+	if strings.HasSuffix(p.PkgPath, "github.com/rs/zerolog") {
+		for _, d := range p.TypesInfo.Defs {
+			if d != nil && d.Name() == "Event" {
+				return d.Type()
 			}
 		}
 	}
-
+	for _, imp := range p.Imports {
+		event := getEvent(imp)
+		if event != nil {
+			return event
+		}
+	}
 	return nil
 }
 
-func getSelectionsWithReceiverType(p *loader.Program, targetType types.Type) map[token.Pos]selection {
+func getSelectionsWithReceiverType(p *packages.Package, targetType types.Type) map[token.Pos]selection {
 	selections := map[token.Pos]selection{}
-
-	for _, z := range p.AllPackages {
-		for i, t := range z.Selections {
+	pre := func(current *packages.Package) bool {
+		for i, t := range current.TypesInfo.Selections {
 			switch o := t.Obj().(type) {
 			case *types.Func:
 				// this is not a bug, o.Type() is always *types.Signature, see docs
@@ -108,7 +116,7 @@ func getSelectionsWithReceiverType(p *loader.Program, targetType types.Type) map
 
 					if typ == targetType {
 						if s, ok := selections[i.Pos()]; !ok || i.End() > s.End() {
-							selections[i.Pos()] = selection{i, o, z.Pkg}
+							selections[i.Pos()] = selection{i, o, current.Types}
 						}
 					}
 				}
@@ -116,12 +124,14 @@ func getSelectionsWithReceiverType(p *loader.Program, targetType types.Type) map
 				// skip
 			}
 		}
+		return true
 	}
+	packages.Visit([]*packages.Package{p}, pre, nil)
 
 	return selections
 }
 
-func hasBadFinisher(p *loader.Program, s selection) bool {
+func hasBadFinisher(p *packages.Package, s selection) bool {
 	pkgPath := strings.TrimPrefix(s.pkg.Path(), rootPkg+"/vendor/")
 	absoluteFilePath := strings.TrimPrefix(p.Fset.File(s.Pos()).Name(), rootPkg+"/vendor/")
 	goFilePath := pkgPath + "/" + filepath.Base(p.Fset.Position(s.Pos()).Filename)
