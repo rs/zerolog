@@ -30,6 +30,14 @@ func TestNewWriter(t *testing.T) {
 	}
 }
 
+func TestClose(t *testing.T) {
+	buf := bytes.Buffer{}
+	w := diode.NewWriter(&buf, 1000, 0, func(missed int) {})
+	log := zerolog.New(w)
+	log.Print("test")
+	w.Close()
+}
+
 func Benchmark(b *testing.B) {
 	log.SetOutput(ioutil.Discard)
 	defer log.SetOutput(os.Stderr)
