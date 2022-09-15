@@ -39,7 +39,12 @@ func NewWaiter(d Diode, opts ...WaiterConfigOption) *Waiter {
 
 	go func() {
 		<-w.ctx.Done()
+
+		// Mutex is strictly necessary here to avoid a race in Next() (between
+		// w.isDone() and w.c.Wait()) and w.c.Broadcast() here.
+		w.mu.Lock()
 		w.c.Broadcast()
+		w.mu.Unlock()
 	}()
 
 	return w
