@@ -232,7 +232,9 @@ func main() {
 
 #### Error Logging with Stacktrace
 
-Using `github.com/pkg/errors`, you can add a formatted stacktrace to your errors. 
+Zerolog supports two external error libraries to print out stack traces.
+
+Using `github.com/pkg/errors`, you can add a formatted stacktrace to your errors like this:
 
 ```go
 package main
@@ -274,6 +276,50 @@ func outer() error {
 }
 
 // Output: {"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}
+```
+
+You can also use `github.com/go-errors/errors`:
+
+```go
+package main
+
+import (
+	"github.com/go-errors/errors"
+	"github.com/rs/zerolog/goerrors"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
+
+func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.ErrorStackMarshaler = goerrors.MarshalStack
+
+	err := outer()
+	log.Error().Stack().Err(err).Msg("")
+}
+
+func inner() error {
+	return errors.New("seems we have an error here")
+}
+
+func middle() error {
+	err := inner()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func outer() error {
+	err := middle()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Output: {"level":"error","stack":[{"func":"outer","line":"20","source":"main.go"},{"func":"middle","line":"24","source":"main.go"},{"func":"outer","line":"32","source":"main.go"},{"func":"main","line":"15","source":"main.go"},{"func":"main","line":"250","source":"proc.go"},{"func":"goexit","line":"1172","source":"asm_arm64.s"}],"error":"seems we have an error here","time":1665251659}
 ```
 
 > zerolog.ErrorStackMarshaler must be set in order for the stack to output anything.
