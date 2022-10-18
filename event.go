@@ -719,6 +719,15 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 	return e
 }
 
+// Type adds the field key with val's type using reflection.
+func (e *Event) Type(key string, val interface{}) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendType(enc.AppendKey(e.buf, key), val)
+	return e
+}
+
 // CallerSkipFrame instructs any future Caller calls to skip the specified number of frames.
 // This includes those added via hooks from the context.
 func (e *Event) CallerSkipFrame(skip int) *Event {
