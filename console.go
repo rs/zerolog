@@ -337,7 +337,7 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 		t := "<nil>"
 		switch tt := i.(type) {
 		case string:
-			ts, err := time.Parse(TimeFieldFormat, tt)
+			ts, err := time.ParseInLocation(TimeFieldFormat, tt, time.Local)
 			if err != nil {
 				t = tt
 			} else {

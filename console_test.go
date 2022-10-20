@@ -398,6 +398,32 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
 	})
+
+	t.Run("Uses local time for console writer without time zone", func(t *testing.T) {
+		// Regression test for issue #483 (check there for more details)
+
+		timeFormat := "2006-01-02 15:04:05"
+		expectedOutput := "2022-10-20 20:24:50 INF Foobar\n"
+		evt := `{"time": "2022-10-20 20:24:50", "level": "info", "message": "Foobar"}`
+
+		of := zerolog.TimeFieldFormat
+		defer func() {
+			zerolog.TimeFieldFormat = of
+		}()
+		zerolog.TimeFieldFormat = timeFormat
+
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, TimeFormat: timeFormat}
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
 }
 
 func BenchmarkConsoleWriter(b *testing.B) {
