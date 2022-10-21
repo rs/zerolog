@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"context"
+	"reflect"
 )
 
 var disabledLogger *Logger
@@ -32,7 +33,12 @@ type ctxKey struct{}
 //     })
 //
 func (l Logger) WithContext(ctx context.Context) context.Context {
-	if _, ok := ctx.Value(ctxKey{}).(*Logger); !ok && l.level == Disabled {
+	if lp, ok := ctx.Value(ctxKey{}).(*Logger); ok {
+		if reflect.DeepEqual(*lp, l) {
+			// Do not store same logger.
+			return ctx
+		}
+	} else if l.level == Disabled {
 		// Do not store disabled logger.
 		return ctx
 	}
