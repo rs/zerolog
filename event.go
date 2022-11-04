@@ -377,6 +377,9 @@ func (e *Event) Err(err error) *Event {
 	if e == nil {
 		return e
 	}
+	if ErrorStackFieldAfterErrorField {
+		e.AnErr(ErrorFieldName, err)
+	}
 	if e.stack && ErrorStackMarshaler != nil {
 		switch m := ErrorStackMarshaler(err).(type) {
 		case nil:
@@ -391,6 +394,9 @@ func (e *Event) Err(err error) *Event {
 		default:
 			e.Interface(ErrorStackFieldName, m)
 		}
+	}
+	if ErrorStackFieldAfterErrorField {
+		return e
 	}
 	return e.AnErr(ErrorFieldName, err)
 }

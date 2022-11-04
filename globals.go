@@ -75,6 +75,9 @@ var (
 	// ErrorStackMarshaler extract the stack from err if any.
 	ErrorStackMarshaler func(err error) interface{}
 
+	// ErrorStackFieldAfterErrorField results fields for error stacks come after error fields
+	ErrorStackFieldAfterErrorField = false
+
 	// ErrorMarshalFunc allows customization of global error marshaling
 	ErrorMarshalFunc = func(err error) interface{} {
 		return err

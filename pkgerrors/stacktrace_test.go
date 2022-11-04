@@ -43,6 +43,24 @@ func TestLogStackFromContext(t *testing.T) {
 	}
 }
 
+func TestLogStackAfterError(t *testing.T) {
+	zerolog.ErrorStackMarshaler = MarshalStack
+	zerolog.ErrorStackFieldAfterErrorField = true
+	defer func() { zerolog.ErrorStackFieldAfterErrorField = false }()
+
+	out := &bytes.Buffer{}
+	log := zerolog.New(out)
+
+	err := errors.Wrap(errors.New("error message"), "from error")
+	log.Log().Stack().Err(err).Msg("")
+
+	got := out.String()
+	want := `\{"error":"from error: error message","stack":\[\{"func":"TestLogStackAfterError","line":"54","source":"stacktrace_test.go"\},.*\]\}\n`
+	if ok, _ := regexp.MatchString(want, got); !ok {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func BenchmarkLogStack(b *testing.B) {
 	zerolog.ErrorStackMarshaler = MarshalStack
 	out := &bytes.Buffer{}
