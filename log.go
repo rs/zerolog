@@ -105,6 +105,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Level defines log levels.
@@ -160,7 +161,7 @@ func (l Level) String() string {
 // ParseLevel converts a level string into a zerolog Level value.
 // returns an error if the input string does not match known values.
 func ParseLevel(levelStr string) (Level, error) {
-	switch levelStr {
+	switch strings.ToLower(levelStr) {
 	case LevelFieldMarshalFunc(TraceLevel):
 		return TraceLevel, nil
 	case LevelFieldMarshalFunc(DebugLevel):
