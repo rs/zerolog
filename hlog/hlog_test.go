@@ -14,9 +14,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Gumbert-Gumbert/zerologFork"
+	"github.com/Gumbert-Gumbert/zerologFork/internal/cbor"
 	"github.com/rs/xid"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/cbor"
 )
 
 func decodeIfBinary(out *bytes.Buffer) string {

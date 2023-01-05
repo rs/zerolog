@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package diode_test
@@ -6,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/diode"
+	"github.com/Gumbert-Gumbert/zerologFork"
+	"github.com/Gumbert-Gumbert/zerologFork/diode"
 )
 
 func ExampleNewWriter() {

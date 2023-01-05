@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog_test
@@ -10,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/rs/zerolog"
+	"github.com/Gumbert-Gumbert/zerologFork"
 )
 
 func ExampleNew() {

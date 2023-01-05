@@ -1,3 +1,4 @@
+//go:build binary_log
 // +build binary_log
 
 package zerolog
@@ -5,7 +6,7 @@ package zerolog
 // This file contains bindings to do binary encoding.
 
 import (
-	"github.com/rs/zerolog/internal/cbor"
+	"github.com/Gumbert-Gumbert/zerologFork/internal/cbor"
 )
 
 var (

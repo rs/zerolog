@@ -24,9 +24,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/Gumbert-Gumbert/zerologFork"
+	"github.com/Gumbert-Gumbert/zerologFork/internal/cbor"
 	"github.com/coreos/go-systemd/v22/journal"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/cbor"
 )
 
 const defaultJournalDPrio = journal.PriNotice
