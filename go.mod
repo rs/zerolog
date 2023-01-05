@@ -1,4 +1,4 @@
-module github.com/rs/zerolog
+module github.com/Gumbert-Gumbert/zerologFork
 
 go 1.15
 
