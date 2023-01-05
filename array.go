@@ -61,8 +61,8 @@ func (a *Array) write(dst []byte) []byte {
 func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	e := Dict()
 	obj.MarshalZerologObject(e)
-	e.buf = enc.AppendEndMarker(e.buf)
-	a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
+	e.Buf = enc.AppendEndMarker(e.Buf)
+	a.buf = append(enc.AppendArrayDelim(a.buf), e.Buf...)
 	putEvent(e)
 	return a
 }
@@ -96,9 +96,9 @@ func (a *Array) Err(err error) *Array {
 	switch m := ErrorMarshalFunc(err).(type) {
 	case LogObjectMarshaler:
 		e := newEvent(nil, 0)
-		e.buf = e.buf[:0]
+		e.Buf = e.Buf[:0]
 		e.appendObject(m)
-		a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
+		a.buf = append(enc.AppendArrayDelim(a.buf), e.Buf...)
 		putEvent(e)
 	case error:
 		if m == nil || isNilValue(m) {
@@ -234,7 +234,7 @@ func (a *Array) MACAddr(ha net.HardwareAddr) *Array {
 
 // Dict adds the dict Event to the array
 func (a *Array) Dict(dict *Event) *Array {
-	dict.buf = enc.AppendEndMarker(dict.buf)
-	a.buf = append(enc.AppendArrayDelim(a.buf), dict.buf...)
+	dict.Buf = enc.AppendEndMarker(dict.Buf)
+	a.buf = append(enc.AppendArrayDelim(a.buf), dict.Buf...)
 	return a
 }

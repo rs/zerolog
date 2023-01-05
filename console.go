@@ -146,7 +146,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	return len(p), err
 }
 
-// writeFields appends formatted key-value pairs to buf.
+// writeFields appends formatted key-value pairs to Buf.
 func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
 	var fields = make([]string, 0, len(evt))
 	for field := range evt {
@@ -245,7 +245,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 	}
 }
 
-// writePart appends a formatted part to buf.
+// writePart appends a formatted part to Buf.
 func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
 	var f Formatter
 

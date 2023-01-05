@@ -12,7 +12,7 @@ import (
 var eventPool = &sync.Pool{
 	New: func() interface{} {
 		return &Event{
-			buf: make([]byte, 0, 500),
+			Buf: make([]byte, 0, 500),
 		}
 	},
 }
@@ -20,7 +20,7 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf       []byte
+	Buf       []byte
 	w         LevelWriter
 	level     Level
 	done      func(msg string)
@@ -37,7 +37,7 @@ func putEvent(e *Event) {
 	//
 	// See https://golang.org/issue/23199
 	const maxSize = 1 << 16 // 64KiB
-	if cap(e.buf) > maxSize {
+	if cap(e.Buf) > maxSize {
 		return
 	}
 	eventPool.Put(e)
@@ -57,9 +57,9 @@ type LogArrayMarshaler interface {
 
 func newEvent(w LevelWriter, level Level) *Event {
 	e := eventPool.Get().(*Event)
-	e.buf = e.buf[:0]
+	e.Buf = e.Buf[:0]
 	e.ch = nil
-	e.buf = enc.AppendBeginMarker(e.buf)
+	e.Buf = enc.AppendBeginMarker(e.Buf)
 	e.w = w
 	e.level = level
 	e.stack = false
@@ -72,10 +72,10 @@ func (e *Event) write() (err error) {
 		return nil
 	}
 	if e.level != Disabled {
-		e.buf = enc.AppendEndMarker(e.buf)
-		e.buf = enc.AppendLineBreak(e.buf)
+		e.Buf = enc.AppendEndMarker(e.Buf)
+		e.Buf = enc.AppendLineBreak(e.Buf)
 		if e.w != nil {
-			_, err = e.w.WriteLevel(e.level, e.buf)
+			_, err = e.w.WriteLevel(e.level, e.Buf)
 		}
 	}
 	putEvent(e)
@@ -141,7 +141,7 @@ func (e *Event) msg(msg string) {
 		hook.Run(e, e.level, msg)
 	}
 	if msg != "" {
-		e.buf = enc.AppendString(enc.AppendKey(e.buf, MessageFieldName), msg)
+		e.Buf = enc.AppendString(enc.AppendKey(e.Buf, MessageFieldName), msg)
 	}
 	if e.done != nil {
 		defer e.done(msg)
@@ -162,7 +162,7 @@ func (e *Event) Fields(fields interface{}) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = appendFields(e.buf, fields)
+	e.Buf = appendFields(e.Buf, fields)
 	return e
 }
 
@@ -172,8 +172,8 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	if e == nil {
 		return e
 	}
-	dict.buf = enc.AppendEndMarker(dict.buf)
-	e.buf = append(enc.AppendKey(e.buf, key), dict.buf...)
+	dict.Buf = enc.AppendEndMarker(dict.Buf)
+	e.Buf = append(enc.AppendKey(e.Buf, key), dict.Buf...)
 	putEvent(dict)
 	return e
 }
@@ -192,7 +192,7 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendKey(e.buf, key)
+	e.Buf = enc.AppendKey(e.Buf, key)
 	var a *Array
 	if aa, ok := arr.(*Array); ok {
 		a = aa
@@ -200,14 +200,14 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 		a = Arr()
 		arr.MarshalZerologArray(a)
 	}
-	e.buf = a.write(e.buf)
+	e.Buf = a.write(e.Buf)
 	return e
 }
 
 func (e *Event) appendObject(obj LogObjectMarshaler) {
-	e.buf = enc.AppendBeginMarker(e.buf)
+	e.Buf = enc.AppendBeginMarker(e.Buf)
 	obj.MarshalZerologObject(e)
-	e.buf = enc.AppendEndMarker(e.buf)
+	e.Buf = enc.AppendEndMarker(e.Buf)
 }
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
@@ -215,9 +215,9 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendKey(e.buf, key)
+	e.Buf = enc.AppendKey(e.Buf, key)
 	if obj == nil {
-		e.buf = enc.AppendNil(e.buf)
+		e.Buf = enc.AppendNil(e.Buf)
 
 		return e
 	}
@@ -251,7 +251,7 @@ func (e *Event) Str(key, val string) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendString(enc.AppendKey(e.buf, key), val)
+	e.Buf = enc.AppendString(enc.AppendKey(e.Buf, key), val)
 	return e
 }
 
@@ -260,7 +260,7 @@ func (e *Event) Strs(key string, vals []string) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendStrings(enc.AppendKey(e.buf, key), vals)
+	e.Buf = enc.AppendStrings(enc.AppendKey(e.Buf, key), vals)
 	return e
 }
 
@@ -270,7 +270,7 @@ func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendStringer(enc.AppendKey(e.buf, key), val)
+	e.Buf = enc.AppendStringer(enc.AppendKey(e.Buf, key), val)
 	return e
 }
 
@@ -281,7 +281,7 @@ func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendStringers(enc.AppendKey(e.buf, key), vals)
+	e.Buf = enc.AppendStringers(enc.AppendKey(e.Buf, key), vals)
 	return e
 }
 
@@ -293,7 +293,7 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendBytes(enc.AppendKey(e.buf, key), val)
+	e.Buf = enc.AppendBytes(enc.AppendKey(e.Buf, key), val)
 	return e
 }
 
@@ -302,7 +302,7 @@ func (e *Event) Hex(key string, val []byte) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendHex(enc.AppendKey(e.buf, key), val)
+	e.Buf = enc.AppendHex(enc.AppendKey(e.Buf, key), val)
 	return e
 }
 
@@ -314,7 +314,7 @@ func (e *Event) RawJSON(key string, b []byte) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = appendJSON(enc.AppendKey(e.buf, key), b)
+	e.Buf = appendJSON(enc.AppendKey(e.Buf, key), b)
 	return e
 }
 
@@ -410,7 +410,7 @@ func (e *Event) Bool(key string, b bool) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendBool(enc.AppendKey(e.buf, key), b)
+	e.Buf = enc.AppendBool(enc.AppendKey(e.Buf, key), b)
 	return e
 }
 
@@ -419,7 +419,7 @@ func (e *Event) Bools(key string, b []bool) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendBools(enc.AppendKey(e.buf, key), b)
+	e.Buf = enc.AppendBools(enc.AppendKey(e.Buf, key), b)
 	return e
 }
 
@@ -428,7 +428,7 @@ func (e *Event) Int(key string, i int) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInt(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInt(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -437,7 +437,7 @@ func (e *Event) Ints(key string, i []int) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInts(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInts(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -446,7 +446,7 @@ func (e *Event) Int8(key string, i int8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInt8(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInt8(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -455,7 +455,7 @@ func (e *Event) Ints8(key string, i []int8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInts8(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInts8(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -464,7 +464,7 @@ func (e *Event) Int16(key string, i int16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInt16(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInt16(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -473,7 +473,7 @@ func (e *Event) Ints16(key string, i []int16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInts16(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInts16(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -482,7 +482,7 @@ func (e *Event) Int32(key string, i int32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInt32(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInt32(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -491,7 +491,7 @@ func (e *Event) Ints32(key string, i []int32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInts32(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInts32(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -500,7 +500,7 @@ func (e *Event) Int64(key string, i int64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInt64(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInt64(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -509,7 +509,7 @@ func (e *Event) Ints64(key string, i []int64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendInts64(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInts64(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -518,7 +518,7 @@ func (e *Event) Uint(key string, i uint) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUint(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUint(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -527,7 +527,7 @@ func (e *Event) Uints(key string, i []uint) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUints(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUints(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -536,7 +536,7 @@ func (e *Event) Uint8(key string, i uint8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUint8(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUint8(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -545,7 +545,7 @@ func (e *Event) Uints8(key string, i []uint8) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUints8(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUints8(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -554,7 +554,7 @@ func (e *Event) Uint16(key string, i uint16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUint16(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUint16(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -563,7 +563,7 @@ func (e *Event) Uints16(key string, i []uint16) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUints16(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUints16(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -572,7 +572,7 @@ func (e *Event) Uint32(key string, i uint32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUint32(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUint32(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -581,7 +581,7 @@ func (e *Event) Uints32(key string, i []uint32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUints32(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUints32(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -590,7 +590,7 @@ func (e *Event) Uint64(key string, i uint64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUint64(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUint64(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -599,7 +599,7 @@ func (e *Event) Uints64(key string, i []uint64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendUints64(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendUints64(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -608,7 +608,7 @@ func (e *Event) Float32(key string, f float32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendFloat32(enc.AppendKey(e.buf, key), f)
+	e.Buf = enc.AppendFloat32(enc.AppendKey(e.Buf, key), f)
 	return e
 }
 
@@ -617,7 +617,7 @@ func (e *Event) Floats32(key string, f []float32) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendFloats32(enc.AppendKey(e.buf, key), f)
+	e.Buf = enc.AppendFloats32(enc.AppendKey(e.Buf, key), f)
 	return e
 }
 
@@ -626,7 +626,7 @@ func (e *Event) Float64(key string, f float64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendFloat64(enc.AppendKey(e.buf, key), f)
+	e.Buf = enc.AppendFloat64(enc.AppendKey(e.Buf, key), f)
 	return e
 }
 
@@ -635,7 +635,7 @@ func (e *Event) Floats64(key string, f []float64) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendFloats64(enc.AppendKey(e.buf, key), f)
+	e.Buf = enc.AppendFloats64(enc.AppendKey(e.Buf, key), f)
 	return e
 }
 
@@ -648,7 +648,7 @@ func (e *Event) Timestamp() *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendTime(enc.AppendKey(e.buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
+	e.Buf = enc.AppendTime(enc.AppendKey(e.Buf, TimestampFieldName), TimestampFunc(), TimeFieldFormat)
 	return e
 }
 
@@ -657,7 +657,7 @@ func (e *Event) Time(key string, t time.Time) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendTime(enc.AppendKey(e.buf, key), t, TimeFieldFormat)
+	e.Buf = enc.AppendTime(enc.AppendKey(e.Buf, key), t, TimeFieldFormat)
 	return e
 }
 
@@ -666,7 +666,7 @@ func (e *Event) Times(key string, t []time.Time) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendTimes(enc.AppendKey(e.buf, key), t, TimeFieldFormat)
+	e.Buf = enc.AppendTimes(enc.AppendKey(e.Buf, key), t, TimeFieldFormat)
 	return e
 }
 
@@ -677,7 +677,7 @@ func (e *Event) Dur(key string, d time.Duration) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendDuration(enc.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	e.Buf = enc.AppendDuration(enc.AppendKey(e.Buf, key), d, DurationFieldUnit, DurationFieldInteger)
 	return e
 }
 
@@ -688,7 +688,7 @@ func (e *Event) Durs(key string, d []time.Duration) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendDurations(enc.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	e.Buf = enc.AppendDurations(enc.AppendKey(e.Buf, key), d, DurationFieldUnit, DurationFieldInteger)
 	return e
 }
 
@@ -703,7 +703,7 @@ func (e *Event) TimeDiff(key string, t time.Time, start time.Time) *Event {
 	if t.After(start) {
 		d = t.Sub(start)
 	}
-	e.buf = enc.AppendDuration(enc.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger)
+	e.Buf = enc.AppendDuration(enc.AppendKey(e.Buf, key), d, DurationFieldUnit, DurationFieldInteger)
 	return e
 }
 
@@ -715,7 +715,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 	if obj, ok := i.(LogObjectMarshaler); ok {
 		return e.Object(key, obj)
 	}
-	e.buf = enc.AppendInterface(enc.AppendKey(e.buf, key), i)
+	e.Buf = enc.AppendInterface(enc.AppendKey(e.Buf, key), i)
 	return e
 }
 
@@ -724,7 +724,7 @@ func (e *Event) Type(key string, val interface{}) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendType(enc.AppendKey(e.buf, key), val)
+	e.Buf = enc.AppendType(enc.AppendKey(e.Buf, key), val)
 	return e
 }
 
@@ -757,7 +757,7 @@ func (e *Event) caller(skip int) *Event {
 	if !ok {
 		return e
 	}
-	e.buf = enc.AppendString(enc.AppendKey(e.buf, CallerFieldName), CallerMarshalFunc(pc, file, line))
+	e.Buf = enc.AppendString(enc.AppendKey(e.Buf, CallerFieldName), CallerMarshalFunc(pc, file, line))
 	return e
 }
 
@@ -766,7 +766,7 @@ func (e *Event) IPAddr(key string, ip net.IP) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendIPAddr(enc.AppendKey(e.buf, key), ip)
+	e.Buf = enc.AppendIPAddr(enc.AppendKey(e.Buf, key), ip)
 	return e
 }
 
@@ -775,7 +775,7 @@ func (e *Event) IPPrefix(key string, pfx net.IPNet) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendIPPrefix(enc.AppendKey(e.buf, key), pfx)
+	e.Buf = enc.AppendIPPrefix(enc.AppendKey(e.Buf, key), pfx)
 	return e
 }
 
@@ -784,6 +784,6 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
+	e.Buf = enc.AppendMACAddr(enc.AppendKey(e.Buf, key), ha)
 	return e
 }
