@@ -707,6 +707,11 @@ func (e *Event) TimeDiff(key string, t time.Time, start time.Time) *Event {
 	return e
 }
 
+// Any is a wrapper around Event.Interface.
+func (e *Event) Any(key string, i interface{}) *Event {
+	return e.Interface(key, i)
+}
+
 // Interface adds the field key with i marshaled using reflection.
 func (e *Event) Interface(key string, i interface{}) *Event {
 	if e == nil {
