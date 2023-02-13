@@ -161,24 +161,24 @@ func (l Level) String() string {
 // ParseLevel converts a level string into a zerolog Level value.
 // returns an error if the input string does not match known values.
 func ParseLevel(levelStr string) (Level, error) {
-	switch strings.ToLower(levelStr) {
-	case LevelFieldMarshalFunc(TraceLevel):
+	switch {
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(TraceLevel)):
 		return TraceLevel, nil
-	case LevelFieldMarshalFunc(DebugLevel):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(DebugLevel)):
 		return DebugLevel, nil
-	case LevelFieldMarshalFunc(InfoLevel):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(InfoLevel)):
 		return InfoLevel, nil
-	case LevelFieldMarshalFunc(WarnLevel):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(WarnLevel)):
 		return WarnLevel, nil
-	case LevelFieldMarshalFunc(ErrorLevel):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(ErrorLevel)):
 		return ErrorLevel, nil
-	case LevelFieldMarshalFunc(FatalLevel):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(FatalLevel)):
 		return FatalLevel, nil
-	case LevelFieldMarshalFunc(PanicLevel):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(PanicLevel)):
 		return PanicLevel, nil
-	case LevelFieldMarshalFunc(Disabled):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(Disabled)):
 		return Disabled, nil
-	case LevelFieldMarshalFunc(NoLevel):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(NoLevel)):
 		return NoLevel, nil
 	}
 	i, err := strconv.Atoi(levelStr)
