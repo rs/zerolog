@@ -20,13 +20,14 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf       []byte
 	w         LevelWriter
-	level     Level
 	done      func(msg string)
-	stack     bool   // enable error stack trace
-	ch        []Hook // hooks from context
-	skipFrame int    // The number of additional frames to skip when printing the caller.
+	eh        func(err error)
+	buf       []byte
+	ch        []Hook
+	skipFrame int
+	level     Level
+	stack     bool
 }
 
 func putEvent(e *Event) {
@@ -147,9 +148,16 @@ func (e *Event) msg(msg string) {
 		defer e.done(msg)
 	}
 	if err := e.write(); err != nil {
+		handlerRan := false
+		if e.eh != nil {
+			e.eh(err)
+			handlerRan = true
+		}
 		if ErrorHandler != nil {
 			ErrorHandler(err)
-		} else {
+			handlerRan = true
+		}
+		if !handlerRan {
 			fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v\n", err)
 		}
 	}
