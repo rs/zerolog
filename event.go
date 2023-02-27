@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -791,4 +792,24 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	}
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
 	return e
+}
+
+// GetKeys returns the keys of the event.
+// NOTE: This is an expensive operation and should be used sparingly.
+func (e *Event) GetKeys() ([]string, error) {
+	if e == nil {
+		return nil, nil
+	}
+
+	var event map[string]interface{}
+	if err := json.Unmarshal(e.buf, &event); err != nil {
+		return nil, err
+	}
+
+	keys := make([]string, 0)
+	for key := range event {
+		keys = append(keys, key)
+	}
+
+	return keys, nil
 }

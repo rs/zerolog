@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog
@@ -61,5 +62,27 @@ func TestEvent_EmbedObjectWithNil(t *testing.T) {
 	got := strings.TrimSpace(buf.String())
 	if got != want {
 		t.Errorf("Event.EmbedObject() = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_GetKeys(t *testing.T) {
+	var buf bytes.Buffer
+	e := newEvent(levelWriterAdapter{&buf}, DebugLevel)
+	e.Str("foo", "bar")
+	e.Int("baz", 42)
+	_ = e.write()
+
+	want := []string{"foo", "baz"}
+	got, err := e.GetKeys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != len(want) {
+		t.Errorf("Event.GetKeys() = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("Event.GetKeys() = %v, want %v", got, want)
+		}
 	}
 }
