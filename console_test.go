@@ -324,6 +324,35 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 	})
 
+	t.Run("Sets TimeFormat and TimeLocation", func(t *testing.T) {
+		locs := []*time.Location{ time.Local, time.UTC }
+
+		for _, location := range locs {
+			buf := &bytes.Buffer{}
+			w := zerolog.ConsoleWriter{
+				Out: buf,
+				NoColor: true,
+				TimeFormat: time.RFC3339,
+				TimeLocation: location,
+			}
+
+			ts := time.Unix(0, 0)
+			d := ts.UTC().Format(time.RFC3339)
+			evt := `{"time": "` + d + `", "level": "info", "message": "Foobar"}`
+
+			_, err := w.Write([]byte(evt))
+			if err != nil {
+				t.Errorf("Unexpected error when writing output: %s", err)
+			}
+
+			expectedOutput := ts.In(location).Format(time.RFC3339) + " INF Foobar\n"
+			actualOutput := buf.String()
+			if actualOutput != expectedOutput {
+				t.Errorf("Unexpected output %q, want: %q (location=%s)", actualOutput, expectedOutput, location)
+			}
+		}
+	})
+
 	t.Run("Sets PartsOrder", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, PartsOrder: []string{"message", "level"}}
