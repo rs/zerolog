@@ -57,6 +57,10 @@ type ConsoleWriter struct {
 	// TimeFormat specifies the format for timestamp in output.
 	TimeFormat string
 
+	// TimeLocation tells ConsoleWriter’s default FormatTimestamp
+	// how to localize the time.
+	TimeLocation *time.Location
+
 	// PartsOrder defines the order of parts in output.
 	PartsOrder []string
 
@@ -81,9 +85,9 @@ type ConsoleWriter struct {
 // NewConsoleWriter creates and initializes a new ConsoleWriter.
 func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 	w := ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: consoleDefaultTimeFormat,
-		PartsOrder: consoleDefaultPartsOrder(),
+		Out:          os.Stdout,
+		TimeFormat:   consoleDefaultTimeFormat,
+		PartsOrder:   consoleDefaultPartsOrder(),
 	}
 
 	for _, opt := range options {
@@ -266,7 +270,7 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 		}
 	case TimestampFieldName:
 		if w.FormatTimestamp == nil {
-			f = consoleDefaultFormatTimestamp(w.TimeFormat, w.NoColor)
+			f = consoleDefaultFormatTimestamp(w.TimeFormat, w.TimeLocation, w.NoColor)
 		} else {
 			f = w.FormatTimestamp
 		}
@@ -329,19 +333,23 @@ func consoleDefaultPartsOrder() []string {
 	}
 }
 
-func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
+func consoleDefaultFormatTimestamp(timeFormat string, location *time.Location, noColor bool) Formatter {
 	if timeFormat == "" {
 		timeFormat = consoleDefaultTimeFormat
 	}
+	if location == nil {
+		location = time.Local
+	}
+
 	return func(i interface{}) string {
 		t := "<nil>"
 		switch tt := i.(type) {
 		case string:
-			ts, err := time.ParseInLocation(TimeFieldFormat, tt, time.Local)
+			ts, err := time.ParseInLocation(TimeFieldFormat, tt, location)
 			if err != nil {
 				t = tt
 			} else {
-				t = ts.Local().Format(timeFormat)
+				t = ts.In(location).Format(timeFormat)
 			}
 		case json.Number:
 			i, err := tt.Int64()
@@ -362,7 +370,7 @@ func consoleDefaultFormatTimestamp(timeFormat string, noColor bool) Formatter {
 				}
 
 				ts := time.Unix(sec, nsec)
-				t = ts.Format(timeFormat)
+				t = ts.In(location).Format(timeFormat)
 			}
 		}
 		return colorize(t, colorDarkGray, noColor)
