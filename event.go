@@ -83,7 +83,7 @@ func (e *Event) write() (err error) {
 }
 
 // Size returns the size of the buffer in the Event.
-// This is most likely useful inside a Hook.
+// This is most likely only useful inside a Hook.
 func (e *Event) Size() int64 {
 	if e != nil {
 		return int64(len(e.buf))
