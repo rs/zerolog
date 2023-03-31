@@ -82,15 +82,6 @@ func (e *Event) write() (err error) {
 	return
 }
 
-// Buffer returns the underlying data buffer of the Event.
-// This is most likely useful inside a Hook.
-func (e *Event) Buffer() []byte {
-	if e != nil {
-		return e.buf
-	}
-	return nil
-}
-
 // Size returns the size of the buffer in the Event.
 // This is most likely useful inside a Hook.
 func (e *Event) Size() int64 {
