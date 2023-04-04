@@ -45,6 +45,9 @@ const (
 // Formatter transforms the input into a formatted string.
 type Formatter func(interface{}) string
 
+// PartFormatter transforms the input into a formatted string.
+type PartFormatter func(interface{}, string) string
+
 // ConsoleWriter parses the JSON input and writes it in an
 // (optionally) colorized, human-friendly format to Out.
 type ConsoleWriter struct {
@@ -74,6 +77,8 @@ type ConsoleWriter struct {
 	FormatFieldValue    Formatter
 	FormatErrFieldName  Formatter
 	FormatErrFieldValue Formatter
+
+	FormatPartValue PartFormatter
 
 	FormatExtra func(map[string]interface{}, *bytes.Buffer) error
 }
@@ -283,14 +288,21 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 			f = w.FormatCaller
 		}
 	default:
-		if w.FormatFieldValue == nil {
-			f = consoleDefaultFormatFieldValue
-		} else {
+		if w.FormatPartValue != nil {
+			f = w.FormatPartValue
+		} else if w.FormatFieldValue != nil {
 			f = w.FormatFieldValue
+		} else {
+			f = consoleDefaultFormatFieldValue
 		}
 	}
 
-	var s = f(evt[p])
+	var s string 
+	if f == w.FormatPartValue {
+		s = f(evt[p], p)
+	} else {
+		s = f(evt[p])
+	}
 
 	if len(s) > 0 {
 		if buf.Len() > 0 {
