@@ -285,6 +285,16 @@ var float64Tests = []struct {
 		Val:  math.Inf(-1),
 		Want: `"-Inf"`,
 	},
+	{
+		Name: "Clean up e-09 to e-9 case 1",
+		Val:  1e-9,
+		Want: "1e-9",
+	},
+	{
+		Name: "Clean up e-09 to e-9 case 2",
+		Val:  -2.236734e-9,
+		Want: "-2.236734e-9",
+	},
 }
 
 func TestEncoder_AppendFloat64(t *testing.T) {
@@ -420,6 +430,16 @@ var float32Tests = []struct {
 		Name: "-Inf",
 		Val:  float32(math.Inf(-1)),
 		Want: `"-Inf"`,
+	},
+	{
+		Name: "Clean up e-09 to e-9 case 1",
+		Val:  1e-9,
+		Want: "1e-9",
+	},
+	{
+		Name: "Clean up e-09 to e-9 case 2",
+		Val:  -2.236734e-9,
+		Want: "-2.236734e-9",
 	},
 }
 
