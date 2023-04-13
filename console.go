@@ -45,6 +45,10 @@ const (
 // Formatter transforms the input into a formatted string.
 type Formatter func(interface{}) string
 
+// FormatterByFieldName transforms the input into a formatted string,
+// being able to differentiate formatting based on field name.
+type FormatterByFieldName func(interface{}, string) string
+
 // ConsoleWriter parses the JSON input and writes it in an
 // (optionally) colorized, human-friendly format to Out.
 type ConsoleWriter struct {
@@ -74,6 +78,9 @@ type ConsoleWriter struct {
 	FormatFieldValue    Formatter
 	FormatErrFieldName  Formatter
 	FormatErrFieldValue Formatter
+	// If this is configured it is used for "part" values and
+	// has precedence on FormatFieldValue
+	FormatPartValueByName FormatterByFieldName
 
 	FormatExtra func(map[string]interface{}, *bytes.Buffer) error
 }
@@ -248,6 +255,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 // writePart appends a formatted part to buf.
 func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
 	var f Formatter
+	var fvn FormatterByFieldName
 
 	if w.PartsExclude != nil && len(w.PartsExclude) > 0 {
 		for _, exclude := range w.PartsExclude {
@@ -283,14 +291,21 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 			f = w.FormatCaller
 		}
 	default:
-		if w.FormatFieldValue == nil {
-			f = consoleDefaultFormatFieldValue
-		} else {
+		if w.FormatPartValueByName != nil {
+			fvn = w.FormatPartValueByName
+		} else if w.FormatFieldValue != nil {
 			f = w.FormatFieldValue
+		} else {
+			f = consoleDefaultFormatFieldValue
 		}
 	}
 
-	var s = f(evt[p])
+	var s string
+	if f == nil {
+		s = fvn(evt[p], p)
+	} else {
+		s = f(evt[p])
+	}
 
 	if len(s) > 0 {
 		if buf.Len() > 0 {
