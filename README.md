@@ -24,7 +24,7 @@ Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog)
 * [Sampling](#log-sampling)
 * [Hooks](#hooks)
 * [Contextual fields](#contextual-logging)
-* `context.Context` integration
+* [`context.Context` integration](#contextcontext-integration)
 * [Integration with `net/http`](#integration-with-nethttp)
 * [JSON and CBOR encoding formats](#binary-encoding)
 * [Pretty logging for development](#pretty-logging)
@@ -509,6 +509,30 @@ stdlog.SetOutput(log)
 stdlog.Print("hello world")
 
 // Output: {"foo":"bar","message":"hello world"}
+```
+
+### context.Context integration
+
+The `Logger` isntance could be attached to `context.Context` values with `logger.WithContext(ctx)`
+and extracted from it using `zerolog.Ctx(ctx)`.
+
+Example to add logger to context:
+```go
+// this code attach logger instance to context fields
+ctx := context.Background()
+logger := zerolog.New(os.Stdout)
+ctx = logger.WithContext(ctx)
+someFunc(ctx)
+```
+
+Extracting logger from context:
+```go
+func someFunc(ctx context.Context) {
+  // get logger from context. if it's nill, then `zerolog.DefaultContextLogger` is returned,
+  // if `DefaultContextLogger` is nil, then disabled logger returned.
+  logger := zerolog.Ctx(ctx)
+  logger.Info().Msg("Hello")
+}
 ```
 
 ### Integration with `net/http`
