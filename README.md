@@ -513,7 +513,7 @@ stdlog.Print("hello world")
 
 ### context.Context integration
 
-The `Logger` isntance could be attached to `context.Context` values with `logger.WithContext(ctx)`
+The `Logger` instance could be attached to `context.Context` values with `logger.WithContext(ctx)`
 and extracted from it using `zerolog.Ctx(ctx)`.
 
 Example to add logger to context:
