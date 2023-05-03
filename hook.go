@@ -17,7 +17,7 @@ func (h HookFunc) Run(e *Event, level Level, message string) {
 
 // LevelHook applies a different hook for each level.
 type LevelHook struct {
-	NoLevelHook, TraceHook, DebugHook, InfoHook, WarnHook, ErrorHook, FatalHook, PanicHook Hook
+	NoLevelHook, TraceHook, DebugHook, InfoHook, NoticeHook, WarnHook, ErrorHook, FatalHook, PanicHook Hook
 }
 
 // Run implements the Hook interface.
@@ -34,6 +34,10 @@ func (h LevelHook) Run(e *Event, level Level, message string) {
 	case InfoLevel:
 		if h.InfoHook != nil {
 			h.InfoHook.Run(e, level, message)
+		}
+	case NoticeLevel:
+		if h.NoticeHook != nil {
+			h.NoticeHook.Run(e, level, message)
 		}
 	case WarnLevel:
 		if h.WarnHook != nil {

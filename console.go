@@ -380,6 +380,8 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 				l = colorize("DBG", colorYellow, noColor)
 			case LevelInfoValue:
 				l = colorize("INF", colorGreen, noColor)
+			case LevelNoticeValue:
+				l = colorize("NTC", colorYellow, noColor)
 			case LevelWarnValue:
 				l = colorize("WRN", colorRed, noColor)
 			case LevelErrorValue:
