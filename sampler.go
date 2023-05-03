@@ -104,7 +104,7 @@ func (s *BurstSampler) inc() uint32 {
 
 // LevelSampler applies a different sampler for each level.
 type LevelSampler struct {
-	TraceSampler, DebugSampler, InfoSampler, WarnSampler, ErrorSampler Sampler
+	TraceSampler, DebugSampler, InfoSampler, NoticeSampler, WarnSampler, ErrorSampler Sampler
 }
 
 func (s LevelSampler) Sample(lvl Level) bool {
@@ -120,6 +120,10 @@ func (s LevelSampler) Sample(lvl Level) bool {
 	case InfoLevel:
 		if s.InfoSampler != nil {
 			return s.InfoSampler.Sample(lvl)
+		}
+	case NoticeLevel:
+		if s.NoticeSampler != nil {
+			return s.NoticeSampler.Sample(lvl)
 		}
 	case WarnLevel:
 		if s.WarnSampler != nil {

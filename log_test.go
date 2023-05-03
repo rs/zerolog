@@ -539,6 +539,15 @@ func TestLevel(t *testing.T) {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
+
+	t.Run("Notice", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out).Level(NoticeLevel)
+		log.Notice().Msg("test")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"notice","message":"test"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
 }
 
 func TestGetLevel(t *testing.T) {

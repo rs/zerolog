@@ -38,6 +38,8 @@ var (
 	LevelDebugValue = "debug"
 	// LevelInfoValue is the value used for the info level field.
 	LevelInfoValue = "info"
+	// LevelNoticeValue is the value used for the info level field.
+	LevelNoticeValue = "notice"
 	// LevelWarnValue is the value used for the warn level field.
 	LevelWarnValue = "warn"
 	// LevelErrorValue is the value used for the error level field.
