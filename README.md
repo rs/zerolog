@@ -499,7 +499,7 @@ log.Ctx(ctx).Info().Msg("hello world")
 ### Set as standard logger output
 
 ```go
-log := zerolog.New(os.Stdout).With().
+stdlog := zerolog.New(os.Stdout).With().
     Str("foo", "bar").
     Logger()
 
