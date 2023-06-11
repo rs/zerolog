@@ -329,8 +329,9 @@ func (ts timestampHook) Run(e *Event, level Level, msg string) {
 
 var th = timestampHook{}
 
-// Timestamp adds the current local time as UNIX timestamp to the logger context with the "time" key.
+// Timestamp adds the current local time to the logger context with the "time" key, formatted using zerolog.TimeFieldFormat.
 // To customize the key name, change zerolog.TimestampFieldName.
+// To customize the time format, change zerolog.TimeFieldFormat.
 //
 // NOTE: It won't dedupe the "time" key if the *Context has one already.
 func (c Context) Timestamp() Context {
