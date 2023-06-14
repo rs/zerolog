@@ -318,6 +318,18 @@ func (e *Event) RawJSON(key string, b []byte) *Event {
 	return e
 }
 
+// RawCBOR adds already encoded CBOR to the log line under key.
+//
+// No sanity check is performed on b
+// Note: The full featureset of CBOR is supported as data will not be mapped to json but stored as data-url
+func (e *Event) RawCBOR(key string, b []byte) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = appendCBOR(enc.AppendKey(e.buf, key), b)
+	return e
+}
+
 // AnErr adds the field key with serialized err to the *Event context.
 // If err is nil, no field is added.
 func (e *Event) AnErr(key string, err error) *Event {
