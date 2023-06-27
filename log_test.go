@@ -854,7 +854,7 @@ func (w errWriter) Write(p []byte) (n int, err error) {
 	return 0, w.error
 }
 
-func TestErrorHandler(t *testing.T) {
+func TestGlobalErrorHandler(t *testing.T) {
 	var got error
 	want := errors.New("write error")
 	ErrorHandler = func(err error) {
@@ -864,6 +864,38 @@ func TestErrorHandler(t *testing.T) {
 	log.Log().Msg("test")
 	if got != want {
 		t.Errorf("ErrorHandler err = %#v, want %#v", got, want)
+	}
+}
+
+func TestLocalErrorHandler(t *testing.T) {
+	var got error
+	want := errors.New("write error")
+	eh := func(err error) {
+		got = err
+	}
+	log := NewWithErrorHandler(errWriter{want}, eh)
+	log.Log().Msg("test")
+	if got != want {
+		t.Errorf("LocalErrorHandler err = %#v, want %#v", got, want)
+	}
+}
+
+func TestLocalAndGlobalErrorHandler(t *testing.T) {
+	var gotGlobal, gotLocal error
+	want := errors.New("write error")
+	ErrorHandler = func(err error) {
+		gotGlobal = err
+	}
+	eh := func(err error) {
+		gotLocal = err
+	}
+	log := NewWithErrorHandler(errWriter{want}, eh)
+	log.Log().Msg("test")
+	if gotGlobal != want {
+		t.Errorf("ErrorHandler err = %#v, want %#v", gotGlobal, want)
+	}
+	if gotLocal != want {
+		t.Errorf("LocalErrorHandler err = %#v, want %#v", gotLocal, want)
 	}
 }
 
