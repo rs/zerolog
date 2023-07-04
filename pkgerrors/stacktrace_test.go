@@ -22,7 +22,23 @@ func TestLogStack(t *testing.T) {
 	log.Log().Stack().Err(err).Msg("")
 
 	got := out.String()
-	want := `\{"stack":\[\{"func":"TestLogStack","line":"21","source":"stacktrace_test.go"\},.*\],"error":"from error: error message"\}\n`
+	want := `\{"stack":\[\{"func":"TestLogStack","line":"22","source":"stacktrace_test.go"\},.*\],"error":"from error: error message"\}\n`
+	if ok, _ := regexp.MatchString(want, got); !ok {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestLogStackFields(t *testing.T) {
+	zerolog.ErrorStackMarshaler = MarshalStack
+
+	out := &bytes.Buffer{}
+	log := zerolog.New(out)
+
+	err := fmt.Errorf("from error: %w", errors.New("error message"))
+	log.Log().Stack().Fields([]interface{}{"error", err}).Msg("")
+
+	got := out.String()
+	want := `\{"error":"from error: error message","stack":\[\{"func":"TestLogStackFields","line":"38","source":"stacktrace_test.go"\},.*\]\}\n`
 	if ok, _ := regexp.MatchString(want, got); !ok {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
