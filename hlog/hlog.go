@@ -324,3 +324,33 @@ func HostHandler(fieldKey string, trimPort ...bool) func(next http.Handler) http
 		})
 	}
 }
+
+type AccessHandlerNewData struct {
+	Request      *http.Request
+	Duration     time.Duration
+	Status       int
+	BytesWritten int
+	BytesRead    int64
+}
+
+// AccessHandlerNew returns a handler that call f after each request.
+func AccessHandlerNew(f func(data AccessHandlerNewData)) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+
+			lw := mutil.WrapWriter(w)
+			body := mutil.NewByteCountReadCloser(r.Body)
+			r.Body = body
+
+			next.ServeHTTP(lw, r)
+			f(AccessHandlerNewData{
+				Request:      r,
+				Duration:     time.Since(start),
+				Status:       lw.Status(),
+				BytesWritten: lw.BytesWritten(),
+				BytesRead:    body.BytesRead(),
+			})
+		})
+	}
+}
