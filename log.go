@@ -309,7 +309,9 @@ func (l Logger) Sample(s Sampler) Logger {
 
 // Hook returns a logger with the h Hook.
 func (l Logger) Hook(h Hook) Logger {
-	l.hooks = append(l.hooks, h)
+	newHooks := make([]Hook, len(l.hooks), len(l.hooks)+1)
+	copy(newHooks, l.hooks)
+	l.hooks = append(newHooks, h)
 	return l
 }
 
