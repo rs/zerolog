@@ -85,6 +85,8 @@
 //
 // Caveats
 //
+// Field duplication:
+//
 // There is no fields deduplication out-of-the-box.
 // Using the same key multiple times creates new key in final JSON each time.
 //
@@ -96,6 +98,20 @@
 //
 // In this case, many consumers will take the last value,
 // but this is not guaranteed; check yours if in doubt.
+//
+// Concurrency safety:
+//
+// Be careful when calling UpdateContext. It is not concurrency safe. Use the With method to create a child logger:
+//
+//     func handler(w http.ResponseWriter, r *http.Request) {
+//         // Create a child logger for concurrency safety
+//         logger := log.Logger.With().Logger()
+//
+//         // Add context fields, for example User-Agent from HTTP headers
+//         logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+//             ...
+//         })
+//     }
 package zerolog
 
 import (
@@ -275,7 +291,8 @@ func (l Logger) With() Context {
 
 // UpdateContext updates the internal logger's context.
 //
-// Use this method with caution. If unsure, prefer the With method.
+// Caution: This method is not concurrency safe.
+// Use the With method to create a child logger before modifying the context from concurrent goroutines.
 func (l *Logger) UpdateContext(update func(c Context) Context) {
 	if l == disabledLogger {
 		return

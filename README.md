@@ -727,6 +727,8 @@ Log a static string, without any context or `printf`-style templating:
 
 ## Caveats
 
+### Field duplication
+
 Note that zerolog does no de-duplication of fields. Using the same key multiple times creates multiple keys in final JSON:
 
 ```go
@@ -738,3 +740,19 @@ logger.Info().
 ```
 
 In this case, many consumers will take the last value, but this is not guaranteed; check yours if in doubt.
+
+### Concurrency safety
+
+Be careful when calling UpdateContext. It is not concurrency safe. Use the With method to create a child logger:
+
+```go
+func handler(w http.ResponseWriter, r *http.Request) {
+    // Create a child logger for concurrency safety
+    logger := log.Logger.With().Logger()
+
+    // Add context fields, for example User-Agent from HTTP headers
+    logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+        ...
+    })
+}
+```
