@@ -82,8 +82,7 @@
 //     log.Warn().Msg("")
 //     // Output: {"level":"warn","severity":"warn"}
 //
-//
-// Caveats
+// # Caveats
 //
 // There is no fields deduplication out-of-the-box.
 // Using the same key multiple times creates new key in final JSON each time.
@@ -99,6 +98,7 @@
 package zerolog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -218,6 +218,7 @@ type Logger struct {
 	context []byte
 	hooks   []Hook
 	stack   bool
+	ctx     context.Context
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -455,6 +456,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	e := newEvent(l.w, level)
 	e.done = done
 	e.ch = l.hooks
+	e.ctx = l.ctx
 	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}

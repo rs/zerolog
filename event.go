@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -24,9 +25,10 @@ type Event struct {
 	w         LevelWriter
 	level     Level
 	done      func(msg string)
-	stack     bool   // enable error stack trace
-	ch        []Hook // hooks from context
-	skipFrame int    // The number of additional frames to skip when printing the caller.
+	stack     bool            // enable error stack trace
+	ch        []Hook          // hooks from context
+	skipFrame int             // The number of additional frames to skip when printing the caller.
+	ctx       context.Context // Optional Go context for event
 }
 
 func putEvent(e *Event) {
@@ -415,6 +417,28 @@ func (e *Event) Stack() *Event {
 		e.stack = true
 	}
 	return e
+}
+
+// Ctx adds the Go Context to the *Event context.  The context is not rendered
+// in the output message, but is available to hooks and to Func() calls via the
+// GetCtx() accessor. A typical use case is to extract tracing information from
+// the Go Ctx.
+func (e *Event) Ctx(ctx context.Context) *Event {
+	if e != nil {
+		e.ctx = ctx
+	}
+	return e
+}
+
+// GetCtx retrieves the Go context.Context which is optionally stored in the
+// Event.  This allows Hooks and functions passed to Func() to retrieve values
+// which are stored in the context.Context.  This can be useful in tracing,
+// where span information is commonly propagated in the context.Context.
+func (e *Event) GetCtx() context.Context {
+	if e == nil || e.ctx == nil {
+		return context.Background()
+	}
+	return e.ctx
 }
 
 // Bool adds the field key with val as a bool to the *Event context.

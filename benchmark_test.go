@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"net"
@@ -160,6 +161,7 @@ func BenchmarkLogFieldType(b *testing.B) {
 		{"a", "a", 0},
 	}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
+	ctx := context.Background()
 	types := map[string]func(e *Event) *Event{
 		"Bool": func(e *Event) *Event {
 			return e.Bool("k", bools[0])
@@ -190,6 +192,9 @@ func BenchmarkLogFieldType(b *testing.B) {
 		},
 		"Errs": func(e *Event) *Event {
 			return e.Errs("k", errs)
+		},
+		"Ctx": func(e *Event) *Event {
+			return e.Ctx(ctx)
 		},
 		"Time": func(e *Event) *Event {
 			return e.Time("k", times[0])
@@ -284,6 +289,7 @@ func BenchmarkContextFieldType(b *testing.B) {
 		{"a", "a", 0},
 	}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
+	ctx := context.Background()
 	types := map[string]func(c Context) Context{
 		"Bool": func(c Context) Context {
 			return c.Bool("k", bools[0])
@@ -317,6 +323,9 @@ func BenchmarkContextFieldType(b *testing.B) {
 		},
 		"Errs": func(c Context) Context {
 			return c.Errs("k", errs)
+		},
+		"Ctx": func(c Context) Context {
+			return c.Ctx(ctx)
 		},
 		"Time": func(c Context) Context {
 			return c.Time("k", times[0])
