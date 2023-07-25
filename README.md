@@ -513,25 +513,53 @@ stdlog.Print("hello world")
 
 ### context.Context integration
 
-The `Logger` instance could be attached to `context.Context` values with `logger.WithContext(ctx)`
-and extracted from it using `zerolog.Ctx(ctx)`.
+Go contexts are commonly passed throughout Go code, and this can help you pass
+your Logger into places it might otherwise be hard to inject.  The `Logger`
+instance may be attached to Go context (`context.Context`) using
+`Logger.WithContext(ctx)` and extracted from it using `zerolog.Ctx(ctx)`.
+For example:
 
-Example to add logger to context:
 ```go
-// this code attach logger instance to context fields
-ctx := context.Background()
-logger := zerolog.New(os.Stdout)
-ctx = logger.WithContext(ctx)
-someFunc(ctx)
+func f() {
+    logger := zerolog.New(os.Stdout)
+    ctx := context.Background()
+
+    // Attach the Logger to the context.Context
+    ctx = logger.WithContext(ctx)
+    someFunc(ctx)
+}
+
+func someFunc(ctx context.Context) {
+    // Get Logger from the go Context. if it's nil, then
+    // `zerolog.DefaultContextLogger` is returned, if
+    // `DefaultContextLogger` is nil, then a disabled logger is returned.
+    logger := zerolog.Ctx(ctx)
+    logger.Info().Msg("Hello")
+}
 ```
 
-Extracting logger from context:
+A second form of `context.Context` integration allows you to pass the current
+context.Context into the logged event, and retrieve it from hooks.  This can be
+useful to log trace and span IDs or other information stored in the go context,
+and facilitates the unification of logging and tracing in some systems:
+
 ```go
-func someFunc(ctx context.Context) {
-  // get logger from context. if it's nill, then `zerolog.DefaultContextLogger` is returned,
-  // if `DefaultContextLogger` is nil, then disabled logger returned.
-  logger := zerolog.Ctx(ctx)
-  logger.Info().Msg("Hello")
+type TracingHook struct{}
+
+func (h TracingHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+    ctx := e.Ctx()
+    spanId := getSpanIdFromContext(ctx) // as per your tracing framework
+    e.Str("span-id", spanId)
+}
+
+func f() {
+    // Setup the logger
+    logger := zerolog.New(os.Stdout)
+    logger = logger.Hook(TracingHook{})
+
+    ctx := context.Background()
+    // Use the Ctx function to make the context available to the hook
+    logger.Info().Ctx(ctx).Msg("Hello")
 }
 ```
 
