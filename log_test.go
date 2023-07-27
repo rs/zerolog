@@ -1013,3 +1013,12 @@ func TestUnmarshalTextLevel(t *testing.T) {
 		})
 	}
 }
+
+func TestHTMLNoEscaping(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Interface("head", "<test>").Send()
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"head":"<test>"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
