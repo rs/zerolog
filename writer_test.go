@@ -175,3 +175,23 @@ func TestTestWriter(t *testing.T) {
 	}
 
 }
+
+func TestFilteredLevelWriter(t *testing.T) {
+	buf := bytes.Buffer{}
+	writer := FilteredLevelWriter{
+		Writer: LevelWriterAdapter{&buf},
+		Level:  InfoLevel,
+	}
+	_, err := writer.WriteLevel(DebugLevel, []byte("no"))
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = writer.WriteLevel(InfoLevel, []byte("yes"))
+	if err != nil {
+		t.Error(err)
+	}
+	p := buf.Bytes()
+	if want := "yes"; !bytes.Equal([]byte(want), p) {
+		t.Errorf("Expected %q, got %q.", want, p)
+	}
+}
