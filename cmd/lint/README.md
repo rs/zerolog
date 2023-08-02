@@ -1,5 +1,7 @@
 # Zerolog Lint
 
+**DEPRECATED: In favor of https://github.com/ykadowak/zerologlint which is integrated with `go vet` and [golangci-lint](https://golangci-lint.run/).**
+
 This is a basic linter that checks for missing log event finishers. Finds errors like: `log.Error().Int64("userID": 5)` - missing the `Msg`/`Msgf` finishers.
 
 ## Problem
