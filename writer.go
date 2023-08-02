@@ -17,11 +17,13 @@ type LevelWriter interface {
 	WriteLevel(level Level, p []byte) (n int, err error)
 }
 
-type levelWriterAdapter struct {
+// LevelWriterAdapter adapts an io.Writer to support the LevelWriter interface.
+type LevelWriterAdapter struct {
 	io.Writer
 }
 
-func (lw levelWriterAdapter) WriteLevel(l Level, p []byte) (n int, err error) {
+// WriteLevel simply writes everything to the adapted writer, ignoring the level.
+func (lw LevelWriterAdapter) WriteLevel(l Level, p []byte) (n int, err error) {
 	return lw.Write(p)
 }
 
@@ -38,7 +40,7 @@ func SyncWriter(w io.Writer) io.Writer {
 	if lw, ok := w.(LevelWriter); ok {
 		return &syncWriter{lw: lw}
 	}
-	return &syncWriter{lw: levelWriterAdapter{w}}
+	return &syncWriter{lw: LevelWriterAdapter{w}}
 }
 
 // Write implements the io.Writer interface.
@@ -96,7 +98,7 @@ func MultiLevelWriter(writers ...io.Writer) LevelWriter {
 		if lw, ok := w.(LevelWriter); ok {
 			lwriters = append(lwriters, lw)
 		} else {
-			lwriters = append(lwriters, levelWriterAdapter{w})
+			lwriters = append(lwriters, LevelWriterAdapter{w})
 		}
 	}
 	return multiLevelWriter{lwriters}
