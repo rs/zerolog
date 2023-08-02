@@ -154,3 +154,29 @@ func ConsoleTestWriter(t TestingLog) func(w *ConsoleWriter) {
 		w.Out = TestWriter{T: t, Frame: 6}
 	}
 }
+
+// FilteredLevelWriter writes only logs at Level or above to Writer.
+//
+// It should be used only in combination with MultiLevelWriter when you
+// want to write to multiple destinations at different levels. Otherwise
+// you should just set the level on the logger and filter events early.
+// When using MultiLevelWriter then you set the level on the logger to
+// the lowest of the levels you use for writers.
+type FilteredLevelWriter struct {
+	Writer LevelWriter
+	Level  Level
+}
+
+// Write writes to the underlying Writer.
+func (w *FilteredLevelWriter) Write(p []byte) (int, error) {
+	return w.Writer.Write(p)
+}
+
+// WriteLevel calls WriteLevel of the underlying Writer only if the level is equal
+// or above the Level.
+func (w *FilteredLevelWriter) WriteLevel(level Level, p []byte) (int, error) {
+	if level >= w.Level {
+		return w.Writer.WriteLevel(level, p)
+	}
+	return len(p), nil
+}
