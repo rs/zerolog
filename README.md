@@ -694,7 +694,7 @@ with zerolog library is [CSD](https://github.com/toravir/csd/).
 
 ## Benchmarks
 
-See [logbench](http://hackemist.com/logbench/) for more comprehensive and up-to-date benchmarks.
+See [logbench](http://bench.zerolog.io/) for more comprehensive and up-to-date benchmarks.
 
 All operations are allocation free (those numbers *include* JSON encoding):
 
