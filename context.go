@@ -381,8 +381,7 @@ func (c Context) Interface(key string, i interface{}) Context {
 
 // Any is a wrapper around Context.Interface.
 func (c Context) Any(key string, i interface{}) Context {
-	c.l.context = enc.AppendInterface(enc.AppendKey(c.l.context, key), i)
-	return c
+	return c.Interface(key, i)
 }
 
 type callerHook struct {
