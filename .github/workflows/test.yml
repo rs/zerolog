@@ -4,7 +4,7 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.18.x, 1.19.x]
+        go-version: [1.18.x, 1.21.x]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -24,5 +24,13 @@ jobs:
       run: go test -race -bench . -benchmem ./...
     - name: Test CBOR
       run: go test -tags binary_log ./...
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
     - name: Update coverage report
       uses: ncruces/go-coverage-report@main
+      with:
+        report: 'true'
+        chart: 'true'
+        amend: 'true'
+      continue-on-error: true
