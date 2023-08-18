@@ -379,6 +379,11 @@ func (c Context) Interface(key string, i interface{}) Context {
 	return c
 }
 
+// Any is a wrapper around Context.Interface.
+func (c Context) Any(key string, i interface{}) Context {
+	return c.Interface(key, i)
+}
+
 type callerHook struct {
 	callerSkipFrameCount int
 }
