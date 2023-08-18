@@ -24,4 +24,5 @@ jobs:
       run: go test -race -bench . -benchmem ./...
     - name: Test CBOR
       run: go test -tags binary_log ./...
-
+    - name: Update coverage report
+      uses: ncruces/go-coverage-report@main
