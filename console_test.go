@@ -104,6 +104,44 @@ func TestConsoleWriter(t *testing.T) {
 		}
 	})
 
+	t.Run("NO_COLOR = true", func(t *testing.T) {
+		os.Setenv("NO_COLOR", "true")
+
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf}
+
+		_, err := w.Write([]byte(`{"level": "warn", "message": "Foobar"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "<nil> WRN Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+		os.Unsetenv("NO_COLOR")
+	})
+
+	t.Run("NO_COLOR = false", func(t *testing.T) {
+		os.Setenv("NO_COLOR", "false")
+
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf}
+
+		_, err := w.Write([]byte(`{"level": "warn", "message": "Foobar"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[31mWRN\x1b[0m Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+		os.Unsetenv("NO_COLOR")
+	})
+
 	t.Run("Write fields", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
