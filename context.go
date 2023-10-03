@@ -379,6 +379,12 @@ func (c Context) Interface(key string, i interface{}) Context {
 	return c
 }
 
+// Type adds the field key with val's type using reflection.
+func (c Context) Type(key string, val interface{}) Context {
+	c.l.context = enc.AppendType(enc.AppendKey(c.l.context, key), val)
+	return c
+}
+
 // Any is a wrapper around Context.Interface.
 func (c Context) Any(key string, i interface{}) Context {
 	return c.Interface(key, i)
