@@ -23,7 +23,7 @@ func (c Context) Logger() Logger {
 // Only map[string]interface{} and []interface{} are accepted. []interface{} must
 // alternate string keys and arbitrary values, and extraneous ones are ignored.
 func (c Context) Fields(fields interface{}) Context {
-	c.l.context = appendFields(c.l.context, fields)
+	c.l.context = appendFields(c.l.context, fields, c.l.stack)
 	return c
 }
 
