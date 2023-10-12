@@ -418,6 +418,29 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 	})
 
+	t.Run("Sets FormatPrepare", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out: buf, NoColor: true, PartsOrder: []string{"level", "message"},
+			FormatPrepare: func(evt map[string]interface{}) error {
+				evt["message"] = fmt.Sprintf("msg=%s", evt["message"])
+				return nil
+			},
+		}
+
+		evt := `{"level": "info", "message": "Foobar"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF msg=Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("Uses local time for console writer without time zone", func(t *testing.T) {
 		// Regression test for issue #483 (check there for more details)
 
