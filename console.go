@@ -76,6 +76,8 @@ type ConsoleWriter struct {
 	FormatErrFieldValue Formatter
 
 	FormatExtra func(map[string]interface{}, *bytes.Buffer) error
+
+	FormatPrepare func(map[string]interface{}) error
 }
 
 // NewConsoleWriter creates and initializes a new ConsoleWriter.
@@ -122,6 +124,13 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	err = d.Decode(&evt)
 	if err != nil {
 		return n, fmt.Errorf("cannot decode event: %s", err)
+	}
+
+	if w.FormatPrepare != nil {
+		err = w.FormatPrepare(evt)
+		if err != nil {
+			return n, err
+		}
 	}
 
 	for _, p := range w.PartsOrder {
