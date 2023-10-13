@@ -97,7 +97,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[31mWRN\x1b[0m Foobar\n"
+		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -248,7 +248,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[31mWRN\x1b[0m Foobar \x1b[36mfoo=\x1b[0mbar\n"
+		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m \x1b[36mfoo=\x1b[0mbar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
