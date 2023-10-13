@@ -108,6 +108,18 @@ var (
 	// DefaultContextLogger is returned from Ctx() if there is no logger associated
 	// with the context.
 	DefaultContextLogger *Logger
+
+	// LevelColors are used by ConsoleWriter's consoleDefaultFormatLevel to color
+	// log levels.
+	LevelColors = map[string]int{
+		"TRC": colorBlue,
+		"DBG": 0,
+		"INF": colorGreen,
+		"WRN": colorYellow,
+		"ERR": colorRed,
+		"FTL": colorRed,
+		"PNC": colorRed,
+	}
 )
 
 var (

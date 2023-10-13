@@ -281,7 +281,7 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 		}
 	case MessageFieldName:
 		if w.FormatMessage == nil {
-			f = consoleDefaultFormatMessage
+			f = consoleDefaultFormatMessage(w.NoColor, evt[LevelFieldName])
 		} else {
 			f = w.FormatMessage
 		}
@@ -389,21 +389,21 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 		if ll, ok := i.(string); ok {
 			switch ll {
 			case LevelTraceValue:
-				l = colorize("TRC", colorMagenta, noColor)
+				l = colorize("TRC", LevelColors["TRC"], noColor)
 			case LevelDebugValue:
-				l = colorize("DBG", colorYellow, noColor)
+				l = colorize("DBG", LevelColors["DBG"], noColor)
 			case LevelInfoValue:
-				l = colorize("INF", colorGreen, noColor)
+				l = colorize("INF", LevelColors["INF"], noColor)
 			case LevelWarnValue:
-				l = colorize("WRN", colorRed, noColor)
+				l = colorize("WRN", LevelColors["WRN"], noColor)
 			case LevelErrorValue:
-				l = colorize(colorize("ERR", colorRed, noColor), colorBold, noColor)
+				l = colorize("ERR", LevelColors["ERR"], noColor)
 			case LevelFatalValue:
-				l = colorize(colorize("FTL", colorRed, noColor), colorBold, noColor)
+				l = colorize("FTL", LevelColors["FTL"], noColor)
 			case LevelPanicValue:
-				l = colorize(colorize("PNC", colorRed, noColor), colorBold, noColor)
+				l = colorize("PNC", LevelColors["PNC"], noColor)
 			default:
-				l = colorize(ll, colorBold, noColor)
+				l = strings.ToUpper(ll)[0:3]
 			}
 		} else {
 			if i == nil {
@@ -434,11 +434,18 @@ func consoleDefaultFormatCaller(noColor bool) Formatter {
 	}
 }
 
-func consoleDefaultFormatMessage(i interface{}) string {
-	if i == nil {
-		return ""
+func consoleDefaultFormatMessage(noColor bool, level interface{}) Formatter {
+	return func(i interface{}) string {
+		if i == nil || i == "" {
+			return ""
+		}
+		switch level {
+		case LevelInfoValue, LevelWarnValue, LevelErrorValue, LevelFatalValue, LevelPanicValue:
+			return colorize(fmt.Sprintf("%s", i), colorBold, noColor)
+		default:
+			return fmt.Sprintf("%s", i)
+		}
 	}
-	return fmt.Sprintf("%s", i)
 }
 
 func consoleDefaultFormatFieldName(noColor bool) Formatter {
@@ -459,6 +466,6 @@ func consoleDefaultFormatErrFieldName(noColor bool) Formatter {
 
 func consoleDefaultFormatErrFieldValue(noColor bool) Formatter {
 	return func(i interface{}) string {
-		return colorize(fmt.Sprintf("%s", i), colorRed, noColor)
+		return colorize(colorize(fmt.Sprintf("%s", i), colorBold, noColor), colorRed, noColor)
 	}
 }
