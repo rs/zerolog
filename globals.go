@@ -111,14 +111,26 @@ var (
 
 	// LevelColors are used by ConsoleWriter's consoleDefaultFormatLevel to color
 	// log levels.
-	LevelColors = map[string]int{
-		"TRC": colorBlue,
-		"DBG": 0,
-		"INF": colorGreen,
-		"WRN": colorYellow,
-		"ERR": colorRed,
-		"FTL": colorRed,
-		"PNC": colorRed,
+	LevelColors = map[Level]int{
+		TraceLevel: colorBlue,
+		DebugLevel: 0,
+		InfoLevel:  colorGreen,
+		WarnLevel:  colorYellow,
+		ErrorLevel: colorRed,
+		FatalLevel: colorRed,
+		PanicLevel: colorRed,
+	}
+
+	// FormattedLevels are used by ConsoleWriter's consoleDefaultFormatLevel
+	// for a short level name.
+	FormattedLevels = map[Level]string{
+		TraceLevel: "TRC",
+		DebugLevel: "DBG",
+		InfoLevel:  "INF",
+		WarnLevel:  "WRN",
+		ErrorLevel: "ERR",
+		FatalLevel: "FTL",
+		PanicLevel: "PNC",
 	}
 )
 
