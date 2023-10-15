@@ -132,6 +132,10 @@ var (
 		FatalLevel: "FTL",
 		PanicLevel: "PNC",
 	}
+
+	// TriggerLevelWriterBufferReuseLimit is a limit in bytes that a buffer is dropped
+	// from the TriggerLevelWriter buffer pool if the buffer grows above the limit.
+	TriggerLevelWriterBufferReuseLimit = 64 * 1024
 )
 
 var (
