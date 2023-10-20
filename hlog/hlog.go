@@ -216,3 +216,17 @@ func AccessHandler(f func(r *http.Request, status, size int, duration time.Durat
 		})
 	}
 }
+
+// HostHandler adds the request's host as a field to the context's logger
+// using fieldKey as field key.
+func HostHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log := zerolog.Ctx(r.Context())
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, r.Host)
+			})
+			next.ServeHTTP(w, r)
+		})
+	}
+}

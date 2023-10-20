@@ -292,3 +292,17 @@ func TestCtxWithID(t *testing.T) {
 		t.Errorf("CtxWithID() = %v, want %v", got, want)
 	}
 }
+
+func TestHostHandler(t *testing.T) {
+	out := &bytes.Buffer{}
+	r := &http.Request{Host: "example.com"}
+	h := HostHandler("host")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := FromRequest(r)
+		l.Log().Msg("")
+	}))
+	h = NewHandler(zerolog.New(out))(h)
+	h.ServeHTTP(nil, r)
+	if want, got := `{"host":"example.com"}`+"\n", decodeIfBinary(out); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
+}
