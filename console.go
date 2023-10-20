@@ -387,27 +387,16 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 	return func(i interface{}) string {
 		var l string
 		if ll, ok := i.(string); ok {
-			switch ll {
-			case LevelTraceValue:
-				l = colorize("TRC", LevelColors["TRC"], noColor)
-			case LevelDebugValue:
-				l = colorize("DBG", LevelColors["DBG"], noColor)
-			case LevelInfoValue:
-				l = colorize("INF", LevelColors["INF"], noColor)
-			case LevelWarnValue:
-				l = colorize("WRN", LevelColors["WRN"], noColor)
-			case LevelErrorValue:
-				l = colorize("ERR", LevelColors["ERR"], noColor)
-			case LevelFatalValue:
-				l = colorize("FTL", LevelColors["FTL"], noColor)
-			case LevelPanicValue:
-				l = colorize("PNC", LevelColors["PNC"], noColor)
-			default:
+			level, _ := ParseLevel(ll)
+			fl, ok := FormattedLevels[level]
+			if ok {
+				l = colorize(fl, LevelColors[level], noColor)
+			} else {
 				l = strings.ToUpper(ll)[0:3]
 			}
 		} else {
 			if i == nil {
-				l = colorize("???", colorBold, noColor)
+				l = "???"
 			} else {
 				l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
 			}
