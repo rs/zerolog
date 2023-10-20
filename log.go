@@ -450,6 +450,14 @@ func (l *Logger) Printf(format string, v ...interface{}) {
 	}
 }
 
+// Println sends a log event using debug level and no extra field.
+// Arguments are handled in the manner of fmt.Println.
+func (l *Logger) Println(v ...interface{}) {
+	if e := l.Debug(); e.Enabled() {
+		e.CallerSkipFrame(1).Msg(fmt.Sprintln(v...))
+	}
+}
+
 // Write implements the io.Writer interface. This is useful to set as a writer
 // for the standard library log.
 func (l Logger) Write(p []byte) (n int, err error) {
