@@ -4,6 +4,7 @@ package hlog
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/xid"
@@ -129,6 +130,21 @@ func ProtoHandler(fieldKey string) func(next http.Handler) http.Handler {
 			log := zerolog.Ctx(r.Context())
 			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 				return c.Str(fieldKey, r.Proto)
+			})
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// HTTPVersionHandler is similar to ProtoHandler, but it does not store the "HTTP/"
+// prefix in the protocol name.
+func HTTPVersionHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			proto := strings.TrimPrefix(r.Proto, "HTTP/")
+			log := zerolog.Ctx(r.Context())
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, proto)
 			})
 			next.ServeHTTP(w, r)
 		})

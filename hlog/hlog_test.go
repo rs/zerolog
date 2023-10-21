@@ -217,6 +217,22 @@ func TestProtoHandler(t *testing.T) {
 	}
 }
 
+func TestHTTPVersionHandler(t *testing.T) {
+	out := &bytes.Buffer{}
+	r := &http.Request{
+		Proto: "HTTP/1.1",
+	}
+	h := HTTPVersionHandler("proto")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		l := FromRequest(r)
+		l.Log().Msg("")
+	}))
+	h = NewHandler(zerolog.New(out))(h)
+	h.ServeHTTP(nil, r)
+	if want, got := `{"proto":"1.1"}`+"\n", decodeIfBinary(out); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
+}
+
 func TestCombinedHandlers(t *testing.T) {
 	out := &bytes.Buffer{}
 	r := &http.Request{
