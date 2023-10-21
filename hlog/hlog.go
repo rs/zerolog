@@ -264,14 +264,23 @@ func AccessHandler(f func(r *http.Request, status, size int, duration time.Durat
 }
 
 // HostHandler adds the request's host as a field to the context's logger
-// using fieldKey as field key.
-func HostHandler(fieldKey string) func(next http.Handler) http.Handler {
+// using fieldKey as field key. If trimPort is set to true, then port is
+// removed from the host.
+func HostHandler(fieldKey string, trimPort ...bool) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log := zerolog.Ctx(r.Context())
-			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
-				return c.Str(fieldKey, r.Host)
-			})
+			var host string
+			if len(trimPort) > 0 && trimPort[0] {
+				host = getHost(r.Host)
+			} else {
+				host = r.Host
+			}
+			if host != "" {
+				log := zerolog.Ctx(r.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, host)
+				})
+			}
 			next.ServeHTTP(w, r)
 		})
 	}
