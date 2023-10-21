@@ -253,6 +253,26 @@ func TestEtagHandler(t *testing.T) {
 	}
 }
 
+func TestResponseHeaderHandler(t *testing.T) {
+	out := &bytes.Buffer{}
+	w := httptest.NewRecorder()
+	r := &http.Request{}
+	h := ResponseHeaderHandler("encoding", "Content-Encoding")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Encoding", `gzip`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	h2 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+		l := FromRequest(r)
+		l.Log().Msg("")
+	})
+	h3 := NewHandler(zerolog.New(out))(h2)
+	h3.ServeHTTP(w, r)
+	if want, got := `{"encoding":"gzip"}`+"\n", decodeIfBinary(out); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
+}
+
 func TestProtoHandler(t *testing.T) {
 	out := &bytes.Buffer{}
 	r := &http.Request{
