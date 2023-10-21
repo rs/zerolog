@@ -3,6 +3,7 @@ package hlog
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -83,6 +84,35 @@ func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 				log := zerolog.Ctx(r.Context())
 				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 					return c.Str(fieldKey, r.RemoteAddr)
+				})
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func getHost(hostPort string) string {
+	if hostPort == "" {
+		return ""
+	}
+
+	host, _, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return hostPort
+	}
+	return host
+}
+
+// RemoteIPHandler is similar to RemoteAddrHandler, but logs only
+// an IP, not a port.
+func RemoteIPHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip := getHost(r.RemoteAddr)
+			if ip != "" {
+				log := zerolog.Ctx(r.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, ip)
 				})
 			}
 			next.ServeHTTP(w, r)
