@@ -233,6 +233,26 @@ func TestCustomHeaderHandler(t *testing.T) {
 	}
 }
 
+func TestEtagHandler(t *testing.T) {
+	out := &bytes.Buffer{}
+	w := httptest.NewRecorder()
+	r := &http.Request{}
+	h := EtagHandler("etag")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Etag", `"abcdef"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	h2 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+		l := FromRequest(r)
+		l.Log().Msg("")
+	})
+	h3 := NewHandler(zerolog.New(out))(h2)
+	h3.ServeHTTP(w, r)
+	if want, got := `{"etag":"abcdef"}`+"\n", decodeIfBinary(out); want != got {
+		t.Errorf("Invalid log output, got: %s, want: %s", got, want)
+	}
+}
+
 func TestProtoHandler(t *testing.T) {
 	out := &bytes.Buffer{}
 	r := &http.Request{
