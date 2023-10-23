@@ -294,8 +294,10 @@ func AccessHandler(f func(r *http.Request, status, size int, duration time.Durat
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			lw := mutil.WrapWriter(w)
+			defer func() {
+				f(r, lw.Status(), lw.BytesWritten(), time.Since(start))
+			}()
 			next.ServeHTTP(lw, r)
-			f(r, lw.Status(), lw.BytesWritten(), time.Since(start))
 		})
 	}
 }
