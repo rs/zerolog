@@ -29,13 +29,13 @@ type WriterProxy interface {
 
 // WrapWriter wraps an http.ResponseWriter, returning a proxy that allows you to
 // hook into various parts of the response process.
-func WrapWriter(w http.ResponseWriter) WriterProxy {
+func WrapWriter(w http.ResponseWriter, isWs bool) WriterProxy {
 	_, cn := w.(http.CloseNotifier)
 	_, fl := w.(http.Flusher)
 	_, hj := w.(http.Hijacker)
 	_, rf := w.(io.ReaderFrom)
 
-	bw := basicWriter{ResponseWriter: w}
+	bw := basicWriter{ResponseWriter: w, isWs: isWs}
 	if cn && fl && hj && rf {
 		return &fancyWriter{bw}
 	}
@@ -49,6 +49,7 @@ func WrapWriter(w http.ResponseWriter) WriterProxy {
 // http.ResponseWriter interface.
 type basicWriter struct {
 	http.ResponseWriter
+	isWs        bool
 	wroteHeader bool
 	code        int
 	bytes       int
@@ -59,7 +60,11 @@ func (b *basicWriter) WriteHeader(code int) {
 	if !b.wroteHeader {
 		b.code = code
 		b.wroteHeader = true
-		b.ResponseWriter.WriteHeader(code)
+		// if it's a websocket then we can't actually write the header
+		// on a hijacked session
+		if !b.isWs {
+			b.ResponseWriter.WriteHeader(code)
+		}
 	}
 }
 

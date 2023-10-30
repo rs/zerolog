@@ -210,7 +210,8 @@ func AccessHandler(f func(r *http.Request, status, size int, duration time.Durat
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			lw := mutil.WrapWriter(w)
+			isWs := r.Header.Get("upgrade") == "websocket"
+			lw := mutil.WrapWriter(w, isWs)
 			next.ServeHTTP(lw, r)
 			f(r, lw.Status(), lw.BytesWritten(), time.Since(start))
 		})
