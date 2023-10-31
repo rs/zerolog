@@ -3,6 +3,7 @@ package zerolog
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -104,6 +105,8 @@ func TestWith(t *testing.T) {
 		Stringer("stringer_nil", nil).
 		Bytes("bytes", []byte("bar")).
 		Hex("hex", []byte{0x12, 0xef}).
+		Base64("base64", []byte{0x12, 0xef, 0x29, 0x30, 0xff}).
+		Base64Custom(base64.RawURLEncoding, "base64url", []byte{0xcc, 0xbb, 0xaa, 0xff}).
 		RawJSON("json", []byte(`{"some":"json"}`)).
 		AnErr("some_err", nil).
 		Err(errors.New("some error")).
@@ -126,7 +129,7 @@ func TestWith(t *testing.T) {
 	caller := fmt.Sprintf("%s:%d", file, line+3)
 	log := ctx.Caller().Logger()
 	log.Log().Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11.101,"float64":12.30303,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","base64":"Eu8pMP8=","base64url":"zLuq_w","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11.101,"float64":12.30303,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 
@@ -140,7 +143,7 @@ func TestWith(t *testing.T) {
 	}()
 	// The above line is a little contrived, but the line above should be the line due
 	// to the extra frame skip.
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11.101,"float64":12.30303,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","base64":"Eu8pMP8=","base64url":"zLuq_w","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11.101,"float64":12.30303,"time":"0001-01-01T00:00:00Z","caller":"`+caller+`"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -321,6 +324,8 @@ func TestFields(t *testing.T) {
 		Stringer("stringer_nil", nil).
 		Bytes("bytes", []byte("bar")).
 		Hex("hex", []byte{0x12, 0xef}).
+		Base64("base64", []byte{0x12, 0xef, 0x29, 0x30, 0xff}).
+		Base64Custom(base64.RawURLEncoding, "base64url", []byte{0xcc, 0xbb, 0xaa, 0xff}).
 		RawJSON("json", []byte(`{"some":"json"}`)).
 		RawCBOR("cbor", []byte{0x83, 0x01, 0x82, 0x02, 0x03, 0x82, 0x04, 0x05}).
 		Func(func(e *Event) { e.Str("func", "func_output") }).
@@ -348,7 +353,7 @@ func TestFields(t *testing.T) {
 		TimeDiff("diff", now, now.Add(-10*time.Second)).
 		Ctx(context.Background()).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","json":{"some":"json"},"cbor":"data:application/cbor;base64,gwGCAgOCBAU=","func":"func_output","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"IPv4":"192.168.0.100","IPv6":"2001:db8:85a3::8a2e:370:7334","Mac":"00:14:22:01:23:45","Prefix":"192.168.0.100/24","float32":11.1234,"float64":12.321321321,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","base64":"Eu8pMP8=","base64url":"zLuq_w","json":{"some":"json"},"cbor":"data:application/cbor;base64,gwGCAgOCBAU=","func":"func_output","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"IPv4":"192.168.0.100","IPv6":"2001:db8:85a3::8a2e:370:7334","Mac":"00:14:22:01:23:45","Prefix":"192.168.0.100/24","float32":11.1234,"float64":12.321321321,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -446,6 +451,8 @@ func TestFieldsDisabled(t *testing.T) {
 		Stringer("stringer", net.IP{127, 0, 0, 1}).
 		Bytes("bytes", []byte("bar")).
 		Hex("hex", []byte{0x12, 0xef}).
+		Base64("base64", []byte{0x12, 0xef, 0x29, 0x30, 0xff}).
+		Base64Custom(base64.RawURLEncoding, "base64url", []byte{0xcc, 0xbb, 0xaa, 0xff}).
 		AnErr("some_err", nil).
 		Err(errors.New("some error")).
 		Func(func(e *Event) { e.Str("func", "func_output") }).

@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -105,6 +106,19 @@ func (c Context) Bytes(key string, val []byte) Context {
 // Hex adds the field key with val as a hex string to the logger context.
 func (c Context) Hex(key string, val []byte) Context {
 	c.l.context = enc.AppendHex(enc.AppendKey(c.l.context, key), val)
+	return c
+}
+
+// Base64 adds the field key with val as a standard padded base64 string to the logger context.
+func (c Context) Base64(key string, val []byte) Context {
+	c.l.context = enc.AppendBase64(base64.StdEncoding, enc.AppendKey(c.l.context, key), val)
+	return c
+}
+
+// Base64Custom adds the field key with val as a base64 string to the logger context.
+// The specific form of base64 can be specified with the first parameter.
+func (c Context) Base64Custom(b64 *base64.Encoding, key string, val []byte) Context {
+	c.l.context = enc.AppendBase64(b64, enc.AppendKey(c.l.context, key), val)
 	return c
 }
 
