@@ -8,6 +8,8 @@ package json
 // you might get a nil pointer dereference panic at runtime.
 var JSONMarshalFunc func(v interface{}) ([]byte, error)
 
+var AppendBytesFunc func(dst, src []byte) []byte = AppendBytesDefault
+
 type Encoder struct{}
 
 // AppendKey appends a new key to the output JSON.

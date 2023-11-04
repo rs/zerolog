@@ -290,7 +290,7 @@ func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
 // Bytes adds the field key with val as a string to the *Event context.
 //
 // Runes outside of normal ASCII ranges will be hex-encoded in the resulting
-// JSON.
+// JSON. The marshaling can be customized by setting JSONBytesMarshalFunc.
 func (e *Event) Bytes(key string, val []byte) *Event {
 	if e == nil {
 		return e

@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog
@@ -20,6 +21,12 @@ func init() {
 	// using closure to reflect the changes at runtime.
 	json.JSONMarshalFunc = func(v interface{}) ([]byte, error) {
 		return InterfaceMarshalFunc(v)
+	}
+	if JSONBytesMarshalFunc == nil {
+		JSONBytesMarshalFunc = json.AppendBytesDefault
+	}
+	json.AppendBytesFunc = func(dst, src []byte) []byte {
+		return JSONBytesMarshalFunc(dst, src)
 	}
 }
 
