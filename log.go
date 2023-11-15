@@ -507,3 +507,14 @@ func (l *Logger) should(lvl Level) bool {
 	}
 	return true
 }
+
+// Enabled returns true if the logger is not disabled.
+func (l *Logger) Enabled() bool {
+	if l.w == nil {
+		return false
+	}
+	if l.level == Disabled || GlobalLevel() == Disabled {
+		return false
+	}
+	return true
+}

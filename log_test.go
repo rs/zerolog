@@ -498,6 +498,9 @@ func TestLevel(t *testing.T) {
 		if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
+		if log.Enabled() {
+			t.Errorf("expect log to be disabled")
+		}
 	})
 
 	t.Run("NoLevel/Disabled", func(t *testing.T) {
