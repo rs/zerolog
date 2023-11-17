@@ -269,10 +269,13 @@ func TestFieldsSlice(t *testing.T) {
 		"uint64", uint64(10),
 		"float32", float32(11),
 		"float64", float64(12),
-		"ipv6", net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
+		"ipv6",
+		net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
 		"dur", 1 * time.Second,
-		"time", time.Time{},
-		"obj", obj{"a", "b", 1},
+		"time",
+		time.Time{},
+		"obj",
+		obj{"a", "b", 1},
 	}).Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"nil":null,"string":"foo","bytes":"bar","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11,"float64":12,"ipv6":"2001:db8:85a3::8a2e:370:7334","dur":1000,"time":"0001-01-01T00:00:00Z","obj":{"Pub":"a","Tag":"b","priv":1}}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
@@ -572,6 +575,43 @@ func TestSampling(t *testing.T) {
 	log.Log().Int("i", 3).Msg("")
 	log.Log().Int("i", 4).Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()), "{\"i\":1}\n{\"i\":3}\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+// messageAllowlistSampler is a MessageSampler that allows only messages
+// that are in the allowlist.
+type messageAllowlistSampler struct {
+	Allow []string
+}
+
+var _ MessageSampler = (*messageAllowlistSampler)(nil)
+
+func (ms *messageAllowlistSampler) Sample(Level) bool {
+	return true
+}
+
+func (ms *messageAllowlistSampler) SampleMessage(lvl Level, msg string) bool {
+	for _, allow := range ms.Allow {
+		if msg == allow {
+			return true
+		}
+	}
+	return false
+}
+
+func TestMessageSampling(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out).Sample(&messageAllowlistSampler{
+		Allow: []string{"a", "c"},
+	})
+
+	log.Log().Msg("a")
+	log.Log().Msg("b")
+	log.Log().Msg("c")
+	log.Log().Msg("d")
+
+	if got, want := decodeIfBinaryToString(out.Bytes()), "{\"message\":\"a\"}\n{\"message\":\"c\"}\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }

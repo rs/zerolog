@@ -29,6 +29,7 @@ type Event struct {
 	ch        []Hook          // hooks from context
 	skipFrame int             // The number of additional frames to skip when printing the caller.
 	ctx       context.Context // Optional Go context for event
+	sampler   MessageSampler  // optional: if set, used to sample messages
 }
 
 func putEvent(e *Event) {
@@ -142,6 +143,11 @@ func (e *Event) msg(msg string) {
 	for _, hook := range e.ch {
 		hook.Run(e, e.level, msg)
 	}
+
+	if e.sampler != nil && !e.sampler.SampleMessage(e.level, msg) {
+		return
+	}
+
 	if msg != "" {
 		e.buf = enc.AppendString(enc.AppendKey(e.buf, MessageFieldName), msg)
 	}

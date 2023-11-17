@@ -230,7 +230,7 @@ func (l Level) MarshalText() ([]byte, error) {
 type Logger struct {
 	w       LevelWriter
 	level   Level
-	sampler Sampler
+	sampler MessageSampler
 	context []byte
 	hooks   []Hook
 	stack   bool
@@ -321,7 +321,12 @@ func (l Logger) GetLevel() Level {
 
 // Sample returns a logger with the s sampler.
 func (l Logger) Sample(s Sampler) Logger {
-	l.sampler = s
+	ms, ok := s.(MessageSampler)
+	if !ok {
+		ms = MessageSamplerAdapter{s}
+	}
+
+	l.sampler = ms
 	return l
 }
 
@@ -482,6 +487,9 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	e.done = done
 	e.ch = l.hooks
 	e.ctx = l.ctx
+	if !samplingDisabled() {
+		e.sampler = l.sampler
+	}
 	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}
