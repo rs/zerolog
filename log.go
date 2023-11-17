@@ -228,13 +228,14 @@ func (l Level) MarshalText() ([]byte, error) {
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
-	w       LevelWriter
-	level   Level
-	sampler MessageSampler
-	context []byte
-	hooks   []Hook
-	stack   bool
-	ctx     context.Context
+	w          LevelWriter
+	level      Level
+	sampler    Sampler
+	msgSampler MessageSampler
+	context    []byte
+	hooks      []Hook
+	stack      bool
+	ctx        context.Context
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -265,6 +266,7 @@ func (l Logger) Output(w io.Writer) Logger {
 	l2 := New(w)
 	l2.level = l.level
 	l2.sampler = l.sampler
+	l2.msgSampler = l.msgSampler
 	l2.stack = l.stack
 	if len(l.hooks) > 0 {
 		l2.hooks = append(l2.hooks, l.hooks...)
@@ -320,13 +322,20 @@ func (l Logger) GetLevel() Level {
 }
 
 // Sample returns a logger with the s sampler.
+//
+// If both a Sampler and a MessageSampler are provided to the logger,
+// the MessageSampler is only called if the Sampler returns true.
 func (l Logger) Sample(s Sampler) Logger {
-	ms, ok := s.(MessageSampler)
-	if !ok {
-		ms = MessageSamplerAdapter{s}
-	}
+	l.sampler = s
+	return l
+}
 
-	l.sampler = ms
+// SampleMessages returns a logger with the s message sampler.
+//
+// If both a Sampler and a MessageSampler are provided to the logger,
+// the MessageSampler is only called if the Sampler returns true.
+func (l Logger) SampleMessages(s MessageSampler) Logger {
+	l.msgSampler = s
 	return l
 }
 
@@ -488,7 +497,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	e.ch = l.hooks
 	e.ctx = l.ctx
 	if !samplingDisabled() {
-		e.sampler = l.sampler
+		e.msgSampler = l.msgSampler
 	}
 	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))

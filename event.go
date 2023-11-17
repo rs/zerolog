@@ -21,15 +21,15 @@ var eventPool = &sync.Pool{
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
-	buf       []byte
-	w         LevelWriter
-	level     Level
-	done      func(msg string)
-	stack     bool            // enable error stack trace
-	ch        []Hook          // hooks from context
-	skipFrame int             // The number of additional frames to skip when printing the caller.
-	ctx       context.Context // Optional Go context for event
-	sampler   MessageSampler  // optional: if set, used to sample messages
+	buf        []byte
+	w          LevelWriter
+	level      Level
+	done       func(msg string)
+	stack      bool            // enable error stack trace
+	ch         []Hook          // hooks from context
+	skipFrame  int             // The number of additional frames to skip when printing the caller.
+	ctx        context.Context // Optional Go context for event
+	msgSampler MessageSampler  // optional: if set, used to sample messages
 }
 
 func putEvent(e *Event) {
@@ -144,7 +144,7 @@ func (e *Event) msg(msg string) {
 		hook.Run(e, e.level, msg)
 	}
 
-	if e.sampler != nil && !e.sampler.SampleMessage(e.level, msg) {
+	if e.msgSampler != nil && !e.msgSampler.SampleMessage(e.level, msg) {
 		return
 	}
 

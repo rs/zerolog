@@ -24,30 +24,15 @@ type Sampler interface {
 
 // MessageSampler samples logged messages.
 //
-// It provides two hooks to control sampling:
+// It is independent from the Sampler interface to allow
+// for sampling based on message contents.
 //
-//   - Sample is called initially to sample based on level.
-//   - SampleMessage is called only if Sample returned true
-//     to sample based on message contents.
+// If a Sampler is also provided to the logger,
+// the MessageSampler is only called if the Sampler returns true.
 type MessageSampler interface {
-	Sampler
-
 	// SampleMessage reports whether an event with the given level and message
 	// should be part of the sample.
-	//
-	// SampleMessage is called only if Sample returned true.
 	SampleMessage(lvl Level, msg string) bool
-}
-
-// MessageSamplerAdapter adapts a Sampler to a MessageSampler.
-type MessageSamplerAdapter struct {
-	Sampler
-}
-
-// SampleMessage ignores message contents as part of the sampling decision,
-// deferring to the decision made by Sampler.Sample.
-func (s MessageSamplerAdapter) SampleMessage(lvl Level, msg string) bool {
-	return true
 }
 
 // RandomSampler use a PRNG to randomly sample an event out of N events,

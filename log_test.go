@@ -585,12 +585,6 @@ type messageAllowlistSampler struct {
 	Allow []string
 }
 
-var _ MessageSampler = (*messageAllowlistSampler)(nil)
-
-func (ms *messageAllowlistSampler) Sample(Level) bool {
-	return true
-}
-
 func (ms *messageAllowlistSampler) SampleMessage(lvl Level, msg string) bool {
 	for _, allow := range ms.Allow {
 		if msg == allow {
@@ -602,7 +596,7 @@ func (ms *messageAllowlistSampler) SampleMessage(lvl Level, msg string) bool {
 
 func TestMessageSampling(t *testing.T) {
 	out := &bytes.Buffer{}
-	log := New(out).Sample(&messageAllowlistSampler{
+	log := New(out).SampleMessages(&messageAllowlistSampler{
 		Allow: []string{"a", "c"},
 	})
 

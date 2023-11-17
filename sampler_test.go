@@ -70,22 +70,6 @@ func TestSamplers(t *testing.T) {
 	}
 }
 
-func TestMessageSamplerAdapter(t *testing.T) {
-	sampler := &BasicSampler{N: 5}
-	adapter := MessageSamplerAdapter{sampler}
-
-	var got int
-	for i := 0; i < 100; i++ {
-		if adapter.Sample(0) && adapter.SampleMessage(0, "") {
-			got++
-		}
-	}
-
-	if got != 20 {
-		t.Errorf(`MessageSamplerAdapter.Sample(0) == true %d on 100, want 20`, got)
-	}
-}
-
 func BenchmarkSamplers(b *testing.B) {
 	for i := range samplers {
 		s := samplers[i]
