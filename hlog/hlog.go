@@ -343,14 +343,16 @@ func AccessHandlerWithData(f func(data AccessHandlerData)) func(next http.Handle
 			body := mutil.NewByteCountReadCloser(r.Body)
 			r.Body = body
 
+			defer func() {
+				f(AccessHandlerData{
+					Request:      r,
+					Duration:     time.Since(start),
+					Status:       ww.Status(),
+					BytesWritten: ww.BytesWritten(),
+					BytesRead:    body.BytesRead(),
+				})
+			}()
 			next.ServeHTTP(ww, r)
-			f(AccessHandlerData{
-				Request:      r,
-				Duration:     time.Since(start),
-				Status:       ww.Status(),
-				BytesWritten: ww.BytesWritten(),
-				BytesRead:    body.BytesRead(),
-			})
 		})
 	}
 }
