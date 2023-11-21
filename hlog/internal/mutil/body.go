@@ -14,8 +14,10 @@ var _ io.ReadCloser = (*byteCountReadCloser)(nil)
 var _ io.WriterTo = (*byteCountReadCloser)(nil)
 
 func NewByteCountReadCloser(rc io.ReadCloser) *byteCountReadCloser {
+	read := int64(0)
 	return &byteCountReadCloser{
-		rc: rc,
+		rc:   rc,
+		read: &read,
 	}
 }
 

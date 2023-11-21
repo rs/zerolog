@@ -7,11 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/rs/xid"
@@ -333,10 +334,10 @@ func BenchmarkHandlers(b *testing.B) {
 	}))
 	h2 := MethodHandler("method")(RequestHandler("request")(h1))
 	handlers := map[string]http.Handler{
-		"Single":           NewHandler(zerolog.New(ioutil.Discard))(h1),
-		"Combined":         NewHandler(zerolog.New(ioutil.Discard))(h2),
-		"SingleDisabled":   NewHandler(zerolog.New(ioutil.Discard).Level(zerolog.Disabled))(h1),
-		"CombinedDisabled": NewHandler(zerolog.New(ioutil.Discard).Level(zerolog.Disabled))(h2),
+		"Single":           NewHandler(zerolog.New(io.Discard))(h1),
+		"Combined":         NewHandler(zerolog.New(io.Discard))(h2),
+		"SingleDisabled":   NewHandler(zerolog.New(io.Discard).Level(zerolog.Disabled))(h1),
+		"CombinedDisabled": NewHandler(zerolog.New(io.Discard).Level(zerolog.Disabled))(h2),
 	}
 	for name := range handlers {
 		h := handlers[name]
@@ -432,4 +433,31 @@ func TestGetHost(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAccessHandlerWithData(t *testing.T) {
+	bodyValue := "hello, world!"
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(bodyValue))
+
+	handler := AccessHandlerWithData(func(data AccessHandlerData) {
+		expectedBytes := int64(len(bodyValue))
+		if data.BytesRead != expectedBytes {
+			t.Errorf("unexpected bytes read, got: %d, want: %d", data.BytesRead, expectedBytes)
+		}
+		if data.BytesWritten != int(expectedBytes) {
+			t.Errorf("unexpected bytes read, got: %d, want: %d", data.BytesWritten, expectedBytes)
+		}
+		if data.Status != http.StatusOK {
+			t.Errorf("unexpected status, got: %d, want: %d", data.Status, http.StatusOK)
+		}
+		if data.Request != req {
+			t.Error("unexpected request object")
+		}
+	})
+
+	rr := httptest.NewRecorder()
+
+	handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(w, r.Body)
+	})).ServeHTTP(rr, req)
 }
