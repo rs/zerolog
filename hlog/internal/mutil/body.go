@@ -1,6 +1,9 @@
 package mutil
 
-import "io"
+import (
+	"io"
+	"sync/atomic"
+)
 
 type byteCountReadCloser struct {
 	rc   io.ReadCloser
@@ -9,22 +12,22 @@ type byteCountReadCloser struct {
 
 var _ io.ReadCloser = (*byteCountReadCloser)(nil)
 
-func NewByteCountReadCloser(body io.ReadCloser) *byteCountReadCloser {
+func NewByteCountReadCloser(rc io.ReadCloser) *byteCountReadCloser {
 	return &byteCountReadCloser{
-		rc: body,
+		rc: rc,
 	}
 }
 
-func (bcrc *byteCountReadCloser) Read(p []byte) (int, error) {
-	n, err := bcrc.rc.Read(p)
-	bcrc.read += int64(n)
+func (b *byteCountReadCloser) Read(p []byte) (int, error) {
+	n, err := b.rc.Read(p)
+	atomic.AddInt64(&b.read, int64(n))
 	return n, err
 }
 
-func (bcrc *byteCountReadCloser) Close() error {
-	return bcrc.rc.Close()
+func (b *byteCountReadCloser) Close() error {
+	return b.rc.Close()
 }
 
-func (bcrc *byteCountReadCloser) BytesRead() int64 {
-	return bcrc.read
+func (b *byteCountReadCloser) BytesRead() int64 {
+	return b.read
 }
