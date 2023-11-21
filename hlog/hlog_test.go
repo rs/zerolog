@@ -460,4 +460,17 @@ func TestAccessHandlerWithData(t *testing.T) {
 	handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.Copy(w, r.Body)
 	})).ServeHTTP(rr, req)
+
+	if rr.Result().StatusCode != http.StatusOK {
+		t.Errorf("unexpected status, got: %d, want: %d", rr.Result().StatusCode, http.StatusOK)
+	}
+
+	b, err := io.ReadAll(rr.Result().Body)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err.Error())
+	}
+
+	if bodyValue != string(b) {
+		t.Errorf("unexpected response body, got: %s, want: %s", string(b), bodyValue)
+	}
 }
