@@ -592,7 +592,7 @@ c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration
         Dur("duration", duration).
         Msg("")
 }))
-c = c.Append(hlog.AccessHandlerNew(func(data hlog.AccessHandlerNewData) {
+c = c.Append(hlog.AccessHandlerWithData(func(data hlog.AccessHandlerData) {
     hlog.FromRequest(data.Request).Info().
         Str("method", data.Request.Method).
         Stringer("url", data.Request.URL).
