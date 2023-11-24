@@ -3,7 +3,6 @@ package diode_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"testing"
@@ -39,7 +38,7 @@ func TestClose(t *testing.T) {
 }
 
 func Benchmark(b *testing.B) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	defer log.SetOutput(os.Stderr)
 	benchs := map[string]time.Duration{
 		"Waiter": 0,
@@ -47,7 +46,7 @@ func Benchmark(b *testing.B) {
 	}
 	for name, interval := range benchs {
 		b.Run(name, func(b *testing.B) {
-			w := diode.NewWriter(ioutil.Discard, 100000, interval, nil)
+			w := diode.NewWriter(io.Discard, 100000, interval, nil)
 			log := zerolog.New(w)
 			defer w.Close()
 

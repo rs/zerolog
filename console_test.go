@@ -3,7 +3,7 @@ package zerolog_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -474,7 +474,7 @@ func BenchmarkConsoleWriter(b *testing.B) {
 
 	var msg = []byte(`{"level": "info", "foo": "bar", "message": "HELLO", "time": "1990-01-01"}`)
 
-	w := zerolog.ConsoleWriter{Out: ioutil.Discard, NoColor: false}
+	w := zerolog.ConsoleWriter{Out: io.Discard, NoColor: false}
 
 	for i := 0; i < b.N; i++ {
 		w.Write(msg)

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -333,10 +332,10 @@ func BenchmarkHandlers(b *testing.B) {
 	}))
 	h2 := MethodHandler("method")(RequestHandler("request")(h1))
 	handlers := map[string]http.Handler{
-		"Single":           NewHandler(zerolog.New(ioutil.Discard))(h1),
-		"Combined":         NewHandler(zerolog.New(ioutil.Discard))(h2),
-		"SingleDisabled":   NewHandler(zerolog.New(ioutil.Discard).Level(zerolog.Disabled))(h1),
-		"CombinedDisabled": NewHandler(zerolog.New(ioutil.Discard).Level(zerolog.Disabled))(h2),
+		"Single":           NewHandler(zerolog.New(io.Discard))(h1),
+		"Combined":         NewHandler(zerolog.New(io.Discard))(h2),
+		"SingleDisabled":   NewHandler(zerolog.New(io.Discard).Level(zerolog.Disabled))(h1),
+		"CombinedDisabled": NewHandler(zerolog.New(io.Discard).Level(zerolog.Disabled))(h2),
 	}
 	for name := range handlers {
 		h := handlers[name]
