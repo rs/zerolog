@@ -3,7 +3,7 @@ package zerolog
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net"
 	"time"
@@ -57,7 +57,7 @@ func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (c Context) Object(key string, obj LogObjectMarshaler) Context {
-	e := newEvent(LevelWriterAdapter{ioutil.Discard}, 0)
+	e := newEvent(LevelWriterAdapter{io.Discard}, 0)
 	e.Object(key, obj)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
 	putEvent(e)
@@ -66,7 +66,7 @@ func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 
 // EmbedObject marshals and Embeds an object that implement the LogObjectMarshaler interface.
 func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
-	e := newEvent(LevelWriterAdapter{ioutil.Discard}, 0)
+	e := newEvent(LevelWriterAdapter{io.Discard}, 0)
 	e.EmbedObject(obj)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
 	putEvent(e)

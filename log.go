@@ -118,7 +118,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -246,7 +245,7 @@ type Logger struct {
 // you may consider using sync wrapper.
 func New(w io.Writer) Logger {
 	if w == nil {
-		w = ioutil.Discard
+		w = io.Discard
 	}
 	lw, ok := w.(LevelWriter)
 	if !ok {

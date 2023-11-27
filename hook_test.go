@@ -3,7 +3,7 @@ package zerolog
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
@@ -172,7 +172,7 @@ func TestHook(t *testing.T) {
 }
 
 func BenchmarkHooks(b *testing.B) {
-	logger := New(ioutil.Discard)
+	logger := New(io.Discard)
 	b.ResetTimer()
 	b.Run("Nop/Single", func(b *testing.B) {
 		log := logger.Hook(nopHook)
