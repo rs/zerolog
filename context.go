@@ -375,6 +375,9 @@ func (c Context) Durs(key string, d []time.Duration) Context {
 
 // Interface adds the field key with obj marshaled using reflection.
 func (c Context) Interface(key string, i interface{}) Context {
+	if obj, ok := i.(LogObjectMarshaler); ok {
+		return c.Object(key, obj)
+	}
 	c.l.context = enc.AppendInterface(enc.AppendKey(c.l.context, key), i)
 	return c
 }
