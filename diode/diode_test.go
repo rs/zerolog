@@ -3,6 +3,7 @@ package diode_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"testing"
