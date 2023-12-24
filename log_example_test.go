@@ -72,7 +72,7 @@ func ExampleLogger_Hook() {
 	var levelNameHook LevelNameHook
 	var messageHook MessageHook = "The message"
 
-	log := zerolog.New(os.Stdout).Hook(levelNameHook).Hook(messageHook)
+	log := zerolog.New(os.Stdout).Hook(levelNameHook, messageHook)
 
 	log.Info().Msg("hello world")
 
