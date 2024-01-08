@@ -60,6 +60,22 @@ func TestLogStackFromContext(t *testing.T) {
 	}
 }
 
+func TestLogStackFromContextWith(t *testing.T) {
+	zerolog.ErrorStackMarshaler = MarshalStack
+
+	err := fmt.Errorf("from error: %w", errors.New("error message"))
+	out := &bytes.Buffer{}
+	log := zerolog.New(out).With().Stack().Err(err).Logger() // calling Stack() on log context instead of event
+
+	log.Error().Msg("")
+
+	got := out.String()
+	want := `\{"level":"error","stack":\[\{"func":"TestLogStackFromContextWith","line":"66","source":"stacktrace_test.go"\},.*\],"error":"from error: error message"\}\n`
+	if ok, _ := regexp.MatchString(want, got); !ok {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func BenchmarkLogStack(b *testing.B) {
 	zerolog.ErrorStackMarshaler = MarshalStack
 	out := &bytes.Buffer{}
