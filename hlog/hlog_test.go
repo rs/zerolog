@@ -285,7 +285,7 @@ func TestAccessHandler(t *testing.T) {
 	}
 
 	h := AccessHandler(f)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte{'a'})
+		w.Write([]byte{'a'})
 		w.WriteHeader(http.StatusOK)
 	}))
 
