@@ -153,5 +153,4 @@ var (
 	_ http.Flusher       = &fancyWriter{}
 	_ http.Hijacker      = &fancyWriter{}
 	_ io.ReaderFrom      = &fancyWriter{}
-	_ http.Flusher       = &flushWriter{}
 )

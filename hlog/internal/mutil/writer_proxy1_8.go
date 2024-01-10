@@ -106,10 +106,6 @@ type fancyWriter struct {
 	basicWriter
 }
 
-func (f *fancyWriter) Push(target string, opts *http.PushOptions) error {
-	return f.basicWriter.ResponseWriter.(http.Pusher).Push(target, opts)
-}
-
 func (f *fancyWriter) Flush() {
 	fl := f.basicWriter.ResponseWriter.(http.Flusher)
 	fl.Flush()
@@ -130,7 +126,6 @@ func (f *fancyWriter) ReadFrom(r io.Reader) (int64, error) {
 }
 
 var (
-	_ http.Pusher   = &fancyWriter{}
 	_ http.Flusher  = &fancyWriter{}
 	_ http.Hijacker = &fancyWriter{}
 	_ io.ReaderFrom = &fancyWriter{}
