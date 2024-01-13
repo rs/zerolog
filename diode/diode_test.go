@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -36,6 +37,43 @@ func TestClose(t *testing.T) {
 	log := zerolog.New(w)
 	log.Print("test")
 	w.Close()
+}
+
+func TestFatal(t *testing.T) {
+	if os.Getenv("TEST_FATAL") == "1" {
+		w := diode.NewWriter(os.Stderr, 1000, 0, func(missed int) {
+			fmt.Printf("Dropped %d messages\n", missed)
+		})
+		defer w.Close()
+		log := zerolog.New(w)
+		log.Fatal().Msg("test")
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestFatal")
+	cmd.Env = append(os.Environ(), "TEST_FATAL=1")
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	slurp, err := io.ReadAll(stderr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Wait()
+	if err == nil {
+		t.Error("Expected log.Fatal to exit with non-zero status")
+	}
+
+	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
+	got := string(slurp)
+	if got != want {
+		t.Errorf("Diode Fatal Test failed. got:%s, want:%s!", got, want)
+	}
 }
 
 func Benchmark(b *testing.B) {
