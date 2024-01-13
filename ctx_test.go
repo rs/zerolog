@@ -6,6 +6,8 @@ import (
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/rs/zerolog/internal/cbor"
 )
 
 func TestCtx(t *testing.T) {
@@ -93,7 +95,7 @@ func Test_InterfaceLogObjectMarshaler(t *testing.T) {
 
 	withLog.Info().Msg("test")
 
-	if got, want := buf.String(), `{"level":"info","obj":{"name":"custom_value","age":29},"message":"test"}`+"\n"; got != want {
+	if got, want := cbor.DecodeIfBinaryToString(buf.Bytes()), `{"level":"info","obj":{"name":"custom_value","age":29},"message":"test"}`+"\n"; got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
