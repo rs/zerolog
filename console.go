@@ -155,6 +155,15 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	return len(p), err
 }
 
+// Call the underlying writer's Close method if it is an io.Closer. Otherwise
+// does nothing.
+func (w ConsoleWriter) Close() error {
+	if closer, ok := w.Out.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
 // writeFields appends formatted key-value pairs to buf.
 func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
 	var fields = make([]string, 0, len(evt))
