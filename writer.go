@@ -27,6 +27,13 @@ func (lw LevelWriterAdapter) WriteLevel(l Level, p []byte) (n int, err error) {
 	return lw.Write(p)
 }
 
+func (lw LevelWriterAdapter) Close() error {
+	if closer, ok := lw.Writer.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
 type syncWriter struct {
 	mu sync.Mutex
 	lw LevelWriter
@@ -55,6 +62,15 @@ func (s *syncWriter) WriteLevel(l Level, p []byte) (n int, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.lw.WriteLevel(l, p)
+}
+
+func (s *syncWriter) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if closer, ok := s.lw.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
 }
 
 type multiLevelWriter struct {
@@ -87,6 +103,17 @@ func (t multiLevelWriter) WriteLevel(l Level, p []byte) (n int, err error) {
 		}
 	}
 	return n, err
+}
+
+func (t multiLevelWriter) Close() error {
+	for _, w := range t.writers {
+		if closer, ok := w.(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // MultiLevelWriter creates a writer that duplicates its writes to all the
