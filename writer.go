@@ -27,6 +27,8 @@ func (lw LevelWriterAdapter) WriteLevel(l Level, p []byte) (n int, err error) {
 	return lw.Write(p)
 }
 
+// Call the underlying writer's Close method if it is an io.Closer. Otherwise
+// does nothing.
 func (lw LevelWriterAdapter) Close() error {
 	if closer, ok := lw.Writer.(io.Closer); ok {
 		return closer.Close()
@@ -105,6 +107,9 @@ func (t multiLevelWriter) WriteLevel(l Level, p []byte) (n int, err error) {
 	return n, err
 }
 
+// Calls close on all the underlying writers that are io.Closers. If any of the
+// Close methods return an error, the remainder of the closers are not closed
+// and the error is returned.
 func (t multiLevelWriter) Close() error {
 	for _, w := range t.writers {
 		if closer, ok := w.(io.Closer); ok {

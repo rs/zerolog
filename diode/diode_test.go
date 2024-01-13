@@ -70,7 +70,7 @@ func TestFatal(t *testing.T) {
 	}
 
 	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
-	got := string(slurp)
+	got := cbor.DecodeIfBinaryToString(slurp)
 	if got != want {
 		t.Errorf("Diode Fatal Test failed. got:%s, want:%s!", got, want)
 	}
