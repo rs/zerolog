@@ -19,7 +19,18 @@ func main() {
 	writer := zerolog.NewConsoleWriter()
 
 	if isInputFromPipe() {
-		_, _ = io.Copy(writer, os.Stdin)
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			bytesToWrite := scanner.Bytes()
+			_, err := writer.Write(bytesToWrite)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				fmt.Printf("%s\n", bytesToWrite)
+			}
+		}
 	} else if len(os.Args) > 1 {
 		for _, filename := range os.Args[1:] {
 			// Scan each line from filename and write it into writer
