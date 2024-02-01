@@ -15,31 +15,39 @@ func isInputFromPipe() bool {
 	return fileInfo.Mode()&os.ModeCharDevice == 0
 }
 
-func main() {
+func processInput(reader io.Reader) error {
 	writer := zerolog.NewConsoleWriter()
 
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		bytesToWrite := scanner.Bytes()
+		_, err := writer.Write(bytesToWrite)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			fmt.Printf("%s\n", bytesToWrite)
+		}
+	}
+
+	return scanner.Err()
+}
+
+func main() {
+
 	if isInputFromPipe() {
-		_, _ = io.Copy(writer, os.Stdin)
+		_ = processInput(os.Stdin)
 	} else if len(os.Args) > 1 {
 		for _, filename := range os.Args[1:] {
 			// Scan each line from filename and write it into writer
-			r, err := os.Open(filename)
+			reader, err := os.Open(filename)
 			if err != nil {
 				fmt.Printf("%s open: %v", filename, err)
 				os.Exit(1)
 			}
-			scanner := bufio.NewScanner(r)
-			for scanner.Scan() {
-				_, err = writer.Write(scanner.Bytes())
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						break
-					}
-					fmt.Printf("%s write: %v", filename, err)
-					os.Exit(1)
-				}
-			}
-			if err := scanner.Err(); err != nil {
+
+			if err := processInput(reader); err != nil {
 				fmt.Printf("%s scan: %v", filename, err)
 				os.Exit(1)
 			}
