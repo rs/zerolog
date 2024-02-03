@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -15,9 +17,7 @@ func isInputFromPipe() bool {
 	return fileInfo.Mode()&os.ModeCharDevice == 0
 }
 
-func processInput(reader io.Reader) error {
-	writer := zerolog.NewConsoleWriter()
-
+func processInput(reader io.Reader, writer io.Writer) error {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		bytesToWrite := scanner.Bytes()
@@ -35,11 +35,31 @@ func processInput(reader io.Reader) error {
 }
 
 func main() {
+	timeFormats := map[string]string{
+		"default": time.Kitchen,
+		"full":    time.RFC1123,
+	}
+
+	timeFormatFlag := flag.String(
+		"time-format",
+		"default",
+		"Time format, either 'default' or 'full'",
+	)
+
+	flag.Parse()
+
+	timeFormat, ok := timeFormats[*timeFormatFlag]
+	if !ok {
+		panic("Invalid time-format provided")
+	}
+
+	writer := zerolog.NewConsoleWriter()
+	writer.TimeFormat = timeFormat
 
 	if isInputFromPipe() {
-		_ = processInput(os.Stdin)
-	} else if len(os.Args) > 1 {
-		for _, filename := range os.Args[1:] {
+		_ = processInput(os.Stdin, writer)
+	} else if flag.NArg() >= 1 {
+		for _, filename := range flag.Args() {
 			// Scan each line from filename and write it into writer
 			reader, err := os.Open(filename)
 			if err != nil {
@@ -47,7 +67,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			if err := processInput(reader); err != nil {
+			if err := processInput(reader, writer); err != nil {
 				fmt.Printf("%s scan: %v", filename, err)
 				os.Exit(1)
 			}
