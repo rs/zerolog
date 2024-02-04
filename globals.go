@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"strconv"
 	"sync/atomic"
@@ -79,6 +80,12 @@ var (
 	ErrorMarshalFunc = func(err error) interface{} {
 		return err
 	}
+
+	// JSONBytesMarshalFunc allows customization of how Bytes() produces JSON output.
+	// The default implementation leaves ASCII characters as-is and encodes Unicode runes as hex escapes.
+	//
+	// The function should append the encoded bytes to dst and return the extended buffer.
+	JSONBytesMarshalFunc func(dst, src []byte) []byte
 
 	// InterfaceMarshalFunc allows customization of interface marshaling.
 	// Default: "encoding/json.Marshal"
@@ -167,4 +174,18 @@ func DisableSampling(v bool) {
 
 func samplingDisabled() bool {
 	return atomic.LoadInt32(disableSampling) == 1
+}
+
+// JSONBytesMarshalBase64 returns a function compatible with JSONBytesMarshalFunc that encodes bytes using the given base64 encoder.
+func JSONBytesMarshalBase64(enc *base64.Encoding) func(dst, src []byte) []byte {
+	return func(dst, src []byte) []byte {
+		start := len(dst)
+		targetLen := start + enc.EncodedLen(len(src))
+		for cap(dst) < targetLen {
+			dst = append(dst[:cap(dst)], 0)
+		}
+		dst = dst[:targetLen]
+		enc.Encode(dst[start:], src)
+		return dst
+	}
 }

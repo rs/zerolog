@@ -5,14 +5,17 @@ import "unicode/utf8"
 // AppendBytes is a mirror of appendString with []byte arg
 func (Encoder) AppendBytes(dst, s []byte) []byte {
 	dst = append(dst, '"')
+	dst = AppendBytesFunc(dst, s)
+	return append(dst, '"')
+}
+
+func AppendBytesDefault(dst, s []byte) []byte {
 	for i := 0; i < len(s); i++ {
 		if !noEscapeTable[s[i]] {
-			dst = appendBytesComplex(dst, s, i)
-			return append(dst, '"')
+			return appendBytesComplex(dst, s, i)
 		}
 	}
-	dst = append(dst, s...)
-	return append(dst, '"')
+	return append(dst, s...)
 }
 
 // AppendHex encodes the input bytes to a hex string and appends
