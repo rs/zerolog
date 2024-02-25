@@ -14,6 +14,11 @@ type Context struct {
 	l Logger
 }
 
+func NewContextWithResetLogger(l Logger) Context {
+	l.context = enc.AppendBeginMarker(make([]byte, 0, 500))
+	return Context{l: l}
+}
+
 // Logger returns the logger with the context previously set.
 func (c Context) Logger() Logger {
 	return c.l
