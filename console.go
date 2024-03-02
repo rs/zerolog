@@ -188,7 +188,6 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		case LevelFieldName, TimestampFieldName, MessageFieldName, CallerFieldName:
 			continue
 		}
-
 		fields = append(fields, field)
 	}
 	sort.Strings(fields)
