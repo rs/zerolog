@@ -60,7 +60,7 @@ func main() {
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
 > Note: By default log writes to `os.Stderr`
-> Note: The default log level for `log.Print` is *debug*
+> Note: The default log level for `log.Print` is *trace*
 
 ### Contextual Logging
 
