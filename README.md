@@ -412,15 +412,7 @@ Equivalent of `Lshortfile`:
 
 ```go
 zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
-    short := file
-    for i := len(file) - 1; i > 0; i-- {
-        if file[i] == '/' {
-            short = file[i+1:]
-            break
-        }
-    }
-    file = short
-    return file + ":" + strconv.Itoa(line)
+    return filepath.Base(file) + ":" + strconv.Itoa(line)
 }
 log.Logger = log.With().Caller().Logger()
 log.Info().Msg("hello world")
