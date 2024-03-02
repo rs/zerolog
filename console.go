@@ -63,6 +63,11 @@ type ConsoleWriter struct {
 	// PartsExclude defines parts to not display in output.
 	PartsExclude []string
 
+	// FieldsOrder defines the order of contextual fields in output.
+	FieldsOrder []string
+
+	fieldIsOrdered map[string]bool
+
 	// FieldsExclude defines contextual fields to not display in output.
 	FieldsExclude []string
 
@@ -183,9 +188,14 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		case LevelFieldName, TimestampFieldName, MessageFieldName, CallerFieldName:
 			continue
 		}
+
 		fields = append(fields, field)
 	}
 	sort.Strings(fields)
+
+	if len(w.FieldsOrder) > 0 {
+		fields = w.orderFields(fields)
+	}
 
 	// Write space only if something has already been written to the buffer, and if there are fields.
 	if buf.Len() > 0 && len(fields) > 0 {
@@ -316,6 +326,34 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 		}
 		buf.WriteString(s)
 	}
+}
+
+// orderFields takes an array of field names and an array representing field order
+// and returns an array with any ordered fields at the beginning, in order,
+// and the remaining fields after in their original order.
+func (w ConsoleWriter) orderFields(fields []string) []string {
+	if w.fieldIsOrdered == nil {
+		w.fieldIsOrdered = make(map[string]bool)
+		for _, fieldName := range w.FieldsOrder {
+			w.fieldIsOrdered[fieldName] = true
+		}
+	}
+	hasOrderedField := make(map[string]bool)
+	otherFields := make([]string, 0, len(fields))
+	for _, fieldName := range fields {
+		if w.fieldIsOrdered[fieldName] {
+			hasOrderedField[fieldName] = true
+		} else {
+			otherFields = append(otherFields, fieldName)
+		}
+	}
+	result := make([]string, 0, len(fields))
+	for _, fieldName := range w.FieldsOrder {
+		if hasOrderedField[fieldName] {
+			result = append(result, fieldName)
+		}
+	}
+	return append(result, otherFields...)
 }
 
 // needsQuote returns true when the string s should be quoted in output.
