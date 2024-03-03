@@ -66,7 +66,7 @@ type ConsoleWriter struct {
 	// FieldsOrder defines the order of contextual fields in output.
 	FieldsOrder []string
 
-	fieldIsOrdered map[string]bool
+	fieldIsOrdered map[string]int
 
 	// FieldsExclude defines contextual fields to not display in output.
 	FieldsExclude []string
@@ -190,10 +190,11 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		}
 		fields = append(fields, field)
 	}
-	sort.Strings(fields)
 
 	if len(w.FieldsOrder) > 0 {
-		fields = w.orderFields(fields)
+		w.orderFields(fields)
+	} else {
+		sort.Strings(fields)
 	}
 
 	// Write space only if something has already been written to the buffer, and if there are fields.
@@ -330,29 +331,27 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 // orderFields takes an array of field names and an array representing field order
 // and returns an array with any ordered fields at the beginning, in order,
 // and the remaining fields after in their original order.
-func (w ConsoleWriter) orderFields(fields []string) []string {
+func (w ConsoleWriter) orderFields(fields []string) {
 	if w.fieldIsOrdered == nil {
-		w.fieldIsOrdered = make(map[string]bool)
-		for _, fieldName := range w.FieldsOrder {
-			w.fieldIsOrdered[fieldName] = true
+		w.fieldIsOrdered = make(map[string]int)
+		for i, fieldName := range w.FieldsOrder {
+			w.fieldIsOrdered[fieldName] = i
 		}
 	}
-	hasOrderedField := make(map[string]bool)
-	otherFields := make([]string, 0, len(fields))
-	for _, fieldName := range fields {
-		if w.fieldIsOrdered[fieldName] {
-			hasOrderedField[fieldName] = true
-		} else {
-			otherFields = append(otherFields, fieldName)
+	sort.Slice(fields, func(i, j int) bool {
+		ii, iOrdered := w.fieldIsOrdered[fields[i]]
+		jj, jOrdered := w.fieldIsOrdered[fields[j]]
+		if iOrdered && jOrdered {
+			return ii < jj
 		}
-	}
-	result := make([]string, 0, len(fields))
-	for _, fieldName := range w.FieldsOrder {
-		if hasOrderedField[fieldName] {
-			result = append(result, fieldName)
+		if iOrdered {
+			return true
 		}
-	}
-	return append(result, otherFields...)
+		if jOrdered {
+			return false
+		}
+		return fields[i] < fields[j]
+	})
 }
 
 // needsQuote returns true when the string s should be quoted in output.
