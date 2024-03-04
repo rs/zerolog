@@ -151,7 +151,7 @@ func TestWithReset(t *testing.T) {
 		Str("string", "foo").
 		Stringer("stringer", net.IP{127, 0, 0, 1}).
 		Stringer("stringer_nil", nil).
-		EmptyFields().
+		Reset().
 		Bytes("bytes", []byte("bar")).
 		Hex("hex", []byte{0x12, 0xef}).
 		Uint64("uint64", 10).
