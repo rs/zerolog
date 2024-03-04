@@ -385,7 +385,7 @@ func (c Context) Any(key string, i interface{}) Context {
 }
 
 // EmptyFields removes all the context fields.
-func (c Context) EmptyFields() Context {
+func (c Context) Reset() Context {
 	c.l.context = enc.AppendBeginMarker(make([]byte, 0, 500))
 	return c
 }
