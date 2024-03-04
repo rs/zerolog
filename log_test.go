@@ -145,7 +145,7 @@ func TestWith(t *testing.T) {
 	}
 }
 
-func TestWithEmptyFields(t *testing.T) {
+func TestWithReset(t *testing.T) {
 	out := &bytes.Buffer{}
 	ctx := New(out).With().
 		Str("string", "foo").
