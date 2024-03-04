@@ -8,10 +8,6 @@ _obj
 _test
 tmp
 
-# IDE config files
-.idea
-.vscode
-
 # Architecture specific extensions/prefixes
 *.[568vq]
 [568vq].out
