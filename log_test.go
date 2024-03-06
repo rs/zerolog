@@ -145,6 +145,25 @@ func TestWith(t *testing.T) {
 	}
 }
 
+func TestWithReset(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := New(out).With().
+		Str("string", "foo").
+		Stringer("stringer", net.IP{127, 0, 0, 1}).
+		Stringer("stringer_nil", nil).
+		Reset().
+		Bytes("bytes", []byte("bar")).
+		Hex("hex", []byte{0x12, 0xef}).
+		Uint64("uint64", 10).
+		Float64("float64", 12.30303).
+		Ctx(context.Background())
+	log := ctx.Logger()
+	log.Log().Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"bytes":"bar","hex":"12ef","uint64":10,"float64":12.30303}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestFieldsMap(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)

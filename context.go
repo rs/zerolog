@@ -409,6 +409,12 @@ func (c Context) Any(key string, i interface{}) Context {
 	return c.Interface(key, i)
 }
 
+// Reset removes all the context fields.
+func (c Context) Reset() Context {
+	c.l.context = enc.AppendBeginMarker(make([]byte, 0, 500))
+	return c
+}
+
 type callerHook struct {
 	callerSkipFrameCount int
 }
