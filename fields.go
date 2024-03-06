@@ -15,11 +15,13 @@ func isNilValue(i interface{}) bool {
 func appendFields(dst []byte, fields interface{}, stack bool) []byte {
 	switch fields := fields.(type) {
 	case []interface{}:
+		// Existing handling for []interface{}
 		if n := len(fields); n&0x1 == 1 { // odd number
 			fields = fields[:n-1]
 		}
 		dst = appendFieldList(dst, fields, stack)
 	case map[string]interface{}:
+		// Existing handling for map[string]interface{}
 		keys := make([]string, 0, len(fields))
 		for key := range fields {
 			keys = append(keys, key)
@@ -29,6 +31,19 @@ func appendFields(dst []byte, fields interface{}, stack bool) []byte {
 		for _, key := range keys {
 			kv[0], kv[1] = key, fields[key]
 			dst = appendFieldList(dst, kv, stack)
+		}
+	case map[string]string:
+		// New handling for map[string]string
+		keys := make([]string, 0, len(fields))
+		for key := range fields {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			val := fields[key]
+			// Directly append the string value since we know the type
+			dst = enc.AppendKey(dst, key)
+			dst = enc.AppendString(dst, val)
 		}
 	}
 	return dst
