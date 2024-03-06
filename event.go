@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"os"
@@ -305,6 +306,25 @@ func (e *Event) Hex(key string, val []byte) *Event {
 		return e
 	}
 	e.buf = enc.AppendHex(enc.AppendKey(e.buf, key), val)
+	return e
+}
+
+// Base64 adds the field key with val as a standard padded base64 string to the *Event context.
+func (e *Event) Base64(key string, val []byte) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendBase64(base64.StdEncoding, enc.AppendKey(e.buf, key), val)
+	return e
+}
+
+// Base64Custom adds the field key with val as a base64 string to the *Event context.
+// The specific form of base64 can be specified with the first parameter.
+func (e *Event) Base64Custom(b64 *base64.Encoding, key string, val []byte) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendBase64(b64, enc.AppendKey(e.buf, key), val)
 	return e
 }
 

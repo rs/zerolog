@@ -1,6 +1,7 @@
 package cbor
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math"
 	"net"
@@ -483,4 +484,20 @@ func (e Encoder) AppendHex(dst []byte, val []byte) []byte {
 	dst = append(dst, byte(additionalTypeTagHexString>>8))
 	dst = append(dst, byte(additionalTypeTagHexString&0xff))
 	return e.AppendBytes(dst, val)
+}
+
+// AppendBase64 adds a TAG and inserts base64 bytes as a string.
+func (e Encoder) AppendBase64(enc *base64.Encoding, dst []byte, val []byte) []byte {
+	switch enc {
+	case base64.StdEncoding:
+		dst = append(dst, majorTypeTags|additionalTypeIntUint8)
+		dst = append(dst, additionalTypeTagBase64Standard)
+		return e.AppendBytes(dst, val)
+	case base64.RawURLEncoding:
+		dst = append(dst, majorTypeTags|additionalTypeIntUint8)
+		dst = append(dst, additionalTypeTagBase64RawURL)
+		return e.AppendBytes(dst, val)
+	default:
+		return e.AppendString(dst, enc.EncodeToString(val))
+	}
 }
