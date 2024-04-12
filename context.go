@@ -365,13 +365,13 @@ func (c Context) Timestamp() Context {
 	return c
 }
 
-// Time adds the field key with t formated as string using zerolog.TimeFieldFormat.
+// Time adds the field key with t formatted as string using zerolog.TimeFieldFormat.
 func (c Context) Time(key string, t time.Time) Context {
 	c.l.context = enc.AppendTime(enc.AppendKey(c.l.context, key), t, TimeFieldFormat)
 	return c
 }
 
-// Times adds the field key with t formated as string using zerolog.TimeFieldFormat.
+// Times adds the field key with t formatted as string using zerolog.TimeFieldFormat.
 func (c Context) Times(key string, t []time.Time) Context {
 	c.l.context = enc.AppendTimes(enc.AppendKey(c.l.context, key), t, TimeFieldFormat)
 	return c
