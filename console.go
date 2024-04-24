@@ -28,6 +28,8 @@ const (
 
 	colorBold     = 1
 	colorDarkGray = 90
+
+	unknownLevel = "???"
 )
 
 var (
@@ -400,25 +402,30 @@ func consoleDefaultFormatTimestamp(timeFormat string, location *time.Location, n
 	}
 }
 
+func stripLevel(ll string) string {
+	if len(ll) == 0 {
+		return unknownLevel
+	}
+	if len(ll) > 3 {
+		ll = ll[:3]
+	}
+	return strings.ToUpper(ll)
+}
+
 func consoleDefaultFormatLevel(noColor bool) Formatter {
 	return func(i interface{}) string {
-		var l string
 		if ll, ok := i.(string); ok {
 			level, _ := ParseLevel(ll)
 			fl, ok := FormattedLevels[level]
 			if ok {
-				l = colorize(fl, LevelColors[level], noColor)
-			} else {
-				l = strings.ToUpper(ll)[0:3]
+				return colorize(fl, LevelColors[level], noColor)
 			}
-		} else {
-			if i == nil {
-				l = "???"
-			} else {
-				l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
-			}
+			return stripLevel(ll)
 		}
-		return l
+		if i == nil {
+			return unknownLevel
+		}
+		return stripLevel(fmt.Sprintf("%s", i))
 	}
 }
 

@@ -320,6 +320,85 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
 	})
+
+	t.Run("With an extra 'level' field", func(t *testing.T) {
+		t.Run("malformed string", func(t *testing.T) {
+			cases := []struct {
+				field  string
+				output string
+			}{
+				{"", "<nil> ??? Hello World foo=bar\n"},
+				{"-", "<nil> - Hello World foo=bar\n"},
+				{"1", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"a", "<nil> A Hello World foo=bar\n"},
+				{"12", "<nil> 12 Hello World foo=bar\n"},
+				{"a2", "<nil> A2 Hello World foo=bar\n"},
+				{"2a", "<nil> 2A Hello World foo=bar\n"},
+				{"ab", "<nil> AB Hello World foo=bar\n"},
+				{"12a", "<nil> 12A Hello World foo=bar\n"},
+				{"a12", "<nil> A12 Hello World foo=bar\n"},
+				{"abc", "<nil> ABC Hello World foo=bar\n"},
+				{"123", "<nil> 123 Hello World foo=bar\n"},
+				{"abcd", "<nil> ABC Hello World foo=bar\n"},
+				{"1234", "<nil> 123 Hello World foo=bar\n"},
+				{"123d", "<nil> 123 Hello World foo=bar\n"},
+				{"01", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"001", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"0001", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+			}
+			for i, c := range cases {
+				c := c
+				t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+					buf := &bytes.Buffer{}
+					out := zerolog.NewConsoleWriter()
+					out.NoColor = true
+					out.Out = buf
+					log := zerolog.New(out)
+
+					log.Debug().Str("level", c.field).Str("foo", "bar").Msg("Hello World")
+
+					actualOutput := buf.String()
+					if actualOutput != c.output {
+						t.Errorf("Unexpected output %q, want: %q", actualOutput, c.output)
+					}
+				})
+			}
+		})
+
+		t.Run("weird value", func(t *testing.T) {
+			cases := []struct {
+				field  interface{}
+				output string
+			}{
+				{0, "<nil> 0 Hello World foo=bar\n"},
+				{1, "<nil> 1 Hello World foo=bar\n"},
+				{-1, "<nil> -1 Hello World foo=bar\n"},
+				{-3, "<nil> -3 Hello World foo=bar\n"},
+				{-32, "<nil> -32 Hello World foo=bar\n"},
+				{-321, "<nil> -32 Hello World foo=bar\n"},
+				{12, "<nil> 12 Hello World foo=bar\n"},
+				{123, "<nil> 123 Hello World foo=bar\n"},
+				{1234, "<nil> 123 Hello World foo=bar\n"},
+			}
+			for i, c := range cases {
+				c := c
+				t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+					buf := &bytes.Buffer{}
+					out := zerolog.NewConsoleWriter()
+					out.NoColor = true
+					out.Out = buf
+					log := zerolog.New(out)
+
+					log.Debug().Interface("level", c.field).Str("foo", "bar").Msg("Hello World")
+
+					actualOutput := buf.String()
+					if actualOutput != c.output {
+						t.Errorf("Unexpected output %q, want: %q", actualOutput, c.output)
+					}
+				})
+			}
+		})
+	})
 }
 
 func TestConsoleWriterConfiguration(t *testing.T) {
