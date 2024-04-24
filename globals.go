@@ -128,7 +128,7 @@ var (
 	// log levels.
 	LevelColors = map[Level]int{
 		TraceLevel: colorBlue,
-		DebugLevel: colorMagenta,
+		DebugLevel: 0,
 		InfoLevel:  colorGreen,
 		WarnLevel:  colorYellow,
 		ErrorLevel: colorRed,
