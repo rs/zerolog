@@ -11,18 +11,20 @@ import (
 
 func TestAppendType(t *testing.T) {
 	w := map[string]func(interface{}) []byte{
-		"AppendInt":     func(v interface{}) []byte { return enc.AppendInt([]byte{}, v.(int)) },
-		"AppendInt8":    func(v interface{}) []byte { return enc.AppendInt8([]byte{}, v.(int8)) },
-		"AppendInt16":   func(v interface{}) []byte { return enc.AppendInt16([]byte{}, v.(int16)) },
-		"AppendInt32":   func(v interface{}) []byte { return enc.AppendInt32([]byte{}, v.(int32)) },
-		"AppendInt64":   func(v interface{}) []byte { return enc.AppendInt64([]byte{}, v.(int64)) },
-		"AppendUint":    func(v interface{}) []byte { return enc.AppendUint([]byte{}, v.(uint)) },
-		"AppendUint8":   func(v interface{}) []byte { return enc.AppendUint8([]byte{}, v.(uint8)) },
-		"AppendUint16":  func(v interface{}) []byte { return enc.AppendUint16([]byte{}, v.(uint16)) },
-		"AppendUint32":  func(v interface{}) []byte { return enc.AppendUint32([]byte{}, v.(uint32)) },
-		"AppendUint64":  func(v interface{}) []byte { return enc.AppendUint64([]byte{}, v.(uint64)) },
-		"AppendFloat32": func(v interface{}) []byte { return enc.AppendFloat32([]byte{}, v.(float32)) },
-		"AppendFloat64": func(v interface{}) []byte { return enc.AppendFloat64([]byte{}, v.(float64)) },
+		"AppendInt":                   func(v interface{}) []byte { return enc.AppendInt([]byte{}, v.(int)) },
+		"AppendInt8":                  func(v interface{}) []byte { return enc.AppendInt8([]byte{}, v.(int8)) },
+		"AppendInt16":                 func(v interface{}) []byte { return enc.AppendInt16([]byte{}, v.(int16)) },
+		"AppendInt32":                 func(v interface{}) []byte { return enc.AppendInt32([]byte{}, v.(int32)) },
+		"AppendInt64":                 func(v interface{}) []byte { return enc.AppendInt64([]byte{}, v.(int64)) },
+		"AppendUint":                  func(v interface{}) []byte { return enc.AppendUint([]byte{}, v.(uint)) },
+		"AppendUint8":                 func(v interface{}) []byte { return enc.AppendUint8([]byte{}, v.(uint8)) },
+		"AppendUint16":                func(v interface{}) []byte { return enc.AppendUint16([]byte{}, v.(uint16)) },
+		"AppendUint32":                func(v interface{}) []byte { return enc.AppendUint32([]byte{}, v.(uint32)) },
+		"AppendUint64":                func(v interface{}) []byte { return enc.AppendUint64([]byte{}, v.(uint64)) },
+		"AppendFloat32":               func(v interface{}) []byte { return enc.AppendFloat32([]byte{}, v.(float32), -1) },
+		"AppendFloat64":               func(v interface{}) []byte { return enc.AppendFloat64([]byte{}, v.(float64), -1) },
+		"AppendFloat32SmallPrecision": func(v interface{}) []byte { return enc.AppendFloat32([]byte{}, v.(float32), 1) },
+		"AppendFloat64SmallPrecision": func(v interface{}) []byte { return enc.AppendFloat64([]byte{}, v.(float64), 1) },
 	}
 	tests := []struct {
 		name  string
@@ -55,6 +57,9 @@ func TestAppendType(t *testing.T) {
 		{"AppendFloat64(-1.1)", "AppendFloat64", float64(-1.1), []byte(`-1.1`)},
 		{"AppendFloat64(1e20)", "AppendFloat64", float64(1e20), []byte(`100000000000000000000`)},
 		{"AppendFloat64(1e21)", "AppendFloat64", float64(1e21), []byte(`1e+21`)},
+
+		{"AppendFloat32SmallPrecision(-1.123)", "AppendFloat32SmallPrecision", float32(-1.123), []byte(`-1.1`)},
+		{"AppendFloat64SmallPrecision(-1.123)", "AppendFloat64SmallPrecision", float64(-1.123), []byte(`-1.1`)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -301,7 +306,7 @@ func TestEncoder_AppendFloat64(t *testing.T) {
 	for _, tc := range float64Tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			var b []byte
-			b = (Encoder{}).AppendFloat64(b, tc.Val)
+			b = (Encoder{}).AppendFloat64(b, tc.Val, -1)
 			if s := string(b); tc.Want != s {
 				t.Errorf("%q", s)
 			}
@@ -314,7 +319,7 @@ func FuzzEncoder_AppendFloat64(f *testing.F) {
 		f.Add(tc.Val)
 	}
 	f.Fuzz(func(t *testing.T, val float64) {
-		actual := (Encoder{}).AppendFloat64(nil, val)
+		actual := (Encoder{}).AppendFloat64(nil, val, -1)
 		if len(actual) == 0 {
 			t.Fatal("empty buffer")
 		}
@@ -447,7 +452,7 @@ func TestEncoder_AppendFloat32(t *testing.T) {
 	for _, tc := range float32Tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			var b []byte
-			b = (Encoder{}).AppendFloat32(b, tc.Val)
+			b = (Encoder{}).AppendFloat32(b, tc.Val, -1)
 			if s := string(b); tc.Want != s {
 				t.Errorf("%q", s)
 			}
@@ -460,7 +465,7 @@ func FuzzEncoder_AppendFloat32(f *testing.F) {
 		f.Add(tc.Val)
 	}
 	f.Fuzz(func(t *testing.T, val float32) {
-		actual := (Encoder{}).AppendFloat32(nil, val)
+		actual := (Encoder{}).AppendFloat32(nil, val, -1)
 		if len(actual) == 0 {
 			t.Fatal("empty buffer")
 		}
@@ -528,7 +533,7 @@ func BenchmarkEncoder_AppendFloat32(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		for _, f := range floats {
-			dst = (Encoder{}).AppendFloat32(dst[:0], f)
+			dst = (Encoder{}).AppendFloat32(dst[:0], f, -1)
 		}
 	}
 }
@@ -542,7 +547,7 @@ func BenchmarkEncoder_AppendFloat64(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		for _, f := range floats {
-			dst = (Encoder{}).AppendFloat64(dst[:0], f)
+			dst = (Encoder{}).AppendFloat64(dst[:0], f, -1)
 		}
 	}
 }

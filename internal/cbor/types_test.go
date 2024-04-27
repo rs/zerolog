@@ -169,7 +169,7 @@ var float32TestCases = []struct {
 
 func TestAppendFloat32(t *testing.T) {
 	for _, tc := range float32TestCases {
-		s := enc.AppendFloat32([]byte{}, tc.val)
+		s := enc.AppendFloat32([]byte{}, tc.val, -1)
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendFloat32(%f)=0x%s, want: 0x%s",
@@ -306,9 +306,9 @@ func BenchmarkAppendFloat(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				switch str.sz {
 				case 4:
-					_ = enc.AppendFloat32(buf, float32(str.val))
+					_ = enc.AppendFloat32(buf, float32(str.val), -1)
 				case 8:
-					_ = enc.AppendFloat64(buf, str.val)
+					_ = enc.AppendFloat64(buf, str.val, -1)
 				}
 			}
 		})

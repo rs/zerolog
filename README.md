@@ -642,6 +642,10 @@ Some settings can be changed and will be applied to all loggers:
 * `zerolog.DurationFieldUnit`: Can be set to customize the unit for time.Duration type fields added by `Dur` (default: `time.Millisecond`).
 * `zerolog.DurationFieldInteger`: If set to `true`, `Dur` fields are formatted as integers instead of floats (default: `false`). 
 * `zerolog.ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
+* `zerolog.FloatingPointPrecision`: If set to a value other than -1, controls the number
+of digits when formatting float numbers in JSON. See
+[strconv.FormatFloat](https://pkg.go.dev/strconv#FormatFloat)
+for more details.
 
 ## Field Types
 

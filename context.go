@@ -325,25 +325,25 @@ func (c Context) Uints64(key string, i []uint64) Context {
 
 // Float32 adds the field key with f as a float32 to the logger context.
 func (c Context) Float32(key string, f float32) Context {
-	c.l.context = enc.AppendFloat32(enc.AppendKey(c.l.context, key), f)
+	c.l.context = enc.AppendFloat32(enc.AppendKey(c.l.context, key), f, FloatingPointPrecision)
 	return c
 }
 
 // Floats32 adds the field key with f as a []float32 to the logger context.
 func (c Context) Floats32(key string, f []float32) Context {
-	c.l.context = enc.AppendFloats32(enc.AppendKey(c.l.context, key), f)
+	c.l.context = enc.AppendFloats32(enc.AppendKey(c.l.context, key), f, FloatingPointPrecision)
 	return c
 }
 
 // Float64 adds the field key with f as a float64 to the logger context.
 func (c Context) Float64(key string, f float64) Context {
-	c.l.context = enc.AppendFloat64(enc.AppendKey(c.l.context, key), f)
+	c.l.context = enc.AppendFloat64(enc.AppendKey(c.l.context, key), f, FloatingPointPrecision)
 	return c
 }
 
 // Floats64 adds the field key with f as a []float64 to the logger context.
 func (c Context) Floats64(key string, f []float64) Context {
-	c.l.context = enc.AppendFloats64(enc.AppendKey(c.l.context, key), f)
+	c.l.context = enc.AppendFloats64(enc.AppendKey(c.l.context, key), f, FloatingPointPrecision)
 	return c
 }
 
@@ -379,13 +379,13 @@ func (c Context) Times(key string, t []time.Time) Context {
 
 // Dur adds the fields key with d divided by unit and stored as a float.
 func (c Context) Dur(key string, d time.Duration) Context {
-	c.l.context = enc.AppendDuration(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
+	c.l.context = enc.AppendDuration(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
 	return c
 }
 
 // Durs adds the fields key with d divided by unit and stored as a float.
 func (c Context) Durs(key string, d []time.Duration) Context {
-	c.l.context = enc.AppendDurations(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger)
+	c.l.context = enc.AppendDurations(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
 	return c
 }
 
