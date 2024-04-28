@@ -151,6 +151,11 @@ var (
 	// TriggerLevelWriterBufferReuseLimit is a limit in bytes that a buffer is dropped
 	// from the TriggerLevelWriter buffer pool if the buffer grows above the limit.
 	TriggerLevelWriterBufferReuseLimit = 64 * 1024
+
+	// FloatingPointPrecision, if set to a value other than -1, controls the number
+	// of digits when formatting float numbers in JSON. See strconv.FormatFloat for
+	// more details.
+	FloatingPointPrecision = -1
 )
 
 var (
