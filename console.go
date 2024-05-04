@@ -69,6 +69,11 @@ type ConsoleWriter struct {
 	// PartsExclude defines parts to not display in output.
 	PartsExclude []string
 
+	// FieldsOrder defines the order of contextual fields in output.
+	FieldsOrder []string
+
+	fieldIsOrdered map[string]int
+
 	// FieldsExclude defines contextual fields to not display in output.
 	FieldsExclude []string
 
@@ -191,7 +196,12 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		}
 		fields = append(fields, field)
 	}
-	sort.Strings(fields)
+
+	if len(w.FieldsOrder) > 0 {
+		w.orderFields(fields)
+	} else {
+		sort.Strings(fields)
+	}
 
 	// Write space only if something has already been written to the buffer, and if there are fields.
 	if buf.Len() > 0 && len(fields) > 0 {
@@ -322,6 +332,32 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 		}
 		buf.WriteString(s)
 	}
+}
+
+// orderFields takes an array of field names and an array representing field order
+// and returns an array with any ordered fields at the beginning, in order,
+// and the remaining fields after in their original order.
+func (w ConsoleWriter) orderFields(fields []string) {
+	if w.fieldIsOrdered == nil {
+		w.fieldIsOrdered = make(map[string]int)
+		for i, fieldName := range w.FieldsOrder {
+			w.fieldIsOrdered[fieldName] = i
+		}
+	}
+	sort.Slice(fields, func(i, j int) bool {
+		ii, iOrdered := w.fieldIsOrdered[fields[i]]
+		jj, jOrdered := w.fieldIsOrdered[fields[j]]
+		if iOrdered && jOrdered {
+			return ii < jj
+		}
+		if iOrdered {
+			return true
+		}
+		if jOrdered {
+			return false
+		}
+		return fields[i] < fields[j]
+	})
 }
 
 // needsQuote returns true when the string s should be quoted in output.
