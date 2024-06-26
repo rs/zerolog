@@ -249,7 +249,7 @@ func (e *Event) EmbedObject(obj LogObjectMarshaler) *Event {
 	return e
 }
 
-// Struct traversers a struct object reading the log tag to add its value as a Str
+// Struct traverses a struct object reading the log tag to log its value as its equivalent data type
 func (e *Event) Struct(obj interface{}) *Event {
 	if e == nil {
 		return e
@@ -263,46 +263,27 @@ func (e *Event) Struct(obj interface{}) *Event {
 			fieldVal := objValue.Field(i)
 
 			switch fieldVal.Kind() {
-			case reflect.String:
-				e.Str(key, fieldVal.String())
-			case reflect.Bool:
-				e.Bool(key, fieldVal.Bool())
-			case reflect.Int:
-				e.Int(key, fieldVal.Interface().(int))
-			case reflect.Int8:
-				e.Int8(key, fieldVal.Interface().(int8))
-			case reflect.Int16:
-				e.Int16(key, fieldVal.Interface().(int16))
-			case reflect.Int32:
-				e.Int32(key, fieldVal.Interface().(int32))
-			case reflect.Int64:
-				e.Int64(key, fieldVal.Interface().(int64))
-			case reflect.Uint:
-				e.Uint(key, fieldVal.Interface().(uint))
-			case reflect.Uint8:
-				e.Uint8(key, fieldVal.Interface().(uint8))
-			case reflect.Uint16:
-				e.Uint16(key, fieldVal.Interface().(uint16))
-			case reflect.Uint32:
-				e.Uint32(key, fieldVal.Interface().(uint32))
-			case reflect.Uint64:
-				e.Uint64(key, fieldVal.Interface().(uint64))
-			case reflect.Float32:
-				e.Float32(key, fieldVal.Interface().(float32))
-			case reflect.Float64:
-				e.Float64(key, fieldVal.Interface().(float64))
 			case reflect.Struct:
-				{
-					if field.Type == reflect.TypeOf(time.Time{}) {
-						e.Time(key, fieldVal.Interface().(time.Time))
-					}
+				if field.Type == reflect.TypeOf(time.Time{}) {
+					e.Time(key, fieldVal.Interface().(time.Time))
+				} else {
+					ne := newEvent(e.w, e.level).Struct(fieldVal.Interface())
+					e.RawJSON(key, enc.AppendEndMarker(ne.buf))
+				}
+			case reflect.Slice:
+				if field.Type == reflect.TypeOf(net.HardwareAddr{}) {
+					e.MACAddr(key, fieldVal.Interface().(net.HardwareAddr))
+				} else if field.Type == reflect.TypeOf(net.IP{}) {
+					e.IPAddr(key, fieldVal.Interface().(net.IP))
 				}
 			case reflect.Interface:
 				if err, ok := fieldVal.Interface().(error); ok {
 					e.AnErr(key, err)
-				} else if stringer, ok := fieldVal.Interface().(fmt.Stringer); ok {
-					e.Stringer(key, stringer)
+				} else {
+					e.Interface(key, fieldVal.Interface())
 				}
+			default:
+				e.Interface(key, fieldVal.Interface())
 			}
 		}
 	}
