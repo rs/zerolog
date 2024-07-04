@@ -190,10 +190,16 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 			continue
 		}
 
-		switch field {
-		case LevelFieldName, TimestampFieldName, MessageFieldName, CallerFieldName:
+		for _, excluded := range w.PartsOrder {
+			if field == excluded {
+				isExcluded = true
+				break
+			}
+		}
+		if isExcluded {
 			continue
 		}
+
 		fields = append(fields, field)
 	}
 
