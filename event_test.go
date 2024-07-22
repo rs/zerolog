@@ -65,7 +65,7 @@ func TestEvent_EmbedObjectWithNil(t *testing.T) {
 	}
 }
 
-func TestEvent_GetFields(t *testing.T) {
+func TestEvent_GetMetadata(t *testing.T) {
 	type testCase struct {
 		name    string
 		e       *Event
@@ -113,11 +113,11 @@ func TestEvent_GetFields(t *testing.T) {
 			}
 
 			if len(got) != len(tc.want) {
-				t.Errorf("Event.GetFields() = %v, want %v", len(got), len(tc.want))
+				t.Errorf("Event.GetMetadata() = %v, want %v", len(got), len(tc.want))
 			}
 			for k, v := range tc.want {
 				if got[k] != v {
-					t.Errorf("Event.GetFields() = %v, want %v", got[k], v)
+					t.Errorf("Event.GetMetadata() = %v, want %v", got[k], v)
 				}
 			}
 		})
