@@ -840,7 +840,7 @@ func (e *Event) GetFields() (map[string]interface{}, error) {
 	eventFields := make(map[string]interface{})
 	buffer := bytes.TrimSpace(e.buf)
 	// If `Msg()` was not called the buffer will be missing the closing curly brace
-	if !bytes.HasSuffix(buffer, []byte("}")) {
+	if !bytes.HasSuffix(buffer, '}')) {
 		buffer = append(buffer, '}')
 	}
 	if err := json.Unmarshal(buffer, &eventFields); err != nil {
