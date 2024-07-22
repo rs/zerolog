@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog
@@ -106,7 +107,7 @@ func TestEvent_GetFields(t *testing.T) {
 			if tc.message != "" {
 				tc.e.Msg(tc.message)
 			}
-			got, err := tc.e.GetFields()
+			got, err := tc.e.GetMetadata()
 			if err != nil {
 				t.Error(err)
 			}

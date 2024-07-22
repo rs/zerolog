@@ -831,8 +831,8 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	return e
 }
 
-// GetFields returns the JSON decoded fields of the event. Please note that the fields might not be mapped to their original type as JSON decoder maps numbers to float64, etc.
-func (e *Event) GetFields() (map[string]interface{}, error) {
+// GetMetadata returns the JSON decoded fields of the event. Please note that the fields might not be mapped to their original type as JSON decoder maps numbers to float64, etc.
+func (e *Event) GetMetadata() (map[string]interface{}, error) {
 	if e == nil {
 		return nil, nil
 	}
@@ -840,7 +840,7 @@ func (e *Event) GetFields() (map[string]interface{}, error) {
 	eventFields := make(map[string]interface{})
 	buffer := bytes.TrimSpace(e.buf)
 	// If `Msg()` was not called the buffer will be missing the closing curly brace
-	if !bytes.HasSuffix(buffer, '}')) {
+	if !bytes.HasSuffix(buffer, []byte("}")) {
 		buffer = append(buffer, '}')
 	}
 	if err := json.Unmarshal(buffer, &eventFields); err != nil {
