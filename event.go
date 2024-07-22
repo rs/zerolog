@@ -831,7 +831,7 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	return e
 }
 
-// GetMetadata returns the JSON decoded fields of the event. Please note that the fields might not be mapped to their original type as JSON decoder maps numbers to float64, etc.
+// GetMetadata returns the JSON decoded metadata of the event. Please note that the metadata might not be mapped to their original field type as JSON decoder maps numbers to float64, etc.
 func (e *Event) GetMetadata() (map[string]interface{}, error) {
 	if e == nil {
 		return nil, nil
