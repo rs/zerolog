@@ -1,7 +1,9 @@
 package zerolog
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -827,4 +829,20 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	}
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
 	return e
+}
+
+func (e *Event) GetFields() (map[string]interface{}, error) {
+	if e == nil {
+		return nil, nil
+	}
+
+	eventFields := make(map[string]interface{})
+	buffer := e.buf
+	if !bytes.HasSuffix(e.buf, []byte("}\n")) {
+		buffer = append(e.buf, '}')
+	}
+	if err := json.Unmarshal(buffer, &eventFields); err != nil {
+		return nil, err
+	}
+	return eventFields, nil
 }
