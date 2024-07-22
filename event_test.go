@@ -66,25 +66,61 @@ func TestEvent_EmbedObjectWithNil(t *testing.T) {
 }
 
 func TestEvent_GetFields(t *testing.T) {
-	e := newEvent(nil, DebugLevel)
-	e.Str("foo", "bar").Float64("n", 42).Msg("test")
-
-	got, err := e.GetFields()
-	if err != nil {
-		t.Error(err)
-	}
-	want := map[string]interface{}{
-		"foo":     "bar",
-		"n":       float64(42),
-		"message": "test",
+	type testCase struct {
+		name    string
+		e       *Event
+		message string
+		want    map[string]interface{}
 	}
 
-	if len(got) != len(want) {
-		t.Errorf("Event.GetFields() = %v, want %v", len(got), len(want))
+	testCases := []testCase{
+		{
+			name: "event without message",
+			e:    newEvent(nil, DebugLevel).Str("foo", "bar").Float64("n", 42),
+			want: map[string]interface{}{
+				"foo": "bar",
+				"n":   float64(42),
+			},
+		},
+		{
+			name: "event without message and integer",
+			e:    newEvent(nil, DebugLevel).Str("foo", "bar").Int("n", 42),
+			want: map[string]interface{}{
+				"foo": "bar",
+				"n":   float64(42),
+			},
+		},
+		{
+			name:    "event with message",
+			e:       newEvent(nil, DebugLevel).Str("foo", "bar").Float64("n", 42),
+			message: "test",
+			want: map[string]interface{}{
+				"foo":     "bar",
+				"n":       float64(42),
+				"message": "test",
+			},
+		},
 	}
-	for k, v := range want {
-		if got[k] != v {
-			t.Errorf("Event.GetFields() = %v, want %v", got[k], v)
-		}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.message != "" {
+				tc.e.Msg(tc.message)
+			}
+			got, err := tc.e.GetFields()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if len(got) != len(tc.want) {
+				t.Errorf("Event.GetFields() = %v, want %v", len(got), len(tc.want))
+			}
+			for k, v := range tc.want {
+				if got[k] != v {
+					t.Errorf("Event.GetFields() = %v, want %v", got[k], v)
+				}
+			}
+		})
+
 	}
 }
