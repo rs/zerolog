@@ -50,24 +50,31 @@ func Example_handler() {
 
 	// Install some provided extra handlers to set some request's context fields.
 	// Thanks to those handlers, all our logs will come with some pre-populated fields.
-	c = c.Append(hlog.RemoteAddrHandler("ip"))
+	c = c.Append(hlog.HTTPVersionHandler("http_version"))
 	c = c.Append(hlog.UserAgentHandler("user_agent"))
-	c = c.Append(hlog.RefererHandler("referer"))
+	c = c.Append(hlog.URLHandler("url"))
 	//c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
 
 	// Here is your final handler
 	h := c.Then(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		status := http.StatusOK // Your business logic here
+
 		// Get the logger from the request's context. You can safely assume it
 		// will be always there: if the handler is removed, hlog.FromRequest
 		// will return a no-op logger.
 		hlog.FromRequest(r).Info().
 			Str("user", "current user").
-			Str("status", "ok").
+			Int("status", status).
 			Msg("Something happened")
 	}))
-	http.Handle("/", h)
 
-	h.ServeHTTP(httptest.NewRecorder(), &http.Request{})
+	ts := httptest.NewServer(h)
+	defer ts.Close()
 
-	// Output: {"level":"info","role":"my-service","host":"local-hostname","user":"current user","status":"ok","time":"2001-02-03T04:05:06Z","message":"Something happened"}
+	_, err := http.Get(ts.URL)
+	if err != nil {
+		panic("http.Get failed")
+	}
+
+	// Output: {"level":"info","role":"my-service","host":"local-hostname","http_version":"1.1","user_agent":"Go-http-client/1.1","url":"/","user":"current user","status":200,"time":"2001-02-03T04:05:06Z","message":"Something happened"}
 }
