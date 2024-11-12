@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -476,5 +477,28 @@ func (c Context) IPPrefix(key string, pfx net.IPNet) Context {
 // MACAddr adds MAC address to the context
 func (c Context) MACAddr(key string, ha net.HardwareAddr) Context {
 	c.l.context = enc.AppendMACAddr(enc.AppendKey(c.l.context, key), ha)
+	return c
+}
+
+// DeDupe keeps last added field in context.
+//
+// Caution: This is an expensive operation.
+// If it fails, it will revert back to no duplicated fields
+func (c Context) DeDup() Context {
+	if len(c.l.context) == 0 {
+		return c
+	}
+	context := append(c.l.context, '}')
+	values := make(map[string]interface{}, 0)
+	err := json.Unmarshal(context, &values)
+	if err != nil {
+		return c
+	}
+
+	context, err = json.Marshal(values)
+	if err != nil {
+		return c
+	}
+	c.l.context = context[:len(context)-1]
 	return c
 }

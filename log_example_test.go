@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog_test
@@ -559,4 +560,53 @@ func ExampleContext_Fields_slice() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
+func ExampleContext_DeDup() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		DeDup().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDup_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDup_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		DeDup().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleContext_DeDup_event() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		DeDup().
+		Logger()
+
+	log.Info().Str("foo", "bam").DeDup().Msg("hello world")
+
+	// Output: {"foo":"bam","level":"info","message":"hello world"}
 }

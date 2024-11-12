@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -826,5 +827,28 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 		return e
 	}
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
+	return e
+}
+
+// DeDupe keeps last added field in context.
+//
+// Caution: This is an expensive operation.
+// If it fails, it will revert back to no duplicated fields
+func (e *Event) DeDup() *Event {
+	if len(e.buf) == 0 {
+		return e
+	}
+	buf := append(e.buf, '}')
+	values := make(map[string]interface{}, 0)
+	err := json.Unmarshal(buf, &values)
+	if err != nil {
+		return e
+	}
+
+	buf, err = json.Marshal(values)
+	if err != nil {
+		return e
+	}
+	e.buf = buf[:len(buf)-1]
 	return e
 }
