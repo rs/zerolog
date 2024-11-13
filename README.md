@@ -795,6 +795,9 @@ subloggerDeDup.Info().Msg("hello world")
 // Output: {"level":"info","time":1494567715,"foo":"baz","message":"hello world"}
 ```
 
+Usage of DeDup method is generally recommended for performance as it only scans root level keys to ensure there are no duplicates.
+If scanning of deeper keys is required for deduplication, use DeDupDeep.
+
 ### Concurrency safety
 
 Be careful when calling UpdateContext. It is not concurrency safe. Use the With method to create a child logger:

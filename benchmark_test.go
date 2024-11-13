@@ -71,6 +71,54 @@ func BenchmarkContextAppend(b *testing.B) {
 	})
 }
 
+func BenchmarkContextAppendWithDeDup(b *testing.B) {
+	logger := New(io.Discard).With().
+		Str("foo", "bar").
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.With().Str("foo", "baz").DeDup()
+		}
+	})
+}
+
+func BenchmarkContextAppendWithDeDupDeep(b *testing.B) {
+	logger := New(io.Discard).With().
+		Str("foo", "bar").
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.With().Str("foo", "baz").DeDupDeep()
+		}
+	})
+}
+
+func BenchmarkLogWithDeDup(b *testing.B) {
+	logger := New(io.Discard).With().
+		Str("foo", "bar").
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().Str("foo", "baz").DeDup().Msg(fakeMessage)
+		}
+	})
+}
+
+func BenchmarkLogWithDeDupDeep(b *testing.B) {
+	logger := New(io.Discard).With().
+		Str("foo", "bar").
+		Logger()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			logger.Info().Str("foo", "baz").DeDupDeep().Msg(fakeMessage)
+		}
+	})
+}
+
 func BenchmarkLogFields(b *testing.B) {
 	logger := New(io.Discard)
 	b.ResetTimer()

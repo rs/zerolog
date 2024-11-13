@@ -830,25 +830,82 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	return e
 }
 
-// DeDupe keeps last added field in context.
+// DeDup removes duplicate fields and keeps last added field in context.
 //
 // Caution: This is an expensive operation.
-// If it fails, it will revert back to no duplicated fields
+// If it fails, it will revert back to the original data with potentially duplicated fields
 func (e *Event) DeDup() *Event {
+	if len(e.buf) <= 1 {
+		return e
+	}
+	values := make(map[string][]byte)
+	start := 1
+	colon := 2
+
+	var i int
+	for i = 1; i < len(e.buf); i++ {
+		if e.buf[i] == ':' {
+			colon = i
+			if e.buf[i+1] == '{' {
+				depth := 1
+				for i = i + 2; depth > 0; i++ {
+					if e.buf[i] == '{' {
+						depth++
+					} else if e.buf[i] == '}' {
+						depth--
+					}
+				}
+				values[string(e.buf[start:colon])] = e.buf[colon+1 : i]
+				start = i + 1
+			}
+		} else if e.buf[i] == ',' {
+			values[string(e.buf[start:colon])] = e.buf[colon+1 : i]
+			start = i + 1
+		}
+	}
+	if e.buf[i-2] != '}' {
+		values[string(e.buf[start:colon])] = e.buf[colon+1:]
+	}
+
+	e.buf = make([]byte, len(e.buf))
+	e.buf[0] = '{'
+	i = 1
+	for key, value := range values {
+		if i > 1 {
+			e.buf[i] = ','
+			i++
+		}
+		copy(e.buf[i:], key)
+		i += len(key)
+		e.buf[i] = ':'
+		i++
+		copy(e.buf[i:], value)
+		i += len(value)
+	}
+	e.buf = e.buf[:i]
+	return e
+}
+
+// DeDupDeep removes duplicate fields and keeps last added field in context. This will index into nested structures if they exist
+//
+// Caution: This is an expensive operation.
+// If it fails, it will revert back to the original data with potentially duplicated fields
+func (e *Event) DeDupDeep() *Event {
 	if len(e.buf) == 0 {
 		return e
 	}
-	buf := append(e.buf, '}')
+
 	values := make(map[string]interface{}, 0)
-	err := json.Unmarshal(buf, &values)
+	err := json.Unmarshal(append(e.buf, '}'), &values)
 	if err != nil {
 		return e
 	}
 
-	buf, err = json.Marshal(values)
+	buf, err := json.Marshal(values)
 	if err != nil {
 		return e
 	}
+
 	e.buf = buf[:len(buf)-1]
 	return e
 }

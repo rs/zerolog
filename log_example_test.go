@@ -598,15 +598,190 @@ func ExampleContext_DeDup_empty() {
 	// Output: {"level":"info","message":"hello world"}
 }
 
-func ExampleContext_DeDup_event() {
+func ExampleContext_DeDup_dictionary() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		DeDup().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","dict":{"foo":"baz","n":2},"message":"hello world"}
+}
+
+func ExampleEvent_DeDup() {
 	log := zerolog.New(os.Stdout).
 		With().
 		Str("foo", "bar").
 		Str("foo", "baz").
-		DeDup().
 		Logger()
 
 	log.Info().Str("foo", "bam").DeDup().Msg("hello world")
 
+	// Output: {"level":"info","foo":"bam","message":"hello world"}
+}
+
+func ExampleEvent_DeDup_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Logger()
+
+	log.Info().Str("foo", "baz").Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleEvent_DeDup_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Logger()
+
+	log.Info().DeDup().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleEvent_DeDup_dictionary() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		Logger()
+
+	log.Info().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bam").
+			Int("n", 3),
+		).
+		DeDup().
+		Msg("hello world")
+
+	// Output: {"level":"info","dict":{"foo":"bam","n":3},"message":"hello world"}
+}
+
+func ExampleContext_DeDupDeep() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDupDeep_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDupDeep_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleContext_DeDupDeep_dictionary() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","dict":{"foo":"baz","n":2},"message":"hello world"}
+}
+
+func ExampleEvent_DeDupDeep() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		Logger()
+
+	log.Info().Str("foo", "bam").DeDupDeep().Msg("hello world")
+
 	// Output: {"foo":"bam","level":"info","message":"hello world"}
+}
+
+func ExampleEvent_DeDupDeep_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Logger()
+
+	log.Info().Str("foo", "baz").Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleEvent_DeDupDeep_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Logger()
+
+	log.Info().DeDupDeep().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleEvent_DeDupDeep_dictionary() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		Logger()
+
+	log.Info().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bam").
+			Int("n", 3),
+		).
+		DeDupDeep().
+		Msg("hello world")
+
+	// Output: {"dict":{"foo":"bam","n":3},"level":"info","message":"hello world"}
 }
