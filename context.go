@@ -483,7 +483,6 @@ func (c Context) MACAddr(key string, ha net.HardwareAddr) Context {
 // DeDup removes duplicate fields and keeps last added field in context.
 //
 // Caution: This is an expensive operation.
-// If it fails, it will revert back to the original data with potentially duplicated fields
 func (c Context) DeDup() Context {
 	if len(c.l.context) <= 1 {
 		return c
@@ -496,12 +495,12 @@ func (c Context) DeDup() Context {
 	for i = 1; i < len(c.l.context); i++ {
 		if c.l.context[i] == ':' {
 			colon = i
-			if c.l.context[i+1] == '{' {
+			if c.l.context[i+1] == '{' || c.l.context[i+1] == '[' {
 				depth := 1
 				for i = i + 2; depth > 0; i++ {
-					if c.l.context[i] == '{' {
+					if c.l.context[i] == '{' || c.l.context[i] == '[' {
 						depth++
-					} else if c.l.context[i] == '}' {
+					} else if c.l.context[i] == '}' || c.l.context[i] == ']' {
 						depth--
 					}
 				}
@@ -513,7 +512,8 @@ func (c Context) DeDup() Context {
 			start = i + 1
 		}
 	}
-	if c.l.context[i-2] != '}' {
+	if c.l.context[i-2] == '}' || c.l.context[i-2] == ']' {
+	} else {
 		values[string(c.l.context[start:colon])] = c.l.context[colon+1:]
 	}
 

@@ -833,7 +833,6 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 // DeDup removes duplicate fields and keeps last added field in context.
 //
 // Caution: This is an expensive operation.
-// If it fails, it will revert back to the original data with potentially duplicated fields
 func (e *Event) DeDup() *Event {
 	if len(e.buf) <= 1 {
 		return e
@@ -846,12 +845,12 @@ func (e *Event) DeDup() *Event {
 	for i = 1; i < len(e.buf); i++ {
 		if e.buf[i] == ':' {
 			colon = i
-			if e.buf[i+1] == '{' {
+			if e.buf[i+1] == '{' || e.buf[i+1] == '[' {
 				depth := 1
 				for i = i + 2; depth > 0; i++ {
-					if e.buf[i] == '{' {
+					if e.buf[i] == '{' || e.buf[i] == '[' {
 						depth++
-					} else if e.buf[i] == '}' {
+					} else if e.buf[i] == '}' || e.buf[i] == ']' {
 						depth--
 					}
 				}
@@ -863,7 +862,8 @@ func (e *Event) DeDup() *Event {
 			start = i + 1
 		}
 	}
-	if e.buf[i-2] != '}' {
+	if e.buf[i-2] == '}' || e.buf[i-2] == ']' {
+	} else {
 		values[string(e.buf[start:colon])] = e.buf[colon+1:]
 	}
 
