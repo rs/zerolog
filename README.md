@@ -670,6 +670,7 @@ Some settings can be changed and will be applied to all loggers:
 - `RawJSON`: Adds a field with an already encoded JSON (`[]byte`)
 - `Hex`: Adds a field with value formatted as a hexadecimal string (`[]byte`)
 - `Interface`: Uses reflection to marshal the type.
+- `Any`: Wrapper for `Interface`.
 
 Most fields are also available in the slice format (`Strs` for `[]string`, `Errs` for `[]error` etc.)
 
