@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -287,7 +289,10 @@ func TestConsoleWriter(t *testing.T) {
 
 		ts := time.Unix(0, 0)
 		d := ts.UTC().Format(time.RFC3339)
-		evt := `{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar", "caller": "` + cwd + `/foo/bar.go"}`
+		evt := `{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar", "caller": "` + filepath.Join(cwd, "foo", "bar.go") + `"}`
+		if runtime.GOOS == "windows" {
+			evt = strings.Replace(evt, "\\", "/", -1)
+		}
 		// t.Log(evt)
 
 		_, err = w.Write([]byte(evt))
@@ -297,6 +302,9 @@ func TestConsoleWriter(t *testing.T) {
 
 		expectedOutput := ts.Format(time.Kitchen) + " DBG foo/bar.go > Foobar foo=bar\n"
 		actualOutput := buf.String()
+		if runtime.GOOS == "windows" {
+			actualOutput = strings.Replace(actualOutput, "\\", "/", -1)
+		}
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
@@ -423,14 +431,14 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 	})
 
 	t.Run("Sets TimeFormat and TimeLocation", func(t *testing.T) {
-		locs := []*time.Location{ time.Local, time.UTC }
+		locs := []*time.Location{time.Local, time.UTC}
 
 		for _, location := range locs {
 			buf := &bytes.Buffer{}
 			w := zerolog.ConsoleWriter{
-				Out: buf,
-				NoColor: true,
-				TimeFormat: time.RFC3339,
+				Out:          buf,
+				NoColor:      true,
+				TimeFormat:   time.RFC3339,
 				TimeLocation: location,
 			}
 
