@@ -2,6 +2,7 @@ package zerolog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -476,5 +477,85 @@ func (c Context) IPPrefix(key string, pfx net.IPNet) Context {
 // MACAddr adds MAC address to the context
 func (c Context) MACAddr(key string, ha net.HardwareAddr) Context {
 	c.l.context = enc.AppendMACAddr(enc.AppendKey(c.l.context, key), ha)
+	return c
+}
+
+// DeDup removes duplicate fields and keeps last added field in context.
+//
+// Caution: This is an expensive operation.
+func (c Context) DeDup() Context {
+	if len(c.l.context) <= 1 {
+		return c
+	}
+	values := make(map[string][]byte)
+	start := 1
+	colon := 2
+
+	var i int
+	for i = 1; i < len(c.l.context); i++ {
+		if c.l.context[i] == ':' {
+			colon = i
+			if c.l.context[i+1] == '{' || c.l.context[i+1] == '[' {
+				depth := 1
+				for i = i + 2; depth > 0; i++ {
+					if c.l.context[i] == '{' || c.l.context[i] == '[' {
+						depth++
+					} else if c.l.context[i] == '}' || c.l.context[i] == ']' {
+						depth--
+					}
+				}
+				values[string(c.l.context[start:colon])] = c.l.context[colon+1 : i]
+				start = i + 1
+			}
+		} else if c.l.context[i] == ',' {
+			values[string(c.l.context[start:colon])] = c.l.context[colon+1 : i]
+			start = i + 1
+		}
+	}
+	if c.l.context[i-2] == '}' || c.l.context[i-2] == ']' {
+	} else {
+		values[string(c.l.context[start:colon])] = c.l.context[colon+1:]
+	}
+
+	c.l.context = make([]byte, len(c.l.context))
+	c.l.context[0] = '{'
+	i = 1
+	for key, value := range values {
+		if i > 1 {
+			c.l.context[i] = ','
+			i++
+		}
+		copy(c.l.context[i:], key)
+		i += len(key)
+		c.l.context[i] = ':'
+		i++
+		copy(c.l.context[i:], value)
+		i += len(value)
+	}
+	c.l.context = c.l.context[:i]
+	return c
+}
+
+// DeDupDeep removes duplicate fields and keeps last added field in context. This will index into nested structures if they exist
+//
+// Caution: This is an expensive operation.
+// If it fails, it will revert back to the original data with potentially duplicated fields
+func (c Context) DeDupDeep() Context {
+	if len(c.l.context) == 0 {
+		return c
+	}
+
+	values := make(map[string]interface{}, 0)
+	err := json.Unmarshal(append(c.l.context, '}'), &values)
+	if err != nil {
+		return c
+	}
+
+	context, err := json.Marshal(values)
+	if err != nil {
+		return c
+	}
+
+	c.l.context = context[:len(context)-1]
 	return c
 }

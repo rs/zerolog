@@ -1,13 +1,16 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	stdlog "log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -559,4 +562,419 @@ func ExampleContext_Fields_slice() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
+func ExampleContext_DeDup() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		DeDup().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDup_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDup_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		DeDup().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleContext_DeDup_dictionary() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		DeDup().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"level":"info","dict":{"foo":"baz","n":2},"message":"hello world"}`
+	expectedFormat2 := `{"dict":{"foo":"bam","n":3},"level":"info","message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
+}
+
+func ExampleContext_DeDup_array() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Array("array", zerolog.Arr().
+			Str("bar").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "bar").
+				Int("n", 1),
+			),
+		).
+		Array("array", zerolog.Arr().
+			Str("baz").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "baz").
+				Int("n", 2),
+			),
+		).
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"array":["baz",1,{"foo":"baz","n":2}],"level":"info","message":"hello world"}`
+	expectedFormat2 := `{"level":"info","array":["baz",1,{"foo":"baz","n":2}],"message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
+}
+
+func ExampleEvent_DeDup() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		Logger()
+
+	log.Info().Str("foo", "bam").DeDup().Msg("hello world")
+
+	// Output: {"level":"info","foo":"bam","message":"hello world"}
+}
+
+func ExampleEvent_DeDup_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Logger()
+
+	log.Info().Str("foo", "baz").Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleEvent_DeDup_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Logger()
+
+	log.Info().DeDup().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleEvent_DeDup_dictionary() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		Logger()
+
+	log.Info().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bam").
+			Int("n", 3),
+		).
+		DeDup().
+		Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"level":"info","dict":{"foo":"bam","n":3},"message":"hello world"}`
+	expectedFormat2 := `{"dict":{"foo":"bam","n":3},"level":"info","message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
+}
+
+func ExampleEvent_DeDup_array() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Array("array", zerolog.Arr().
+			Str("bar").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "bar").
+				Int("n", 1),
+			),
+		).
+		DeDupDeep().
+		Logger()
+
+	log.Info().
+		Array("array", zerolog.Arr().
+			Str("baz").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "baz").
+				Int("n", 2),
+			),
+		).
+		DeDupDeep().
+		Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"array":["baz",1,{"foo":"baz","n":2}],"level":"info","message":"hello world"}`
+	expectedFormat2 := `{"level":"info","array":["baz",1,{"foo":"baz","n":2}],"message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
+}
+
+func ExampleContext_DeDupDeep() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDupDeep_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleContext_DeDupDeep_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleContext_DeDupDeep_dictionary() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"level":"info","dict":{"foo":"baz","n":2},"message":"hello world"}`
+	expectedFormat2 := `{"dict":{"foo":"bam","n":3},"level":"info","message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
+}
+
+func ExampleContext_DeDupDeep_array() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Array("array", zerolog.Arr().
+			Str("bar").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "bar").
+				Int("n", 1),
+			),
+		).
+		Array("array", zerolog.Arr().
+			Str("baz").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "baz").
+				Int("n", 2),
+			),
+		).
+		DeDupDeep().
+		Logger()
+
+	log.Info().Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"array":["baz",1,{"foo":"baz","n":2}],"level":"info","message":"hello world"}`
+	expectedFormat2 := `{"level":"info","array":["baz",1,{"foo":"baz","n":2}],"message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
+}
+
+func ExampleEvent_DeDupDeep() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Str("foo", "baz").
+		Logger()
+
+	log.Info().Str("foo", "bam").DeDupDeep().Msg("hello world")
+
+	// Output: {"foo":"bam","level":"info","message":"hello world"}
+}
+
+func ExampleEvent_DeDupDeep_unused() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Str("foo", "bar").
+		Logger()
+
+	log.Info().Str("foo", "baz").Msg("hello world")
+
+	// Output: {"level":"info","foo":"bar","foo":"baz","message":"hello world"}
+}
+
+func ExampleEvent_DeDupDeep_empty() {
+	log := zerolog.New(os.Stdout).
+		With().
+		Logger()
+
+	log.Info().DeDupDeep().Msg("hello world")
+
+	// Output: {"level":"info","message":"hello world"}
+}
+
+func ExampleEvent_DeDupDeep_dictionary() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bar").
+			Int("n", 1),
+		).
+		Dict("dict", zerolog.Dict().
+			Str("foo", "baz").
+			Int("n", 2),
+		).
+		Logger()
+
+	log.Info().
+		Dict("dict", zerolog.Dict().
+			Str("foo", "bam").
+			Int("n", 3),
+		).
+		DeDupDeep().
+		Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"level":"info","dict":{"foo":"bam","n":3},"message":"hello world"}`
+	expectedFormat2 := `{"dict":{"foo":"bam","n":3},"level":"info","message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
+}
+func ExampleEvent_DeDupDeep_array() {
+	var buf bytes.Buffer
+	log := zerolog.New(&buf).
+		With().
+		Array("array", zerolog.Arr().
+			Str("bar").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "bar").
+				Int("n", 1),
+			),
+		).
+		DeDupDeep().
+		Logger()
+
+	log.Info().
+		Array("array", zerolog.Arr().
+			Str("baz").
+			Int(1).
+			Dict(zerolog.Dict().
+				Str("foo", "baz").
+				Int("n", 2),
+			),
+		).
+		DeDupDeep().
+		Msg("hello world")
+
+	output := strings.TrimSpace(buf.String())
+	expectedFormat1 := `{"array":["baz",1,{"foo":"baz","n":2}],"level":"info","message":"hello world"}`
+	expectedFormat2 := `{"level":"info","array":["baz",1,{"foo":"baz","n":2}],"message":"hello world"}`
+
+	if output != expectedFormat1 && output != expectedFormat2 {
+		fmt.Printf("Output did not match either expected format.\n  Got:      %s\n  Expected: %s\n  or:       %s",
+			output, expectedFormat1, expectedFormat2)
+	}
+
+	// Output:
 }
