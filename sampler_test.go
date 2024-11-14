@@ -29,6 +29,13 @@ var samplers = []struct {
 		100, 20, 20,
 	},
 	{
+		"BasicSampler_0",
+		func() Sampler {
+			return &BasicSampler{N: 0}
+		},
+		100, 0, 0,
+	},
+	{
 		"RandomSampler",
 		func() Sampler {
 			return RandomSampler(5)
@@ -36,11 +43,25 @@ var samplers = []struct {
 		100, 10, 30,
 	},
 	{
+		"RandomSampler_0",
+		func() Sampler {
+			return RandomSampler(0)
+		},
+		100, 0, 0,
+	},
+	{
 		"BurstSampler",
 		func() Sampler {
 			return &BurstSampler{Burst: 20, Period: time.Second}
 		},
 		100, 20, 20,
+	},
+	{
+		"BurstSampler_0",
+		func() Sampler {
+			return &BurstSampler{Burst: 0, Period: time.Second}
+		},
+		100, 0, 0,
 	},
 	{
 		"BurstSamplerNext",

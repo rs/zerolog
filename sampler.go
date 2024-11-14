@@ -47,6 +47,9 @@ type BasicSampler struct {
 // Sample implements the Sampler interface.
 func (s *BasicSampler) Sample(lvl Level) bool {
 	n := s.N
+	if n == 0 {
+		return false
+	}
 	if n == 1 {
 		return true
 	}
