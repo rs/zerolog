@@ -89,20 +89,14 @@ func (s *BurstSampler) Sample(lvl Level) bool {
 func (s *BurstSampler) inc() uint32 {
 	now := TimestampFunc().UnixNano()
 	resetAt := atomic.LoadInt64(&s.resetAt)
-	var c uint32
+	newResetAt := now + s.Period.Nanoseconds()
 	if now > resetAt {
-		c = 1
-		atomic.StoreUint32(&s.counter, c)
-		newResetAt := now + s.Period.Nanoseconds()
 		reset := atomic.CompareAndSwapInt64(&s.resetAt, resetAt, newResetAt)
-		if !reset {
-			// Lost the race with another goroutine trying to reset.
-			c = atomic.AddUint32(&s.counter, 1)
+		if reset {
+			atomic.StoreUint32(&s.counter, 0)
 		}
-	} else {
-		c = atomic.AddUint32(&s.counter, 1)
 	}
-	return c
+	return atomic.AddUint32(&s.counter, 1)
 }
 
 // LevelSampler applies a different sampler for each level.
