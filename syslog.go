@@ -34,8 +34,8 @@ func SyslogLevelWriter(w SyslogWriter) LevelWriter {
 }
 
 // SyslogCEEWriter wraps a SyslogWriter with a SyslogLevelWriter that adds a
-// MITRE CEE prefix for JSON syslog entries, compatible with rsyslog 
-// and syslog-ng JSON logging support. 
+// MITRE CEE prefix for JSON syslog entries, compatible with rsyslog
+// and syslog-ng JSON logging support.
 // See https://www.rsyslog.com/json-elasticsearch/
 func SyslogCEEWriter(w SyslogWriter) LevelWriter {
 	return syslogWriter{w, ceePrefix}
@@ -57,6 +57,7 @@ func (sw syslogWriter) Write(p []byte) (n int, err error) {
 func (sw syslogWriter) WriteLevel(level Level, p []byte) (n int, err error) {
 	switch level {
 	case TraceLevel:
+		err = sw.w.Debug(sw.prefix + string(p))
 	case DebugLevel:
 		err = sw.w.Debug(sw.prefix + string(p))
 	case InfoLevel:
