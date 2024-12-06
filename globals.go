@@ -129,25 +129,27 @@ var (
 	// LevelColors are used by ConsoleWriter's consoleDefaultFormatLevel to color
 	// log levels.
 	LevelColors = map[Level]int{
-		TraceLevel: colorBlue,
-		DebugLevel: 0,
-		InfoLevel:  colorGreen,
-		WarnLevel:  colorYellow,
-		ErrorLevel: colorRed,
-		FatalLevel: colorRed,
-		PanicLevel: colorRed,
+		TraceLevel:  colorBlue,
+		DebugLevel:  0,
+		InfoLevel:   colorGreen,
+		WarnLevel:   colorYellow,
+		ErrorLevel:  colorRed,
+		FatalLevel:  colorRed,
+		PanicLevel:  colorRed,
+		NoticeLevel: colorYellow,
 	}
 
 	// FormattedLevels are used by ConsoleWriter's consoleDefaultFormatLevel
 	// for a short level name.
 	FormattedLevels = map[Level]string{
-		TraceLevel: "TRC",
-		DebugLevel: "DBG",
-		InfoLevel:  "INF",
-		WarnLevel:  "WRN",
-		ErrorLevel: "ERR",
-		FatalLevel: "FTL",
-		PanicLevel: "PNC",
+		TraceLevel:  "TRC",
+		DebugLevel:  "DBG",
+		InfoLevel:   "INF",
+		WarnLevel:   "WRN",
+		ErrorLevel:  "ERR",
+		FatalLevel:  "FTL",
+		PanicLevel:  "PNC",
+		NoticeLevel: "NTC",
 	}
 
 	// TriggerLevelWriterBufferReuseLimit is a limit in bytes that a buffer is dropped
