@@ -100,7 +100,7 @@ func TestSyslogWriter_WithCEE(t *testing.T) {
 	sw := testCEEwriter{&buf}
 	log := New(SyslogCEEWriter(sw))
 	log.Info().Str("key", "value").Msg("message string")
-	got := string(buf.Bytes())
+	got := buf.String()
 	want := "@cee:{"
 	if !strings.HasPrefix(got, want) {
 		t.Errorf("Bad CEE message start: want %v, got %v", want, got)

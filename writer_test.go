@@ -175,3 +175,78 @@ func TestTestWriter(t *testing.T) {
 	}
 
 }
+
+func TestFilteredLevelWriter(t *testing.T) {
+	buf := bytes.Buffer{}
+	writer := FilteredLevelWriter{
+		Writer: LevelWriterAdapter{&buf},
+		Level:  InfoLevel,
+	}
+	_, err := writer.WriteLevel(DebugLevel, []byte("no"))
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = writer.WriteLevel(InfoLevel, []byte("yes"))
+	if err != nil {
+		t.Error(err)
+	}
+	p := buf.Bytes()
+	if want := "yes"; !bytes.Equal([]byte(want), p) {
+		t.Errorf("Expected %q, got %q.", want, p)
+	}
+}
+
+type testWrite struct {
+	Level
+	Line []byte
+}
+
+func TestTriggerLevelWriter(t *testing.T) {
+	tests := []struct {
+		write []testWrite
+		want  []byte
+		all   []byte
+	}{{
+		[]testWrite{
+			{DebugLevel, []byte("no\n")},
+			{InfoLevel, []byte("yes\n")},
+		},
+		[]byte("yes\n"),
+		[]byte("yes\nno\n"),
+	}, {
+		[]testWrite{
+			{DebugLevel, []byte("yes1\n")},
+			{InfoLevel, []byte("yes2\n")},
+			{ErrorLevel, []byte("yes3\n")},
+			{DebugLevel, []byte("yes4\n")},
+		},
+		[]byte("yes2\nyes1\nyes3\nyes4\n"),
+		[]byte("yes2\nyes1\nyes3\nyes4\n"),
+	}}
+
+	for k, tt := range tests {
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			buf := bytes.Buffer{}
+			writer := TriggerLevelWriter{Writer: LevelWriterAdapter{&buf}, ConditionalLevel: DebugLevel, TriggerLevel: ErrorLevel}
+			t.Cleanup(func() { writer.Close() })
+			for _, w := range tt.write {
+				_, err := writer.WriteLevel(w.Level, w.Line)
+				if err != nil {
+					t.Error(err)
+				}
+			}
+			p := buf.Bytes()
+			if want := tt.want; !bytes.Equal([]byte(want), p) {
+				t.Errorf("Expected %q, got %q.", want, p)
+			}
+			err := writer.Trigger()
+			if err != nil {
+				t.Error(err)
+			}
+			p = buf.Bytes()
+			if want := tt.all; !bytes.Equal([]byte(want), p) {
+				t.Errorf("Expected %q, got %q.", want, p)
+			}
+		})
+	}
+}

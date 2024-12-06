@@ -3,7 +3,9 @@ package hlog
 
 import (
 	"context"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/xid"
@@ -89,6 +91,35 @@ func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 	}
 }
 
+func getHost(hostPort string) string {
+	if hostPort == "" {
+		return ""
+	}
+
+	host, _, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return hostPort
+	}
+	return host
+}
+
+// RemoteIPHandler is similar to RemoteAddrHandler, but logs only
+// an IP, not a port.
+func RemoteIPHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip := getHost(r.RemoteAddr)
+			if ip != "" {
+				log := zerolog.Ctx(r.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, ip)
+				})
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // UserAgentHandler adds the request's user-agent as a field to the context's logger
 // using fieldKey as field key.
 func UserAgentHandler(fieldKey string) func(next http.Handler) http.Handler {
@@ -129,6 +160,21 @@ func ProtoHandler(fieldKey string) func(next http.Handler) http.Handler {
 			log := zerolog.Ctx(r.Context())
 			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 				return c.Str(fieldKey, r.Proto)
+			})
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// HTTPVersionHandler is similar to ProtoHandler, but it does not store the "HTTP/"
+// prefix in the protocol name.
+func HTTPVersionHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			proto := strings.TrimPrefix(r.Proto, "HTTP/")
+			log := zerolog.Ctx(r.Context())
+			log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				return c.Str(fieldKey, proto)
 			})
 			next.ServeHTTP(w, r)
 		})
@@ -205,14 +251,76 @@ func CustomHeaderHandler(fieldKey, header string) func(next http.Handler) http.H
 	}
 }
 
+// EtagHandler adds Etag header from response's header as a field to
+// the context's logger using fieldKey as field key.
+func EtagHandler(fieldKey string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				etag := w.Header().Get("Etag")
+				if etag != "" {
+					etag = strings.ReplaceAll(etag, `"`, "")
+					log := zerolog.Ctx(r.Context())
+					log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+						return c.Str(fieldKey, etag)
+					})
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func ResponseHeaderHandler(fieldKey, headerName string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				value := w.Header().Get(headerName)
+				if value != "" {
+					log := zerolog.Ctx(r.Context())
+					log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+						return c.Str(fieldKey, value)
+					})
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // AccessHandler returns a handler that call f after each request.
 func AccessHandler(f func(r *http.Request, status, size int, duration time.Duration)) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			lw := mutil.WrapWriter(w)
+			defer func() {
+				f(r, lw.Status(), lw.BytesWritten(), time.Since(start))
+			}()
 			next.ServeHTTP(lw, r)
-			f(r, lw.Status(), lw.BytesWritten(), time.Since(start))
+		})
+	}
+}
+
+// HostHandler adds the request's host as a field to the context's logger
+// using fieldKey as field key. If trimPort is set to true, then port is
+// removed from the host.
+func HostHandler(fieldKey string, trimPort ...bool) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var host string
+			if len(trimPort) > 0 && trimPort[0] {
+				host = getHost(r.Host)
+			} else {
+				host = r.Host
+			}
+			if host != "" {
+				log := zerolog.Ctx(r.Context())
+				log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+					return c.Str(fieldKey, host)
+				})
+			}
+			next.ServeHTTP(w, r)
 		})
 	}
 }

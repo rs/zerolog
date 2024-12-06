@@ -47,6 +47,9 @@ type BasicSampler struct {
 // Sample implements the Sampler interface.
 func (s *BasicSampler) Sample(lvl Level) bool {
 	n := s.N
+	if n == 0 {
+		return false
+	}
 	if n == 1 {
 		return true
 	}
@@ -84,7 +87,7 @@ func (s *BurstSampler) Sample(lvl Level) bool {
 }
 
 func (s *BurstSampler) inc() uint32 {
-	now := time.Now().UnixNano()
+	now := TimestampFunc().UnixNano()
 	resetAt := atomic.LoadInt64(&s.resetAt)
 	var c uint32
 	if now > resetAt {

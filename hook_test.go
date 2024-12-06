@@ -2,9 +2,14 @@ package zerolog
 
 import (
 	"bytes"
-	"io/ioutil"
+	"context"
+	"io"
 	"testing"
 )
+
+type contextKeyType int
+
+var contextKey contextKeyType
 
 var (
 	levelNameHook = HookFunc(func(e *Event, level Level, msg string) {
@@ -30,6 +35,12 @@ var (
 	})
 	discardHook = HookFunc(func(e *Event, level Level, message string) {
 		e.Discard()
+	})
+	contextHook = HookFunc(func(e *Event, level Level, message string) {
+		contextData, ok := e.GetCtx().Value(contextKey).(string)
+		if ok {
+			e.Str("context-data", contextData)
+		}
 	})
 )
 
@@ -120,6 +131,29 @@ func TestHook(t *testing.T) {
 			log = log.Hook(discardHook)
 			log.Log().Msg("test message")
 		}},
+		{"Context/Background", `{"level":"info","message":"test message"}` + "\n", func(log Logger) {
+			log = log.Hook(contextHook)
+			log.Info().Ctx(context.Background()).Msg("test message")
+		}},
+		{"Context/nil", `{"level":"info","message":"test message"}` + "\n", func(log Logger) {
+			// passing `nil` where a context is wanted is against
+			// the rules, but people still do it.
+			log = log.Hook(contextHook)
+			log.Info().Ctx(nil).Msg("test message") // nolint
+		}},
+		{"Context/valid", `{"level":"info","context-data":"12345abcdef","message":"test message"}` + "\n", func(log Logger) {
+			ctx := context.Background()
+			ctx = context.WithValue(ctx, contextKey, "12345abcdef")
+			log = log.Hook(contextHook)
+			log.Info().Ctx(ctx).Msg("test message")
+		}},
+		{"Context/With/valid", `{"level":"info","context-data":"12345abcdef","message":"test message"}` + "\n", func(log Logger) {
+			ctx := context.Background()
+			ctx = context.WithValue(ctx, contextKey, "12345abcdef")
+			log = log.Hook(contextHook)
+			log = log.With().Ctx(ctx).Logger()
+			log.Info().Msg("test message")
+		}},
 		{"None", `{"level":"error"}` + "\n", func(log Logger) {
 			log.Error().Msg("")
 		}},
@@ -138,7 +172,7 @@ func TestHook(t *testing.T) {
 }
 
 func BenchmarkHooks(b *testing.B) {
-	logger := New(ioutil.Discard)
+	logger := New(io.Discard)
 	b.ResetTimer()
 	b.Run("Nop/Single", func(b *testing.B) {
 		log := logger.Hook(nopHook)

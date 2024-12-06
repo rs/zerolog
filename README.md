@@ -1,6 +1,6 @@
 # Zero Allocation JSON Logger
 
-[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/zerolog) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/zerolog/master/LICENSE) [![Build Status](https://travis-ci.org/rs/zerolog.svg?branch=master)](https://travis-ci.org/rs/zerolog) [![Coverage](http://gocover.io/_badge/github.com/rs/zerolog)](http://gocover.io/github.com/rs/zerolog)
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/zerolog) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/zerolog/master/LICENSE) [![Build Status](https://github.com/rs/zerolog/actions/workflows/test.yml/badge.svg)](https://github.com/rs/zerolog/actions/workflows/test.yml) [![Go Coverage](https://github.com/rs/zerolog/wiki/coverage.svg)](https://raw.githack.com/wiki/rs/zerolog/coverage.html)
 
 The zerolog package provides a fast and simple logger dedicated to JSON output.
 
@@ -60,7 +60,7 @@ func main() {
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
 > Note: By default log writes to `os.Stderr`
-> Note: The default log level for `log.Print` is *debug*
+> Note: The default log level for `log.Print` is *trace*
 
 ### Contextual Logging
 
@@ -412,15 +412,7 @@ Equivalent of `Lshortfile`:
 
 ```go
 zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
-    short := file
-    for i := len(file) - 1; i > 0; i-- {
-        if file[i] == '/' {
-            short = file[i+1:]
-            break
-        }
-    }
-    file = short
-    return file + ":" + strconv.Itoa(line)
+    return filepath.Base(file) + ":" + strconv.Itoa(line)
 }
 log.Logger = log.With().Caller().Logger()
 log.Info().Msg("hello world")
@@ -513,25 +505,53 @@ stdlog.Print("hello world")
 
 ### context.Context integration
 
-The `Logger` instance could be attached to `context.Context` values with `logger.WithContext(ctx)`
-and extracted from it using `zerolog.Ctx(ctx)`.
+Go contexts are commonly passed throughout Go code, and this can help you pass
+your Logger into places it might otherwise be hard to inject.  The `Logger`
+instance may be attached to Go context (`context.Context`) using
+`Logger.WithContext(ctx)` and extracted from it using `zerolog.Ctx(ctx)`.
+For example:
 
-Example to add logger to context:
 ```go
-// this code attach logger instance to context fields
-ctx := context.Background()
-logger := zerolog.New(os.Stdout)
-ctx = logger.WithContext(ctx)
-someFunc(ctx)
+func f() {
+    logger := zerolog.New(os.Stdout)
+    ctx := context.Background()
+
+    // Attach the Logger to the context.Context
+    ctx = logger.WithContext(ctx)
+    someFunc(ctx)
+}
+
+func someFunc(ctx context.Context) {
+    // Get Logger from the go Context. if it's nil, then
+    // `zerolog.DefaultContextLogger` is returned, if
+    // `DefaultContextLogger` is nil, then a disabled logger is returned.
+    logger := zerolog.Ctx(ctx)
+    logger.Info().Msg("Hello")
+}
 ```
 
-Extracting logger from context:
+A second form of `context.Context` integration allows you to pass the current
+context.Context into the logged event, and retrieve it from hooks.  This can be
+useful to log trace and span IDs or other information stored in the go context,
+and facilitates the unification of logging and tracing in some systems:
+
 ```go
-func someFunc(ctx context.Context) {
-  // get logger from context. if it's nill, then `zerolog.DefaultContextLogger` is returned,
-  // if `DefaultContextLogger` is nil, then disabled logger returned.
-  logger := zerolog.Ctx(ctx)
-  logger.Info().Msg("Hello")
+type TracingHook struct{}
+
+func (h TracingHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+    ctx := e.GetCtx()
+    spanId := getSpanIdFromContext(ctx) // as per your tracing framework
+    e.Str("span-id", spanId)
+}
+
+func f() {
+    // Setup the logger
+    logger := zerolog.New(os.Stdout)
+    logger = logger.Hook(TracingHook{})
+
+    ctx := context.Background()
+    // Use the Ctx function to make the context available to the hook
+    logger.Info().Ctx(ctx).Msg("Hello")
 }
 ```
 
@@ -618,10 +638,14 @@ Some settings can be changed and will be applied to all loggers:
 * `zerolog.LevelFieldName`: Can be set to customize level field name.
 * `zerolog.MessageFieldName`: Can be set to customize message field name.
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
-* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with `zerolog.TimeFormatUnix`, `zerolog.TimeFormatUnixMs` or `zerolog.TimeFormatUnixMicro`, times are formated as UNIX timestamp.
+* `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with `zerolog.TimeFormatUnix`, `zerolog.TimeFormatUnixMs` or `zerolog.TimeFormatUnixMicro`, times are formatted as UNIX timestamp.
 * `zerolog.DurationFieldUnit`: Can be set to customize the unit for time.Duration type fields added by `Dur` (default: `time.Millisecond`).
 * `zerolog.DurationFieldInteger`: If set to `true`, `Dur` fields are formatted as integers instead of floats (default: `false`). 
 * `zerolog.ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
+* `zerolog.FloatingPointPrecision`: If set to a value other than -1, controls the number
+of digits when formatting float numbers in JSON. See
+[strconv.FormatFloat](https://pkg.go.dev/strconv#FormatFloat)
+for more details.
 
 ## Field Types
 
@@ -666,7 +690,7 @@ with zerolog library is [CSD](https://github.com/toravir/csd/).
 
 ## Benchmarks
 
-See [logbench](http://hackemist.com/logbench/) for more comprehensive and up-to-date benchmarks.
+See [logbench](http://bench.zerolog.io/) for more comprehensive and up-to-date benchmarks.
 
 All operations are allocation free (those numbers *include* JSON encoding):
 
@@ -727,6 +751,8 @@ Log a static string, without any context or `printf`-style templating:
 
 ## Caveats
 
+### Field duplication
+
 Note that zerolog does no de-duplication of fields. Using the same key multiple times creates multiple keys in final JSON:
 
 ```go
@@ -738,3 +764,19 @@ logger.Info().
 ```
 
 In this case, many consumers will take the last value, but this is not guaranteed; check yours if in doubt.
+
+### Concurrency safety
+
+Be careful when calling UpdateContext. It is not concurrency safe. Use the With method to create a child logger:
+
+```go
+func handler(w http.ResponseWriter, r *http.Request) {
+    // Create a child logger for concurrency safety
+    logger := log.Logger.With().Logger()
+
+    // Add context fields, for example User-Agent from HTTP headers
+    logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+        ...
+    })
+}
+```

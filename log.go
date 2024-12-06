@@ -24,7 +24,7 @@
 //
 // Sub-loggers let you chain loggers with additional context:
 //
-//	sublogger := log.With().Str("component": "foo").Logger()
+//	sublogger := log.With().Str("component", "foo").Logger()
 //	sublogger.Info().Msg("hello world")
 //	// Output: {"time":1494567715,"level":"info","message":"hello world","component":"foo"}
 //
@@ -84,6 +84,8 @@
 //
 // # Caveats
 //
+// Field duplication:
+//
 // There is no fields deduplication out-of-the-box.
 // Using the same key multiple times creates new key in final JSON each time.
 //
@@ -95,13 +97,27 @@
 //
 // In this case, many consumers will take the last value,
 // but this is not guaranteed; check yours if in doubt.
+//
+// Concurrency safety:
+//
+// Be careful when calling UpdateContext. It is not concurrency safe. Use the With method to create a child logger:
+//
+//	func handler(w http.ResponseWriter, r *http.Request) {
+//	    // Create a child logger for concurrency safety
+//	    logger := log.Logger.With().Logger()
+//
+//	    // Add context fields, for example User-Agent from HTTP headers
+//	    logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+//	        ...
+//	    })
+//	}
 package zerolog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -223,6 +239,7 @@ type Logger struct {
 	context []byte
 	hooks   []Hook
 	stack   bool
+	ctx     context.Context
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -234,11 +251,11 @@ type Logger struct {
 // you may consider using sync wrapper.
 func New(w io.Writer) Logger {
 	if w == nil {
-		w = ioutil.Discard
+		w = io.Discard
 	}
 	lw, ok := w.(LevelWriter)
 	if !ok {
-		lw = levelWriterAdapter{w}
+		lw = LevelWriterAdapter{w}
 	}
 	return Logger{w: lw, level: TraceLevel}
 }
@@ -280,7 +297,8 @@ func (l Logger) With() Context {
 
 // UpdateContext updates the internal logger's context.
 //
-// Use this method with caution. If unsure, prefer the With method.
+// Caution: This method is not concurrency safe.
+// Use the With method to create a child logger before modifying the context from concurrent goroutines.
 func (l *Logger) UpdateContext(update func(c Context) Context) {
 	if l == disabledLogger {
 		return
@@ -313,8 +331,13 @@ func (l Logger) Sample(s Sampler) Logger {
 }
 
 // Hook returns a logger with the h Hook.
-func (l Logger) Hook(h Hook) Logger {
-	l.hooks = append(l.hooks, h)
+func (l Logger) Hook(hooks ...Hook) Logger {
+	if len(hooks) == 0 {
+		return l
+	}
+	newHooks := make([]Hook, len(l.hooks), len(l.hooks)+len(hooks))
+	copy(newHooks, l.hooks)
+	l.hooks = append(newHooks, hooks...)
 	return l
 }
 
@@ -377,7 +400,14 @@ func (l *Logger) Err(err error) *Event {
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Fatal() *Event {
-	return l.newEvent(FatalLevel, func(msg string) { os.Exit(1) })
+	return l.newEvent(FatalLevel, func(msg string) {
+		if closer, ok := l.w.(io.Closer); ok {
+			// Close the writer to flush any buffered message. Otherwise the message
+			// will be lost as os.Exit() terminates the program immediately.
+			closer.Close()
+		}
+		os.Exit(1)
+	})
 }
 
 // Panic starts a new message with panic level. The panic() function
@@ -444,6 +474,14 @@ func (l *Logger) Printf(format string, v ...interface{}) {
 	}
 }
 
+// Println sends a log event using debug level and no extra field.
+// Arguments are handled in the manner of fmt.Println.
+func (l *Logger) Println(v ...interface{}) {
+	if e := l.Debug(); e.Enabled() {
+		e.CallerSkipFrame(1).Msg(fmt.Sprintln(v...))
+	}
+}
+
 // Write implements the io.Writer interface. This is useful to set as a writer
 // for the standard library log.
 func (l Logger) Write(p []byte) (n int, err error) {
@@ -467,6 +505,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	e := newEvent(l.w, level)
 	e.done = done
 	e.ch = l.hooks
+	e.ctx = l.ctx
 	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}
@@ -481,6 +520,9 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 
 // should returns true if the log event should be logged.
 func (l *Logger) should(lvl Level) bool {
+	if l.w == nil {
+		return false
+	}
 	if lvl < l.level || lvl < GlobalLevel() {
 		return false
 	}

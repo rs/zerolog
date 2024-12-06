@@ -28,7 +28,7 @@ func TestEvent_AnErr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			e := newEvent(levelWriterAdapter{&buf}, DebugLevel)
+			e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
 			e.AnErr("err", tt.err)
 			_ = e.write()
 			if got, want := strings.TrimSpace(buf.String()), tt.want; got != want {
@@ -40,7 +40,7 @@ func TestEvent_AnErr(t *testing.T) {
 
 func TestEvent_ObjectWithNil(t *testing.T) {
 	var buf bytes.Buffer
-	e := newEvent(levelWriterAdapter{&buf}, DebugLevel)
+	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
 	_ = e.Object("obj", nil)
 	_ = e.write()
 
@@ -53,7 +53,7 @@ func TestEvent_ObjectWithNil(t *testing.T) {
 
 func TestEvent_EmbedObjectWithNil(t *testing.T) {
 	var buf bytes.Buffer
-	e := newEvent(levelWriterAdapter{&buf}, DebugLevel)
+	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
 	_ = e.EmbedObject(nil)
 	_ = e.write()
 

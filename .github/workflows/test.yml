@@ -4,17 +4,17 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.18.x, 1.19.x]
+        go-version: [1.18.x, 1.21.x]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
-      uses: actions/checkout@v3
-    - uses: actions/cache@v3
+      uses: actions/checkout@v4
+    - uses: actions/cache@v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -24,4 +24,13 @@ jobs:
       run: go test -race -bench . -benchmem ./...
     - name: Test CBOR
       run: go test -tags binary_log ./...
-
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update coverage report
+      uses: ncruces/go-coverage-report@main
+      with:
+        report: 'true'
+        chart: 'true'
+        amend: 'true'
+      continue-on-error: true

@@ -3,7 +3,7 @@ package zerolog_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -97,11 +97,30 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[31mWRN\x1b[0m Foobar\n"
+		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
+	})
+
+	t.Run("NO_COLOR = true", func(t *testing.T) {
+		os.Setenv("NO_COLOR", "anything")
+
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf}
+
+		_, err := w.Write([]byte(`{"level": "warn", "message": "Foobar"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "<nil> WRN Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+		os.Unsetenv("NO_COLOR")
 	})
 
 	t.Run("Write fields", func(t *testing.T) {
@@ -229,7 +248,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[31mWRN\x1b[0m Foobar \x1b[36mfoo=\x1b[0mbar\n"
+		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m \x1b[36mfoo=\x1b[0mbar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -301,6 +320,85 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
 	})
+
+	t.Run("With an extra 'level' field", func(t *testing.T) {
+		t.Run("malformed string", func(t *testing.T) {
+			cases := []struct {
+				field  string
+				output string
+			}{
+				{"", "<nil> ??? Hello World foo=bar\n"},
+				{"-", "<nil> - Hello World foo=bar\n"},
+				{"1", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"a", "<nil> A Hello World foo=bar\n"},
+				{"12", "<nil> 12 Hello World foo=bar\n"},
+				{"a2", "<nil> A2 Hello World foo=bar\n"},
+				{"2a", "<nil> 2A Hello World foo=bar\n"},
+				{"ab", "<nil> AB Hello World foo=bar\n"},
+				{"12a", "<nil> 12A Hello World foo=bar\n"},
+				{"a12", "<nil> A12 Hello World foo=bar\n"},
+				{"abc", "<nil> ABC Hello World foo=bar\n"},
+				{"123", "<nil> 123 Hello World foo=bar\n"},
+				{"abcd", "<nil> ABC Hello World foo=bar\n"},
+				{"1234", "<nil> 123 Hello World foo=bar\n"},
+				{"123d", "<nil> 123 Hello World foo=bar\n"},
+				{"01", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"001", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"0001", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+			}
+			for i, c := range cases {
+				c := c
+				t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+					buf := &bytes.Buffer{}
+					out := zerolog.NewConsoleWriter()
+					out.NoColor = true
+					out.Out = buf
+					log := zerolog.New(out)
+
+					log.Debug().Str("level", c.field).Str("foo", "bar").Msg("Hello World")
+
+					actualOutput := buf.String()
+					if actualOutput != c.output {
+						t.Errorf("Unexpected output %q, want: %q", actualOutput, c.output)
+					}
+				})
+			}
+		})
+
+		t.Run("weird value", func(t *testing.T) {
+			cases := []struct {
+				field  interface{}
+				output string
+			}{
+				{0, "<nil> 0 Hello World foo=bar\n"},
+				{1, "<nil> 1 Hello World foo=bar\n"},
+				{-1, "<nil> -1 Hello World foo=bar\n"},
+				{-3, "<nil> -3 Hello World foo=bar\n"},
+				{-32, "<nil> -32 Hello World foo=bar\n"},
+				{-321, "<nil> -32 Hello World foo=bar\n"},
+				{12, "<nil> 12 Hello World foo=bar\n"},
+				{123, "<nil> 123 Hello World foo=bar\n"},
+				{1234, "<nil> 123 Hello World foo=bar\n"},
+			}
+			for i, c := range cases {
+				c := c
+				t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+					buf := &bytes.Buffer{}
+					out := zerolog.NewConsoleWriter()
+					out.NoColor = true
+					out.Out = buf
+					log := zerolog.New(out)
+
+					log.Debug().Interface("level", c.field).Str("foo", "bar").Msg("Hello World")
+
+					actualOutput := buf.String()
+					if actualOutput != c.output {
+						t.Errorf("Unexpected output %q, want: %q", actualOutput, c.output)
+					}
+				})
+			}
+		})
+	})
 }
 
 func TestConsoleWriterConfiguration(t *testing.T) {
@@ -321,6 +419,35 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("Sets TimeFormat and TimeLocation", func(t *testing.T) {
+		locs := []*time.Location{ time.Local, time.UTC }
+
+		for _, location := range locs {
+			buf := &bytes.Buffer{}
+			w := zerolog.ConsoleWriter{
+				Out: buf,
+				NoColor: true,
+				TimeFormat: time.RFC3339,
+				TimeLocation: location,
+			}
+
+			ts := time.Unix(0, 0)
+			d := ts.UTC().Format(time.RFC3339)
+			evt := `{"time": "` + d + `", "level": "info", "message": "Foobar"}`
+
+			_, err := w.Write([]byte(evt))
+			if err != nil {
+				t.Errorf("Unexpected error when writing output: %s", err)
+			}
+
+			expectedOutput := ts.In(location).Format(time.RFC3339) + " INF Foobar\n"
+			actualOutput := buf.String()
+			if actualOutput != expectedOutput {
+				t.Errorf("Unexpected output %q, want: %q (location=%s)", actualOutput, expectedOutput, location)
+			}
 		}
 	})
 
@@ -353,6 +480,23 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 
 		expectedOutput := "INF Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("Sets FieldsOrder", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, FieldsOrder: []string{"zebra", "aardvark"}}
+
+		evt := `{"level": "info", "message": "Zoo", "aardvark": "Able", "mussel": "Mountain", "zebra": "Zulu"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "<nil> INF Zoo zebra=Zulu aardvark=Able mussel=Mountain\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -399,6 +543,29 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 	})
 
+	t.Run("Sets FormatPrepare", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out: buf, NoColor: true, PartsOrder: []string{"level", "message"},
+			FormatPrepare: func(evt map[string]interface{}) error {
+				evt["message"] = fmt.Sprintf("msg=%s", evt["message"])
+				return nil
+			},
+		}
+
+		evt := `{"level": "info", "message": "Foobar"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF msg=Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("Uses local time for console writer without time zone", func(t *testing.T) {
 		// Regression test for issue #483 (check there for more details)
 
@@ -432,7 +599,7 @@ func BenchmarkConsoleWriter(b *testing.B) {
 
 	var msg = []byte(`{"level": "info", "foo": "bar", "message": "HELLO", "time": "1990-01-01"}`)
 
-	w := zerolog.ConsoleWriter{Out: ioutil.Discard, NoColor: false}
+	w := zerolog.ConsoleWriter{Out: io.Discard, NoColor: false}
 
 	for i := 0; i < b.N; i++ {
 		w.Write(msg)
