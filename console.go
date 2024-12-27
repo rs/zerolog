@@ -283,7 +283,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
 	var f Formatter
 
-	if w.PartsExclude != nil && len(w.PartsExclude) > 0 {
+	if len(w.PartsExclude) > 0 {
 		for _, exclude := range w.PartsExclude {
 			if exclude == p {
 				return
