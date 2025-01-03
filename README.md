@@ -366,6 +366,37 @@ log.Info().Str("foo", "bar").Msg("Hello World")
 // Output: 2006-01-02T15:04:05Z07:00 | INFO  | ***Hello World**** foo:BAR
 ```
 
+To use custom advanced formatting:
+
+```go
+output := zerolog.ConsoleWriter{Out: os.Stdout, NoColor: true,
+    PartsOrder:    []string{"level", "one", "two", "three", "message"},
+    FieldsExclude: []string{"one", "two", "three"}}
+output.FormatLevel = func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("%-6s", i)) }
+output.FormatFieldName = func(i interface{}) string { return fmt.Sprintf("%s:", i) }
+output.FormatPartValueByName = func(i interface{}, s string) string {
+    var ret string
+    switch s {
+    case "one":
+        ret = strings.ToUpper(fmt.Sprintf("%s", i))
+    case "two":
+        ret = strings.ToLower(fmt.Sprintf("%s", i))
+    case "three":
+        ret = strings.ToLower(fmt.Sprintf("(%s)", i))
+    }
+    return ret
+}
+log := zerolog.New(output)
+
+log.Info().Str("foo", "bar").
+    Str("two", "TEST_TWO").
+    Str("one", "test_one").
+    Str("three", "test_three").
+    Msg("Hello World")
+    
+// Output: INFO   TEST_ONE test_two (test_three) Hello World foo:bar
+```
+
 ### Sub dictionary
 
 ```go
