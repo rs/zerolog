@@ -29,6 +29,7 @@ type Event struct {
 	ch        []Hook          // hooks from context
 	skipFrame int             // The number of additional frames to skip when printing the caller.
 	ctx       context.Context // Optional Go context for event
+	props     map[string][]interface{}
 }
 
 func putEvent(e *Event) {
@@ -66,6 +67,7 @@ func newEvent(w LevelWriter, level Level) *Event {
 	e.level = level
 	e.stack = false
 	e.skipFrame = 0
+	e.props = make(map[string][]interface{})
 	return e
 }
 
@@ -254,6 +256,7 @@ func (e *Event) Str(key, val string) *Event {
 		return e
 	}
 	e.buf = enc.AppendString(enc.AppendKey(e.buf, key), val)
+	e.props = appendProp(e.props, key, val)
 	return e
 }
 
@@ -263,6 +266,7 @@ func (e *Event) Strs(key string, vals []string) *Event {
 		return e
 	}
 	e.buf = enc.AppendStrings(enc.AppendKey(e.buf, key), vals)
+	e.props = appendProp(e.props, key, vals)
 	return e
 }
 
@@ -273,6 +277,7 @@ func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 		return e
 	}
 	e.buf = enc.AppendStringer(enc.AppendKey(e.buf, key), val)
+	e.props = appendStringerProp(e.props, key, val)
 	return e
 }
 
@@ -284,6 +289,7 @@ func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
 		return e
 	}
 	e.buf = enc.AppendStringers(enc.AppendKey(e.buf, key), vals)
+	e.props = appendStringersProp(e.props, key, vals)
 	return e
 }
 
@@ -296,6 +302,7 @@ func (e *Event) Bytes(key string, val []byte) *Event {
 		return e
 	}
 	e.buf = enc.AppendBytes(enc.AppendKey(e.buf, key), val)
+	e.props = appendProp(e.props, key, val)
 	return e
 }
 
@@ -305,6 +312,7 @@ func (e *Event) Hex(key string, val []byte) *Event {
 		return e
 	}
 	e.buf = enc.AppendHex(enc.AppendKey(e.buf, key), val)
+	e.props = appendProp(e.props, key, val)
 	return e
 }
 
@@ -317,6 +325,7 @@ func (e *Event) RawJSON(key string, b []byte) *Event {
 		return e
 	}
 	e.buf = appendJSON(enc.AppendKey(e.buf, key), b)
+	e.props = appendProp(e.props, key, b)
 	return e
 }
 
@@ -329,6 +338,7 @@ func (e *Event) RawCBOR(key string, b []byte) *Event {
 		return e
 	}
 	e.buf = appendCBOR(enc.AppendKey(e.buf, key), b)
+	e.props = appendProp(e.props, key, b)
 	return e
 }
 
@@ -338,6 +348,7 @@ func (e *Event) AnErr(key string, err error) *Event {
 	if e == nil {
 		return e
 	}
+	e.props = appendProp(e.props, key, err)
 	switch m := ErrorMarshalFunc(err).(type) {
 	case nil:
 		return e
@@ -363,6 +374,7 @@ func (e *Event) Errs(key string, errs []error) *Event {
 		return e
 	}
 	arr := Arr()
+	e.props = appendProp(e.props, key, errs)
 	for _, err := range errs {
 		switch m := ErrorMarshalFunc(err).(type) {
 		case LogObjectMarshaler:
@@ -447,6 +459,7 @@ func (e *Event) Bool(key string, b bool) *Event {
 		return e
 	}
 	e.buf = enc.AppendBool(enc.AppendKey(e.buf, key), b)
+	e.props = appendProp(e.props, key, b)
 	return e
 }
 
@@ -456,6 +469,7 @@ func (e *Event) Bools(key string, b []bool) *Event {
 		return e
 	}
 	e.buf = enc.AppendBools(enc.AppendKey(e.buf, key), b)
+	e.props = appendProp(e.props, key, b)
 	return e
 }
 
@@ -465,6 +479,7 @@ func (e *Event) Int(key string, i int) *Event {
 		return e
 	}
 	e.buf = enc.AppendInt(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -474,6 +489,7 @@ func (e *Event) Ints(key string, i []int) *Event {
 		return e
 	}
 	e.buf = enc.AppendInts(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -483,6 +499,7 @@ func (e *Event) Int8(key string, i int8) *Event {
 		return e
 	}
 	e.buf = enc.AppendInt8(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -492,6 +509,7 @@ func (e *Event) Ints8(key string, i []int8) *Event {
 		return e
 	}
 	e.buf = enc.AppendInts8(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -501,6 +519,7 @@ func (e *Event) Int16(key string, i int16) *Event {
 		return e
 	}
 	e.buf = enc.AppendInt16(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -510,6 +529,7 @@ func (e *Event) Ints16(key string, i []int16) *Event {
 		return e
 	}
 	e.buf = enc.AppendInts16(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -519,6 +539,7 @@ func (e *Event) Int32(key string, i int32) *Event {
 		return e
 	}
 	e.buf = enc.AppendInt32(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -528,6 +549,7 @@ func (e *Event) Ints32(key string, i []int32) *Event {
 		return e
 	}
 	e.buf = enc.AppendInts32(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -537,6 +559,7 @@ func (e *Event) Int64(key string, i int64) *Event {
 		return e
 	}
 	e.buf = enc.AppendInt64(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -546,6 +569,7 @@ func (e *Event) Ints64(key string, i []int64) *Event {
 		return e
 	}
 	e.buf = enc.AppendInts64(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -555,6 +579,7 @@ func (e *Event) Uint(key string, i uint) *Event {
 		return e
 	}
 	e.buf = enc.AppendUint(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -564,6 +589,7 @@ func (e *Event) Uints(key string, i []uint) *Event {
 		return e
 	}
 	e.buf = enc.AppendUints(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -573,6 +599,7 @@ func (e *Event) Uint8(key string, i uint8) *Event {
 		return e
 	}
 	e.buf = enc.AppendUint8(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -582,6 +609,7 @@ func (e *Event) Uints8(key string, i []uint8) *Event {
 		return e
 	}
 	e.buf = enc.AppendUints8(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -591,6 +619,7 @@ func (e *Event) Uint16(key string, i uint16) *Event {
 		return e
 	}
 	e.buf = enc.AppendUint16(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -600,6 +629,7 @@ func (e *Event) Uints16(key string, i []uint16) *Event {
 		return e
 	}
 	e.buf = enc.AppendUints16(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -609,6 +639,7 @@ func (e *Event) Uint32(key string, i uint32) *Event {
 		return e
 	}
 	e.buf = enc.AppendUint32(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -618,6 +649,7 @@ func (e *Event) Uints32(key string, i []uint32) *Event {
 		return e
 	}
 	e.buf = enc.AppendUints32(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -627,6 +659,7 @@ func (e *Event) Uint64(key string, i uint64) *Event {
 		return e
 	}
 	e.buf = enc.AppendUint64(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -636,6 +669,7 @@ func (e *Event) Uints64(key string, i []uint64) *Event {
 		return e
 	}
 	e.buf = enc.AppendUints64(enc.AppendKey(e.buf, key), i)
+	e.props = appendProp(e.props, key, i)
 	return e
 }
 
@@ -645,6 +679,7 @@ func (e *Event) Float32(key string, f float32) *Event {
 		return e
 	}
 	e.buf = enc.AppendFloat32(enc.AppendKey(e.buf, key), f, FloatingPointPrecision)
+	e.props = appendProp(e.props, key, f)
 	return e
 }
 
@@ -654,6 +689,7 @@ func (e *Event) Floats32(key string, f []float32) *Event {
 		return e
 	}
 	e.buf = enc.AppendFloats32(enc.AppendKey(e.buf, key), f, FloatingPointPrecision)
+	e.props = appendProp(e.props, key, f)
 	return e
 }
 
@@ -663,6 +699,7 @@ func (e *Event) Float64(key string, f float64) *Event {
 		return e
 	}
 	e.buf = enc.AppendFloat64(enc.AppendKey(e.buf, key), f, FloatingPointPrecision)
+	e.props = appendProp(e.props, key, f)
 	return e
 }
 
@@ -672,6 +709,7 @@ func (e *Event) Floats64(key string, f []float64) *Event {
 		return e
 	}
 	e.buf = enc.AppendFloats64(enc.AppendKey(e.buf, key), f, FloatingPointPrecision)
+	e.props = appendProp(e.props, key, f)
 	return e
 }
 
@@ -694,6 +732,7 @@ func (e *Event) Time(key string, t time.Time) *Event {
 		return e
 	}
 	e.buf = enc.AppendTime(enc.AppendKey(e.buf, key), t, TimeFieldFormat)
+	e.props = appendProp(e.props, key, t)
 	return e
 }
 
@@ -703,6 +742,7 @@ func (e *Event) Times(key string, t []time.Time) *Event {
 		return e
 	}
 	e.buf = enc.AppendTimes(enc.AppendKey(e.buf, key), t, TimeFieldFormat)
+	e.props = appendProp(e.props, key, t)
 	return e
 }
 
@@ -714,6 +754,7 @@ func (e *Event) Dur(key string, d time.Duration) *Event {
 		return e
 	}
 	e.buf = enc.AppendDuration(enc.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+	e.props = appendProp(e.props, key, d)
 	return e
 }
 
@@ -725,6 +766,7 @@ func (e *Event) Durs(key string, d []time.Duration) *Event {
 		return e
 	}
 	e.buf = enc.AppendDurations(enc.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+	e.props = appendProp(e.props, key, d)
 	return e
 }
 
@@ -740,11 +782,13 @@ func (e *Event) TimeDiff(key string, t time.Time, start time.Time) *Event {
 		d = t.Sub(start)
 	}
 	e.buf = enc.AppendDuration(enc.AppendKey(e.buf, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+	e.props = appendProp(e.props, key, d)
 	return e
 }
 
 // Any is a wrapper around Event.Interface.
 func (e *Event) Any(key string, i interface{}) *Event {
+	e.props = appendProp(e.props, key, i)
 	return e.Interface(key, i)
 }
 
@@ -753,6 +797,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 	if e == nil {
 		return e
 	}
+	e.props = appendProp(e.props, key, i)
 	if obj, ok := i.(LogObjectMarshaler); ok {
 		return e.Object(key, obj)
 	}
@@ -765,6 +810,7 @@ func (e *Event) Type(key string, val interface{}) *Event {
 	if e == nil {
 		return e
 	}
+	e.props = appendProp(e.props, key, val)
 	e.buf = enc.AppendType(enc.AppendKey(e.buf, key), val)
 	return e
 }
@@ -808,6 +854,7 @@ func (e *Event) IPAddr(key string, ip net.IP) *Event {
 		return e
 	}
 	e.buf = enc.AppendIPAddr(enc.AppendKey(e.buf, key), ip)
+	e.props = appendIPProp(e.props, key, ip)
 	return e
 }
 
@@ -817,6 +864,7 @@ func (e *Event) IPPrefix(key string, pfx net.IPNet) *Event {
 		return e
 	}
 	e.buf = enc.AppendIPPrefix(enc.AppendKey(e.buf, key), pfx)
+	e.props = appendIPPrefixProp(e.props, key, pfx)
 	return e
 }
 
@@ -826,5 +874,15 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 		return e
 	}
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
+	e.props = appendMACAddrProp(e.props, key, ha)
 	return e
+}
+
+// GetProps returns the log properties added. Specially created for accessing key value pairs while
+// handling hooks.
+func (e *Event) GetProps() map[string][]interface{} {
+	if e == nil {
+		return nil
+	}
+	return e.props
 }
