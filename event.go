@@ -828,3 +828,12 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
 	return e
 }
+
+// GetValues returns the values list for the specified keys in the log.
+// Specially created for accessing key value pairs while handling hooks.
+func (e *Event) GetValues(key ...string) (map[string][]interface{}, error) {
+	if e == nil || len(e.buf) == 0 {
+		return nil, nil
+	}
+	return getValues(e.buf, key...)
+}
