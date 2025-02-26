@@ -90,7 +90,7 @@ func (s *BurstSampler) inc() uint32 {
 	now := TimestampFunc().UnixNano()
 	resetAt := atomic.LoadInt64(&s.resetAt)
 	var c uint32
-	if now > resetAt {
+	if now >= resetAt {
 		c = 1
 		atomic.StoreUint32(&s.counter, c)
 		newResetAt := now + s.Period.Nanoseconds()
