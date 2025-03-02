@@ -54,3 +54,8 @@ type encoder interface {
 	AppendUints64(dst []byte, vals []uint64) []byte
 	AppendUints8(dst []byte, vals []uint8) []byte
 }
+
+
+func CBORDecodeIfBinaryToBytes(in []byte) []byte {
+	return cbor.DecodeIfBinaryToBytes(in)
+}
