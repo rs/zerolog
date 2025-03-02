@@ -3,6 +3,7 @@ package zerolog
 import (
 	"net"
 	"time"
+	"github.com/rs/zerolog/internal/cbor"
 )
 
 type encoder interface {
