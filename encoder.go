@@ -55,7 +55,6 @@ type encoder interface {
 	AppendUints8(dst []byte, vals []uint8) []byte
 }
 
-
 func CBORDecodeIfBinaryToBytes(in []byte) []byte {
 	return cbor.DecodeIfBinaryToBytes(in)
 }
