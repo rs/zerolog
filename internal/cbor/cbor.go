@@ -35,6 +35,10 @@ const (
 	additionalTypeEmbeddedJSON     uint16 = 262
 	additionalTypeTagHexString     uint16 = 263
 
+	// Expected later encoding for CBOR-to-JSON converters - from https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.5.2
+	additionalTypeTagBase64Standard byte = 22
+	additionalTypeTagBase64RawURL   byte = 23
+
 	// Unspecified number of elements.
 	additionalTypeInfiniteCount byte = 31
 )
