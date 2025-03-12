@@ -213,6 +213,15 @@ func (w *FilteredLevelWriter) WriteLevel(level Level, p []byte) (int, error) {
 	return len(p), nil
 }
 
+// Call the underlying writer's Close method if it is an io.Closer. Otherwise
+// does nothing.
+func (w *FilteredLevelWriter) Close() error {
+	if closer, ok := w.Writer.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
 var triggerWriterPool = &sync.Pool{
 	New: func() interface{} {
 		return bytes.NewBuffer(make([]byte, 0, 1024))
