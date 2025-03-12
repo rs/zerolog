@@ -2,9 +2,11 @@ package zerolog_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -315,16 +317,33 @@ func TestConsoleWriter(t *testing.T) {
 
 		ts := time.Unix(0, 0)
 		d := ts.UTC().Format(time.RFC3339)
-		evt := `{"time": "` + d + `", "level": "debug", "message": "Foobar", "foo": "bar", "caller": "` + cwd + `/foo/bar.go"}`
-		// t.Log(evt)
 
-		_, err = w.Write([]byte(evt))
+		fields := map[string]interface{}{
+			"time":    d,
+			"level":   "debug",
+			"message": "Foobar",
+			"foo":     "bar",
+			"caller":  filepath.Join(cwd, "foo", "bar.go"),
+		}
+
+		evt, err := json.Marshal(fields)
+		if err != nil {
+			t.Fatalf("Cannot marshal fields: %s", err)
+		}
+
+		_, err = w.Write(evt)
 		if err != nil {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
+		// Define the expected output with forward slashes
 		expectedOutput := ts.Format(time.Kitchen) + " DBG foo/bar.go > Foobar foo=bar\n"
+
+		// Get the actual output and normalize path separators to forward slashes
 		actualOutput := buf.String()
+		actualOutput = strings.ReplaceAll(actualOutput, string(os.PathSeparator), "/")
+
+		// Compare the normalized actual output to the expected output
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
 		}
@@ -451,14 +470,14 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 	})
 
 	t.Run("Sets TimeFormat and TimeLocation", func(t *testing.T) {
-		locs := []*time.Location{ time.Local, time.UTC }
+		locs := []*time.Location{time.Local, time.UTC}
 
 		for _, location := range locs {
 			buf := &bytes.Buffer{}
 			w := zerolog.ConsoleWriter{
-				Out: buf,
-				NoColor: true,
-				TimeFormat: time.RFC3339,
+				Out:          buf,
+				NoColor:      true,
+				TimeFormat:   time.RFC3339,
 				TimeLocation: location,
 			}
 
