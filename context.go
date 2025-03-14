@@ -108,6 +108,12 @@ func (c Context) Hex(key string, val []byte) Context {
 	return c
 }
 
+// HexBytes adds the field key with val as an array string repr to the logger context.
+func (c Context) HexBytes(key string, val []byte) Context {
+	c.l.context = enc.AppendHexBytes(enc.AppendKey(c.l.context, key), val)
+	return c
+}
+
 // RawJSON adds already encoded JSON to context.
 //
 // No sanity check is performed on b; it must not contain carriage returns and

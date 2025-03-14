@@ -28,6 +28,32 @@ func (Encoder) AppendHex(dst, s []byte) []byte {
 	return append(dst, '"')
 }
 
+// AppendHexBytes encodes the input bytes to a hex string and appends
+// the encoded string to the input byte slice.
+//
+// The operation loops though each byte and encodes it as hex using
+// the hex lookup table.
+func (Encoder) AppendHexBytes(dst, s []byte) []byte {
+	const upcaseHex = "0123456789ABCDEF"
+
+	bytecount := len(s)
+
+	dst = append(dst, '[')
+
+	for idx, v := range s {
+		hi := upcaseHex[v>>4]
+		lo := upcaseHex[v&0x0f]
+
+		if idx == bytecount-1 {
+			dst = append(dst, '0', 'x', hi, lo)
+		} else {
+			dst = append(dst, '0', 'x', hi, lo, ',', ' ')
+		}
+	}
+
+	return append(dst, ']')
+}
+
 // appendBytesComplex is a mirror of the appendStringComplex
 // with []byte arg
 func appendBytesComplex(dst, s []byte, i int) []byte {

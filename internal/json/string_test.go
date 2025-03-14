@@ -63,6 +63,17 @@ var encodeHexTests = []struct {
 	{0xff, `"ff"`},
 }
 
+var encodeHexBytesTests = []struct {
+	in  byte
+	out string
+}{
+	{0x00, `"0x00"`},
+	{0x0f, `"0x0F"`},
+	{0x10, `"0x10"`},
+	{0xf0, `"0xF0"`},
+	{0xff, `"0xFF"`},
+}
+
 func TestAppendString(t *testing.T) {
 	for _, tt := range encodeStringTests {
 		b := enc.AppendString([]byte{}, tt.in)

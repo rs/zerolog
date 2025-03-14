@@ -308,6 +308,15 @@ func (e *Event) Hex(key string, val []byte) *Event {
 	return e
 }
 
+// HexBytes adds the field key with val as an array string repr to the *Event context.
+func (e *Event) HexBytes(key string, val []byte) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendHexBytes(enc.AppendKey(e.buf, key), val)
+	return e
+}
+
 // RawJSON adds already encoded JSON to the log line under key.
 //
 // No sanity check is performed on b; it must not contain carriage returns and
