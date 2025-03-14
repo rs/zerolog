@@ -25,6 +25,15 @@ func TestAppendHex(t *testing.T) {
 	}
 }
 
+func TestAppendHexBytes(t *testing.T) {
+	for _, tt := range encodeHexBytesTests {
+		b := enc.AppendHexBytes([]byte{}, []byte{tt.in})
+		if got, want := string(b), tt.out; got != want {
+			t.Errorf("appendHexBytes(%x) = %s, want %s", tt.in, got, want)
+		}
+	}
+}
+
 func TestStringBytes(t *testing.T) {
 	t.Parallel()
 	// Test that encodeState.stringBytes and encodeState.string use the same encoding.
