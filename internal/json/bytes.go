@@ -45,9 +45,9 @@ func (Encoder) AppendHexBytes(dst, s []byte) []byte {
 		lo := upcaseHex[v&0x0f]
 
 		if idx == bytecount-1 {
-			dst = append(dst, '0', 'x', hi, lo)
+			dst = append(dst, '"', '0', 'x', hi, lo, '"')
 		} else {
-			dst = append(dst, '0', 'x', hi, lo, ',', ' ')
+			dst = append(dst, '"', '0', 'x', hi, lo, '"', ',', ' ')
 		}
 	}
 
