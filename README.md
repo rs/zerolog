@@ -615,6 +615,16 @@ c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration
         Dur("duration", duration).
         Msg("")
 }))
+c = c.Append(hlog.AccessHandlerWithData(func(data hlog.AccessHandlerData) {
+    hlog.FromRequest(data.Request).Info().
+        Str("method", data.Request.Method).
+        Stringer("url", data.Request.URL).
+        Int("status", data.Status).
+        Int("sizeWritten", data.BytesWritten).
+        Int64("sizeRead", data.BytesRead).
+        Dur("duration", data.Duration).
+        Msg("")
+}))
 c = c.Append(hlog.RemoteAddrHandler("ip"))
 c = c.Append(hlog.UserAgentHandler("user_agent"))
 c = c.Append(hlog.RefererHandler("referer"))
