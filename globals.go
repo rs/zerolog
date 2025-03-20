@@ -3,7 +3,6 @@ package zerolog
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -121,9 +120,6 @@ var (
 	// be thread safe and non-blocking.
 	ErrorHandler func(err error)
 
-	// ExitFunc is the fucntion called to exit the application, defaults to `os.Exit()`
-	ExitFunc exitFunc = os.Exit
-
 	// DefaultContextLogger is returned from Ctx() if there is no logger associated
 	// with the context.
 	DefaultContextLogger *Logger
@@ -166,8 +162,6 @@ var (
 	gLevel          = new(int32)
 	disableSampling = new(int32)
 )
-
-type exitFunc func(int)
 
 // SetGlobalLevel sets the global override for log level. If this
 // values is raised, all Loggers will use at least this value.

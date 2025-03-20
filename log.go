@@ -221,19 +221,25 @@ func (l Level) MarshalText() ([]byte, error) {
 	return []byte(LevelFieldMarshalFunc(l)), nil
 }
 
+// ExitFunc is a function type that takes an integer exit code and terminates the program.
+// By default, it is set to os.Exit, but it can be overridden to customize the behavior
+// of program termination (for example, for graceful shutdown or testing purposes).
+type ExitFunc func(int)
+
 // A Logger represents an active logging object that generates lines
 // of JSON output to an io.Writer. Each logging operation makes a single
 // call to the Writer's Write method. There is no guarantee on access
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
-	w       LevelWriter
-	level   Level
-	sampler Sampler
-	context []byte
-	hooks   []Hook
-	stack   bool
-	ctx     context.Context
+	w        LevelWriter
+	level    Level
+	sampler  Sampler
+	context  []byte
+	hooks    []Hook
+	stack    bool
+	ctx      context.Context
+	exitFunc ExitFunc
 }
 
 // New creates a root logger with given output writer. If the output writer implements
@@ -335,6 +341,12 @@ func (l Logger) Hook(hooks ...Hook) Logger {
 	return l
 }
 
+// ExitFunc returns a logger with the e ExitFunc.
+func (l Logger) ExitFunc(e ExitFunc) Logger {
+	l.exitFunc = e
+	return l
+}
+
 // Trace starts a new message with trace level.
 //
 // You must call Msg on the returned event in order to send the event.
@@ -383,7 +395,7 @@ func (l *Logger) Err(err error) *Event {
 }
 
 // Fatal starts a new message with fatal level. The ExitFunc(1) function
-// (os.Exit by default) is called by the Msg method, which terminates the 
+// (os.Exit by default) is called by the Msg method, which terminates the
 // program immediately.
 //
 // You must call Msg on the returned event in order to send the event.
@@ -394,10 +406,11 @@ func (l *Logger) Fatal() *Event {
 			// will be lost as ExitFunc() (os.Exit by default) terminates the program immediately.
 			closer.Close()
 		}
-		if ExitFunc == nil {
-			ExitFunc = os.Exit
+		exitFunc := l.exitFunc
+		if exitFunc == nil {
+			exitFunc = os.Exit
 		}
-		ExitFunc(1)
+		exitFunc(1)
 	})
 }
 

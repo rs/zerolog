@@ -115,8 +115,7 @@ func TestFatal(t *testing.T) {
 
 	t.Run("should not exit", func(t *testing.T) {
 		out := &bytes.Buffer{}
-		ExitFunc = func(code int) {} // dummy exit func
-		log := New(out)
+		log := New(out).ExitFunc(func(_ int) {})
 		log.Fatal().Msg("")
 		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"fatal"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\n got:  %v\nwant: %v", got, want)
