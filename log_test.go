@@ -5,7 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
+	"os"
+	"os/exec"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -74,6 +77,58 @@ func TestInfo(t *testing.T) {
 			Msg("")
 		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","foo":"bar","n":123}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+}
+
+func TestFatal(t *testing.T) {
+	t.Run("should exit", func(t *testing.T) {
+		if os.Getenv("TEST_FATAL") == "1" {
+			log := New(os.Stderr)
+			log.Fatal().Msg("")
+			return
+		}
+
+		cmd := exec.Command(os.Args[0], "-test.run=TestFatal/should_exit")
+		cmd.Env = append(os.Environ(), "TEST_FATAL=1")
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = cmd.Start()
+		if err != nil {
+			t.Fatal(err)
+		}
+		out, err := io.ReadAll(stderr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = cmd.Wait()
+		if err == nil {
+			t.Error("Expected log Fatal to exit with non-zero status")
+		}
+
+		if got, want := decodeIfBinaryToString(out), `{"level":"fatal"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\n got:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("should not exit", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		ExitFunc = func(code int) {} // dummy exit func
+		log := New(out)
+		log.Fatal().Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"fatal"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\n got:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("with level fatal should not exit", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		log := New(out)
+		log.WithLevel(FatalLevel).Msg("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"fatal"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\n got:  %v\nwant: %v", got, want)
 		}
 	})
 }

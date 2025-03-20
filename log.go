@@ -382,18 +382,22 @@ func (l *Logger) Err(err error) *Event {
 	return l.Info()
 }
 
-// Fatal starts a new message with fatal level. The os.Exit(1) function
-// is called by the Msg method, which terminates the program immediately.
+// Fatal starts a new message with fatal level. The ExitFunc(1) function
+// (os.Exit by default) is called by the Msg method, which terminates the 
+// program immediately.
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Fatal() *Event {
 	return l.newEvent(FatalLevel, func(msg string) {
 		if closer, ok := l.w.(io.Closer); ok {
 			// Close the writer to flush any buffered message. Otherwise the message
-			// will be lost as os.Exit() terminates the program immediately.
+			// will be lost as ExitFunc() (os.Exit by default) terminates the program immediately.
 			closer.Close()
 		}
-		os.Exit(1)
+		if ExitFunc == nil {
+			ExitFunc = os.Exit
+		}
+		ExitFunc(1)
 	})
 }
 
