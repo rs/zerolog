@@ -386,6 +386,17 @@ func decodeTagData(src *bufio.Reader) []byte {
 			}
 			src.UnreadByte()
 			return decodeStringToDataUrl(src, "application/cbor")
+		case additionalTypeTagBase64Standard, additionalTypeTagBase64RawURL:
+			data := decodeString(src, true)
+			enc := base64.StdEncoding
+			if byte(val) == additionalTypeTagBase64RawURL {
+				enc = base64.RawURLEncoding
+			}
+			output := make([]byte, enc.EncodedLen(len(data))+2)
+			output[0] = '"'
+			output[len(output)-1] = '"'
+			enc.Encode(output[1:len(output)-1], data)
+			return output
 		default:
 			panic(fmt.Errorf("Unsupported Additional Tag Type: %d in decodeTagData", val))
 		}
