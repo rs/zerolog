@@ -79,15 +79,24 @@ func main() {
 		"default",
 		"Time format, one of: "+allowedTimeFormats()+" or a custom golang time format",
 	)
+	timeLocationFlag := flag.String(
+		"time-location",
+		"UTC",
+		"Time location, one of: UTC, Local or a custom location",
+	)
 
 	flag.Parse()
+	loc, err := time.LoadLocation(*timeLocationFlag)
+	if err != nil {
+		fmt.Printf("time location %s: %v", *timeLocationFlag, err)
+		os.Exit(1)
+	}
 
 	writer := zerolog.NewConsoleWriter()
 	writer.TimeFormat = getTimeFormat(*timeFormatFlag)
+	writer.TimeLocation = loc
 
-	if isInputFromPipe() {
-		_ = processInput(os.Stdin, writer)
-	} else if flag.NArg() >= 1 {
+	if flag.NArg() >= 1 {
 		for _, filename := range flag.Args() {
 			// Scan each line from filename and write it into writer
 			reader, err := os.Open(filename)
@@ -101,6 +110,8 @@ func main() {
 				os.Exit(1)
 			}
 		}
+	} else if isInputFromPipe() {
+		_ = processInput(os.Stdin, writer)
 	} else {
 		fmt.Println("Usage:")
 		fmt.Println("  app_with_zerolog | 2> >(prettylog)")
