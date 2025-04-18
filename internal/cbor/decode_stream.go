@@ -490,7 +490,7 @@ func decodeTimeStamp(src *bufio.Reader) []byte {
 		tsb = append(tsb, '"')
 		return tsb
 	}
-	panic(fmt.Errorf("TS format is neigther int nor float: %d", tsMajor))
+	panic(fmt.Errorf("TS format is neither int nor float: %d", tsMajor))
 }
 
 func decodeSimpleFloat(src *bufio.Reader) []byte {
