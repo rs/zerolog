@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"encoding/base64"
 	"net"
 	"sync"
 	"time"
@@ -82,6 +83,19 @@ func (a *Array) Bytes(val []byte) *Array {
 // Hex appends the val as a hex string to the array.
 func (a *Array) Hex(val []byte) *Array {
 	a.buf = enc.AppendHex(enc.AppendArrayDelim(a.buf), val)
+	return a
+}
+
+// Base64 appends the val as a standard padded base64 string to the array.
+func (a *Array) Base64(val []byte) *Array {
+	a.buf = enc.AppendBase64(base64.StdEncoding, enc.AppendArrayDelim(a.buf), val)
+	return a
+}
+
+// Base64Custom appends the val as a base64 string to the array.
+// The specific form of base64 can be specified with the first parameter.
+func (a *Array) Base64Custom(b64 *base64.Encoding, val []byte) *Array {
+	a.buf = enc.AppendBase64(b64, enc.AppendArrayDelim(a.buf), val)
 	return a
 }
 

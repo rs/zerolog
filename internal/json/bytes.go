@@ -1,6 +1,9 @@
 package json
 
-import "unicode/utf8"
+import (
+	"encoding/base64"
+	"unicode/utf8"
+)
 
 // AppendBytes is a mirror of appendString with []byte arg
 func (Encoder) AppendBytes(dst, s []byte) []byte {
@@ -25,6 +28,20 @@ func (Encoder) AppendHex(dst, s []byte) []byte {
 	for _, v := range s {
 		dst = append(dst, hex[v>>4], hex[v&0x0f])
 	}
+	return append(dst, '"')
+}
+
+// AppendBase64 encodes the input bytes to a base64 string and appends
+// the encoded string to the input byte slice.
+func (Encoder) AppendBase64(e *base64.Encoding, dst, s []byte) []byte {
+	dst = append(dst, '"')
+	start := len(dst)
+	targetLen := start + e.EncodedLen(len(s))
+	for cap(dst) < targetLen {
+		dst = append(dst[:cap(dst)], 0)
+	}
+	dst = dst[:targetLen]
+	e.Encode(dst[start:], s)
 	return append(dst, '"')
 }
 
