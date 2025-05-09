@@ -470,6 +470,8 @@ func (e *Event) Err(err error) *Event {
 			// attach. Fall through and still log the error via AnErr below.
 		case LogObjectMarshaler:
 			e = e.Object(ErrorStackFieldName, m)
+		case LogArrayMarshaler:
+			e = e.Array(ErrorStackFieldName, m)
 		case error:
 			e = e.Str(ErrorStackFieldName, m.Error())
 		case string:
