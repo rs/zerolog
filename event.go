@@ -396,6 +396,8 @@ func (e *Event) Err(err error) *Event {
 		case nil:
 		case LogObjectMarshaler:
 			e.Object(ErrorStackFieldName, m)
+		case LogArrayMarshaler:
+			e.Array(ErrorStackFieldName, m)
 		case error:
 			if m != nil && !isNilValue(m) {
 				e.Str(ErrorStackFieldName, m.Error())
