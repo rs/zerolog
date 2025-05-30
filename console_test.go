@@ -26,10 +26,22 @@ func ExampleConsoleWriter_customFormatters() {
 	out.FormatLevel = func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("%-6s|", i)) }
 	out.FormatFieldName = func(i interface{}) string { return fmt.Sprintf("%s:", i) }
 	out.FormatFieldValue = func(i interface{}) string { return strings.ToUpper(fmt.Sprintf("%s", i)) }
+	out.FormatMessageFromEvent = func(evt map[string]interface{}) zerolog.Formatter {
+		return func(i interface{}) string {
+			level := evt[zerolog.LevelFieldName]
+			switch level {
+			case zerolog.LevelInfoValue, zerolog.LevelWarnValue, zerolog.LevelErrorValue, zerolog.LevelFatalValue, zerolog.LevelPanicValue:
+				return fmt.Sprintf("%s (%q formatted message)", i, level)
+			default:
+				return fmt.Sprintf("%s", i)
+			}
+		}
+	}
+
 	log := zerolog.New(out)
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
-	// Output: <nil> INFO  | Hello World foo:BAR
+	// Output: <nil> INFO  | Hello World ("info" formatted message) foo:BAR
 }
 
 func ExampleConsoleWriter_partValueFormatter() {

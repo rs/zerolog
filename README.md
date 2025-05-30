@@ -352,6 +352,21 @@ output.FormatLevel = func(i interface{}) string {
 output.FormatMessage = func(i interface{}) string {
     return fmt.Sprintf("***%s****", i)
 }
+output.FormatMessageFromEvent = func(evt map[string]interface{}) zerolog.Formatter {
+    return func(i interface{}) string {
+        level := evt[zerolog.LevelFieldName]
+        switch level {
+        case zerolog.LevelInfoValue:
+            return fmt.Sprintf("=> %s %s", level, i)
+        case zerolog.LevelWarnValue:
+            return fmt.Sprintf("!! %s %s", level, i)
+        case zerolog.LevelErrorValue, zerolog.LevelFatalValue, zerolog.LevelPanicValue:
+            return fmt.Sprintf("XX %s %s", level, i)
+        default:
+            return fmt.Sprintf("%s", i)
+        }
+    }
+}
 output.FormatFieldName = func(i interface{}) string {
     return fmt.Sprintf("%s:", i)
 }
