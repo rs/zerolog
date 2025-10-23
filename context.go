@@ -400,13 +400,13 @@ func (c Context) Times(key string, t []time.Time) Context {
 
 // Dur adds the field key with d divided by unit and stored as a float.
 func (c Context) Dur(key string, d time.Duration) Context {
-	c.l.context = enc.AppendDuration(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+	c.l.context = enc.AppendDuration(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldFormat, DurationFieldInteger, FloatingPointPrecision)
 	return c
 }
 
 // Durs adds the field key with d divided by unit and stored as a float.
 func (c Context) Durs(key string, d []time.Duration) Context {
-	c.l.context = enc.AppendDurations(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+	c.l.context = enc.AppendDurations(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldFormat, DurationFieldInteger, FloatingPointPrecision)
 	return c
 }
 

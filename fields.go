@@ -151,7 +151,7 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool) []byte {
 		case time.Time:
 			dst = enc.AppendTime(dst, val, TimeFieldFormat)
 		case time.Duration:
-			dst = enc.AppendDuration(dst, val, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+			dst = enc.AppendDuration(dst, val, DurationFieldUnit, DurationFieldFormat, DurationFieldInteger, FloatingPointPrecision)
 		case *string:
 			if val != nil {
 				dst = enc.AppendString(dst, *val)
@@ -244,7 +244,7 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool) []byte {
 			}
 		case *time.Duration:
 			if val != nil {
-				dst = enc.AppendDuration(dst, *val, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+				dst = enc.AppendDuration(dst, *val, DurationFieldUnit, DurationFieldFormat, DurationFieldInteger, FloatingPointPrecision)
 			} else {
 				dst = enc.AppendNil(dst)
 			}
@@ -278,7 +278,7 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool) []byte {
 		case []time.Time:
 			dst = enc.AppendTimes(dst, val, TimeFieldFormat)
 		case []time.Duration:
-			dst = enc.AppendDurations(dst, val, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+			dst = enc.AppendDurations(dst, val, DurationFieldUnit, DurationFieldFormat, DurationFieldInteger, FloatingPointPrecision)
 		case nil:
 			dst = enc.AppendNil(dst)
 		case net.IP:

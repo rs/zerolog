@@ -5,11 +5,150 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/rs/zerolog/internal"
 )
+
+func TestEncoder_AppendDuration(t *testing.T) {
+	type args struct {
+		dst    []byte
+		d      time.Duration
+		unit   time.Duration
+		format string
+		useInt bool
+		unused int
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			name: "useInt",
+			args: args{
+				d:      1234567890,
+				unit:   time.Second,
+				useInt: true,
+			},
+			want: []byte{1},
+		},
+		{
+			name: "formatFloat",
+			args: args{
+				d:      1234567890,
+				unit:   time.Second,
+				format: durationFormatFloat,
+			},
+			want: []byte{251, 63, 243, 192, 202, 66, 131, 222, 27},
+		},
+		{
+			name: "formatInt",
+			args: args{
+				d:      1234567890,
+				unit:   time.Second,
+				format: durationFormatInt,
+			},
+			want: []byte{1},
+		},
+		{
+			name: "formatString",
+			args: args{
+				d:      1234567890,
+				unit:   time.Second,
+				format: durationFormatString,
+			},
+			want: []byte{107, 49, 46, 50, 51, 52, 53, 54, 55, 56, 57, 115},
+		},
+		{
+			name: "formatBlank",
+			args: args{
+				d:    1234567890,
+				unit: time.Second,
+			},
+			want: []byte{251, 63, 243, 192, 202, 66, 131, 222, 27},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := Encoder{}
+			if got := e.AppendDuration(tt.args.dst, tt.args.d, tt.args.unit, tt.args.format, tt.args.useInt, tt.args.unused); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AppendDuration() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEncoder_AppendDurations(t *testing.T) {
+	type args struct {
+		dst    []byte
+		vals   []time.Duration
+		unit   time.Duration
+		format string
+		useInt bool
+		unused int
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			name: "useInt",
+			args: args{
+				vals:   []time.Duration{1234567890},
+				unit:   time.Second,
+				useInt: true,
+			},
+			want: []byte{129, 1},
+		},
+		{
+			name: "formatFloat",
+			args: args{
+				vals:   []time.Duration{1234567890},
+				unit:   time.Second,
+				format: durationFormatFloat,
+			},
+			want: []byte{129, 251, 63, 243, 192, 202, 66, 131, 222, 27},
+		},
+		{
+			name: "formatInt",
+			args: args{
+				vals:   []time.Duration{1234567890},
+				unit:   time.Second,
+				format: durationFormatInt,
+			},
+			want: []byte{129, 1},
+		},
+		{
+			name: "formatString",
+			args: args{
+				vals:   []time.Duration{1234567890},
+				unit:   time.Second,
+				format: durationFormatString,
+			},
+			want: []byte{129, 107, 49, 46, 50, 51, 52, 53, 54, 55, 56, 57, 115},
+		},
+		{
+			name: "formatBlank",
+			args: args{
+				vals: []time.Duration{1234567890},
+				unit: time.Second,
+			},
+			want: []byte{129, 251, 63, 243, 192, 202, 66, 131, 222, 27},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := Encoder{}
+			if got := e.AppendDurations(tt.args.dst, tt.args.vals, tt.args.unit, tt.args.format, tt.args.useInt, tt.args.unused); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AppendDurations() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestAppendTimeNow(t *testing.T) {
 	tm := time.Now()
@@ -116,7 +255,7 @@ func TestAppendDurationFloat(t *testing.T) {
 		dur := tt.Duration
 		want := []byte{}
 		want = append(want, []byte(tt.FloatOut)...)
-		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, false, -1)
+		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, "", false, -1)
 		if !bytes.Equal(got, want) {
 			t.Errorf("AppendDuration(%v)=\ngot:  0x%s\nwant: 0x%s",
 				dur,
@@ -130,7 +269,7 @@ func TestAppendDurationInteger(t *testing.T) {
 		dur := tt.Duration
 		want := []byte{}
 		want = append(want, []byte(tt.IntegerOut)...)
-		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, true, -1)
+		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, "", true, -1)
 		if !bytes.Equal(got, want) {
 			t.Errorf("AppendDuration(%v)=\ngot:  0x%s\nwant: 0x%s",
 				dur,
@@ -148,7 +287,7 @@ func TestAppendDurations(t *testing.T) {
 		want = append(want, []byte(tt.FloatOut)...)
 	}
 
-	got := enc.AppendDurations([]byte{}, array, time.Microsecond, false, -1)
+	got := enc.AppendDurations([]byte{}, array, time.Microsecond, "", false, -1)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendDurations(%v)\ngot:  0x%s\nwant: 0x%s",
 			array, hex.EncodeToString(got),
@@ -160,7 +299,7 @@ func TestAppendDurations(t *testing.T) {
 	want = make([]byte, 0)
 	want = append(want, 0x9f) // start and end array
 	want = append(want, 0xff) // for empty array
-	got = enc.AppendDurations([]byte{}, array, time.Microsecond, false, -1)
+	got = enc.AppendDurations([]byte{}, array, time.Microsecond, "", false, -1)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendDurations(%v)\ngot:  0x%s\nwant: 0x%s",
 			array, hex.EncodeToString(got),
@@ -178,7 +317,7 @@ func TestAppendDurations(t *testing.T) {
 		array[i] = testtime
 		want = append(want, []byte(outbytes)...)
 	}
-	got = enc.AppendDurations([]byte{}, array, time.Microsecond, false, -1)
+	got = enc.AppendDurations([]byte{}, array, time.Microsecond, "", false, -1)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendDurations(%v)\ngot:  0x%s\nwant: 0x%s",
 			array,
