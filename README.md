@@ -671,7 +671,7 @@ Some settings can be changed and will be applied to all loggers:
 * `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
 * `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with `zerolog.TimeFormatUnix`, `zerolog.TimeFormatUnixMs` or `zerolog.TimeFormatUnixMicro`, times are formatted as UNIX timestamp.
 * `zerolog.DurationFieldUnit`: Can be set to customize the unit for time.Duration type fields added by `Dur` (default: `time.Millisecond`).
-* `zerolog.DurationFieldInteger`: If set to `true`, `Dur` fields are formatted as integers instead of floats (default: `false`). 
+* `zerolog.DurationFieldInteger`: If set to `true`, `Dur` fields are formatted as integers instead of floats (default: `false`).
 * `zerolog.ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
 * `zerolog.FloatingPointPrecision`: If set to a value other than -1, controls the number
 of digits when formatting float numbers in JSON. See
@@ -699,7 +699,10 @@ for more details.
 * `RawJSON`: Adds a field with an already encoded JSON (`[]byte`)
 * `Hex`: Adds a field with value formatted as a hexadecimal string (`[]byte`)
 * `Interface`: Uses reflection to marshal the type.
-
+* `IPAddr`: Adds a field with `net.IP`.
+* `IPPrefix`: Adds a field with `net.IPNet`.
+* `MACAddr`: Adds a field withg `net.HardwareAddr`
+  
 Most fields are also available in the slice format (`Strs` for `[]string`, `Errs` for `[]error` etc.)
 
 ## Binary Encoding

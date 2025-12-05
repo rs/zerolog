@@ -802,7 +802,7 @@ func (e *Event) caller(skip int) *Event {
 	return e
 }
 
-// IPAddr adds IPv4 or IPv6 Address to the event
+// IPAddr adds the field key with ip as a net.IP IPv4 or IPv6 Address to the event
 func (e *Event) IPAddr(key string, ip net.IP) *Event {
 	if e == nil {
 		return e
@@ -811,7 +811,16 @@ func (e *Event) IPAddr(key string, ip net.IP) *Event {
 	return e
 }
 
-// IPPrefix adds IPv4 or IPv6 Prefix (address and mask) to the event
+// IPAddrs adds the field key with ip as a net.IP array of IPv4 or IPv6 Address to the event
+func (e *Event) IPAddrs(key string, ip []net.IP) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendIPAddrs(enc.AppendKey(e.buf, key), ip)
+	return e
+}
+
+// IPPrefix adds the field key with pfx as a net.IPNet IPv4 or IPv6 Prefix (address and mask) to the event
 func (e *Event) IPPrefix(key string, pfx net.IPNet) *Event {
 	if e == nil {
 		return e
@@ -820,7 +829,16 @@ func (e *Event) IPPrefix(key string, pfx net.IPNet) *Event {
 	return e
 }
 
-// MACAddr adds MAC address to the event
+// IPPrefixes the field key with pfx as a net.IPNet array of IPv4 or IPv6 Prefixes (address and mask) to the event
+func (e *Event) IPPrefixes(key string, pfx []net.IPNet) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendIPPrefixes(enc.AppendKey(e.buf, key), pfx)
+	return e
+}
+
+// MACAddr the field key with ha as a net.HardwareAddr MAC address to the event
 func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	if e == nil {
 		return e

@@ -356,10 +356,11 @@ func TestFields(t *testing.T) {
 		Uint16("uint16", 8).
 		Uint32("uint32", 9).
 		Uint64("uint64", 10).
-		IPAddr("IPv4", net.IP{192, 168, 0, 100}).
-		IPAddr("IPv6", net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}).
-		MACAddr("Mac", net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45}).
-		IPPrefix("Prefix", net.IPNet{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}).
+		IPAddr("ipv4", net.IP{192, 168, 0, 100}).
+		IPAddr("ipv6", net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}).
+		MACAddr("mac", net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45}).
+		IPPrefix("pfxv4", net.IPNet{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}).
+		IPPrefix("pfxv6", net.IPNet{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}, Mask: net.CIDRMask(64, 128)}).
 		Float32("float32", 11.1234).
 		Float64("float64", 12.321321321).
 		Dur("dur", 1*time.Second).
@@ -367,7 +368,7 @@ func TestFields(t *testing.T) {
 		TimeDiff("diff", now, now.Add(-10*time.Second)).
 		Ctx(context.Background()).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","json":{"some":"json"},"cbor":"data:application/cbor;base64,gwGCAgOCBAU=","func":"func_output","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"IPv4":"192.168.0.100","IPv6":"2001:db8:85a3::8a2e:370:7334","Mac":"00:14:22:01:23:45","Prefix":"192.168.0.100/24","float32":11.1234,"float64":12.321321321,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","json":{"some":"json"},"cbor":"data:application/cbor;base64,gwGCAgOCBAU=","func":"func_output","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"ipv4":"192.168.0.100","ipv6":"2001:db8:85a3::8a2e:370:7334","mac":"00:14:22:01:23:45","pfxv4":"192.168.0.100/24","pfxv6":"2001:db8:85a3::8a2e:370:7334/64","float32":11.1234,"float64":12.321321321,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -394,8 +395,10 @@ func TestFieldsArrayEmpty(t *testing.T) {
 		Floats64("float64", []float64{}).
 		Durs("dur", []time.Duration{}).
 		Times("time", []time.Time{}).
+		IPAddrs("ip", []net.IP{}).
+		IPPrefixes("pfx", []net.IPNet{}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":[],"stringer":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":[],"stringer":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[],"ip":[],"pfx":[]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -422,8 +425,10 @@ func TestFieldsArraySingleElement(t *testing.T) {
 		Floats64("float64", []float64{12}).
 		Durs("dur", []time.Duration{1 * time.Second}).
 		Times("time", []time.Time{{}}).
+		IPAddrs("ip", []net.IP{{192, 168, 0, 100}}).
+		IPPrefixes("pfx", []net.IPNet{{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo"],"stringer":["127.0.0.1"],"err":["some error"],"bool":[true],"int":[1],"int8":[2],"int16":[3],"int32":[4],"int64":[5],"uint":[6],"uint8":[7],"uint16":[8],"uint32":[9],"uint64":[10],"float32":[11],"float64":[12],"dur":[1000],"time":["0001-01-01T00:00:00Z"]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo"],"stringer":["127.0.0.1"],"err":["some error"],"bool":[true],"int":[1],"int8":[2],"int16":[3],"int32":[4],"int64":[5],"uint":[6],"uint8":[7],"uint16":[8],"uint32":[9],"uint64":[10],"float32":[11],"float64":[12],"dur":[1000],"time":["0001-01-01T00:00:00Z"],"ip":["192.168.0.100"],"pfx":["192.168.0.100/24"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -450,8 +455,10 @@ func TestFieldsArrayMultipleElement(t *testing.T) {
 		Floats64("float64", []float64{12, 0}).
 		Durs("dur", []time.Duration{1 * time.Second, 0}).
 		Times("time", []time.Time{{}, {}}).
+		IPAddrs("ip", []net.IP{{192, 168, 0, 100}, {0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}}).
+		IPPrefixes("pfx", []net.IPNet{{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}, {IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}, Mask: net.CIDRMask(64, 128)}}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo","bar"],"stringer":[null,"127.0.0.1"],"err":["some error",null],"bool":[true,false],"int":[1,0],"int8":[2,0],"int16":[3,0],"int32":[4,0],"int64":[5,0],"uint":[6,0],"uint8":[7,0],"uint16":[8,0],"uint32":[9,0],"uint64":[10,0],"float32":[11,0],"float64":[12,0],"dur":[1000,0],"time":["0001-01-01T00:00:00Z","0001-01-01T00:00:00Z"]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo","bar"],"stringer":[null,"127.0.0.1"],"err":["some error",null],"bool":[true,false],"int":[1,0],"int8":[2,0],"int16":[3,0],"int32":[4,0],"int64":[5,0],"uint":[6,0],"uint8":[7,0],"uint16":[8,0],"uint32":[9,0],"uint64":[10,0],"float32":[11,0],"float64":[12,0],"dur":[1000,0],"time":["0001-01-01T00:00:00Z","0001-01-01T00:00:00Z"],"ip":["192.168.0.100","2001:db8:85a3::8a2e:370:7334"],"pfx":["192.168.0.100/24","2001:db8:85a3::8a2e:370:7334/64"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -484,6 +491,9 @@ func TestFieldsDisabled(t *testing.T) {
 		Dur("dur", 1*time.Second).
 		Time("time", time.Time{}).
 		TimeDiff("diff", now, now.Add(-10*time.Second)).
+		IPAddr("ip", net.IP{127, 0, 0, 1}).
+		IPPrefix("ip", net.IPNet{IP: net.IP{127, 0, 0, 1}, Mask: net.CIDRMask(24, 32)}).
+		MACAddr("mac", net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45}).
 		Ctx(context.Background()).
 		Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()), ""; got != want {

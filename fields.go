@@ -258,8 +258,7 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool) []byte {
 			dst = enc.AppendInts64(dst, val)
 		case []uint:
 			dst = enc.AppendUints(dst, val)
-		// case []uint8:
-		// 	dst = enc.AppendUints8(dst, val)
+		// case []uint8: is handled as []byte above
 		case []uint16:
 			dst = enc.AppendUints16(dst, val)
 		case []uint32:
@@ -278,8 +277,12 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool) []byte {
 			dst = enc.AppendNil(dst)
 		case net.IP:
 			dst = enc.AppendIPAddr(dst, val)
+		case []net.IP:
+			dst = enc.AppendIPAddrs(dst, val)
 		case net.IPNet:
 			dst = enc.AppendIPPrefix(dst, val)
+		case []net.IPNet:
+			dst = enc.AppendIPPrefixes(dst, val)
 		case net.HardwareAddr:
 			dst = enc.AppendMACAddr(dst, val)
 		case json.RawMessage:
