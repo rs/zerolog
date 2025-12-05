@@ -598,9 +598,8 @@ func ExampleContext_IPPrefix() {
 	dst := bytes.Buffer{}
 	log := New(&dst).With().
 		Str("foo", "bar").
-		IPAddr("v4", pfxV4).
-		IPAddr("v6", pfxV6).
-		IPAddr("ip", ip).
+		IPPrefix("v4", pfxV4).
+		IPPrefix("v6", pfxV6).
 		Logger()
 
 	log.Log().Msg("hello world")
@@ -614,7 +613,7 @@ func ExampleContext_MACAddr() {
 	dst := bytes.Buffer{}
 	log := New(&dst).With().
 		Str("foo", "bar").
-		IPAddr("mac", mac).
+		MACAddr("mac", mac).
 		Logger()
 
 	log.Log().Msg("hello world")
