@@ -589,7 +589,7 @@ func ExampleContext_IPAddr() {
 	log.Log().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
-	// Output: {"foo":"bar","v4":x"192.168.0.1","v6":"2001:db8:85a3::8a2e:370:7334","message":"hello world"}
+	// Output: {"foo":"bar","v4":"192.168.0.1","v6":"2001:db8:85a3::8a2e:370:7334","message":"hello world"}
 }
 func ExampleContext_IPPrefix() {
 	pfxV4 := net.IPNet{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}
