@@ -24,6 +24,16 @@ const (
 	// TimeFormatUnixNano defines a time format that makes time fields to be
 	// serialized as Unix timestamp integers in nanoseconds.
 	TimeFormatUnixNano = "UNIXNANO"
+
+	// DurationFormatFloat defines a format for Duration fields that makes duration fields to be
+	// serialized as floating point numbers.
+	DurationFormatFloat = "float"
+	// DurationFormatInt defines a format for Duration fields that makes duration fields to be
+	// serialized as integers.
+	DurationFormatInt = "int"
+	// DurationFormatString defines a format for Duration fields that makes duration fields to be
+	// serialized as string.
+	DurationFormatString = "string"
 )
 
 var (
@@ -107,12 +117,16 @@ var (
 	// TimestampFunc defines the function called to generate a timestamp.
 	TimestampFunc = time.Now
 
+	// DurationFieldFormat defines the format of the Duration field type.
+	DurationFieldFormat = DurationFormatFloat
+
 	// DurationFieldUnit defines the unit for time.Duration type fields added
 	// using the Dur method.
 	DurationFieldUnit = time.Millisecond
 
 	// DurationFieldInteger renders Dur fields as integer instead of float if
 	// set to true.
+	// Deprecated: use DurationFieldFormat with DurationFormatInt instead.
 	DurationFieldInteger = false
 
 	// ErrorHandler is called whenever zerolog fails to write an event on its
