@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net"
 
 	stdlog "log"
 	"time"
@@ -572,4 +573,51 @@ func ExampleContext_Fields_slice() {
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
+func ExampleContext_IPAddr() {
+	ipV4 := net.IP{192, 168, 0, 1}
+	ipV6 := net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}
+
+	dst := bytes.Buffer{}
+	log := New(&dst).With().
+		Str("foo", "bar").
+		IPAddr("v4", ipV4).
+		IPAddr("v6", ipV6).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","v4":"192.168.0.1","v6":"2001:db8:85a3::8a2e:370:7334","message":"hello world"}
+}
+func ExampleContext_IPPrefix() {
+	pfxV4 := net.IPNet{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}
+	pfxV6 := net.IPNet{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x00}, Mask: net.CIDRMask(64, 128)}
+
+	dst := bytes.Buffer{}
+	log := New(&dst).With().
+		Str("foo", "bar").
+		IPPrefix("v4", pfxV4).
+		IPPrefix("v6", pfxV6).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","v4":"192.168.0.100/24","v6":"2001:db8:85a3::8a2e:370:7300/64","message":"hello world"}
+}
+func ExampleContext_MACAddr() {
+	mac := net.HardwareAddr{0x12, 0x34, 0x56, 0x78, 0x90, 0xab}
+
+	dst := bytes.Buffer{}
+	log := New(&dst).With().
+		Str("foo", "bar").
+		MACAddr("mac", mac).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","mac":"12:34:56:78:90:ab","message":"hello world"}
 }

@@ -160,6 +160,14 @@ func BenchmarkLogFieldType(b *testing.B) {
 		{"a", "a", 0},
 		{"a", "a", 0},
 	}
+	ipAddrV4 := net.IP{192, 168, 0, 1}
+	ipAddrV6 := net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}
+	ipAddrs := []net.IP{ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6}
+	ipPfxV4 := net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(24, 32)}
+	ipPfxV6 := net.IPNet{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x00}, Mask: net.CIDRMask(64, 128)}
+	ipPfxs := []net.IPNet{ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6}
+	macAddr := net.HardwareAddr{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E}
+
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
 	ctx := context.Background()
 	types := map[string]func(e *Event) *Event{
@@ -223,6 +231,21 @@ func BenchmarkLogFieldType(b *testing.B) {
 		"Object": func(e *Event) *Event {
 			return e.Object("k", objects[0])
 		},
+		"IPAddr": func(e *Event) *Event {
+			return e.IPAddr("k", ipAddrs[0])
+		},
+		"IPAddrs": func(e *Event) *Event {
+			return e.IPAddrs("k", ipAddrs)
+		},
+		"IPPrefix": func(e *Event) *Event {
+			return e.IPPrefix("k", ipPfxs[0])
+		},
+		"IPPrefixes": func(e *Event) *Event {
+			return e.IPPrefixes("k", ipPfxs)
+		},
+		"MACAddr": func(e *Event) *Event {
+			return e.MACAddr("k", macAddr)
+		},
 	}
 	logger := New(io.Discard)
 	b.ResetTimer()
@@ -242,6 +265,7 @@ func BenchmarkContextFieldType(b *testing.B) {
 	oldFormat := TimeFieldFormat
 	TimeFieldFormat = TimeFormatUnix
 	defer func() { TimeFieldFormat = oldFormat }()
+
 	bools := []bool{true, false, true, false, true, false, true, false, true, false}
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	floats := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -289,6 +313,14 @@ func BenchmarkContextFieldType(b *testing.B) {
 		{"a", "a", 0},
 	}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
+	ipAddrV4 := net.IP{192, 168, 0, 1}
+	ipAddrV6 := net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}
+	ipAddrs := []net.IP{ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6, ipAddrV4, ipAddrV6}
+	ipPfxV4 := net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(24, 32)}
+	ipPfxV6 := net.IPNet{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x00}, Mask: net.CIDRMask(64, 128)}
+	ipPfxs := []net.IPNet{ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6}
+	macAddr := net.HardwareAddr{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E}
+
 	ctx := context.Background()
 	types := map[string]func(c Context) Context{
 		"Bool": func(c Context) Context {
@@ -356,6 +388,21 @@ func BenchmarkContextFieldType(b *testing.B) {
 		},
 		"Timestamp": func(c Context) Context {
 			return c.Timestamp()
+		},
+		"IPAddr": func(c Context) Context {
+			return c.IPAddr("k", ipAddrs[0])
+		},
+		"IPAddrs": func(c Context) Context {
+			return c.IPAddrs("k", ipAddrs)
+		},
+		"IPPrefix": func(c Context) Context {
+			return c.IPPrefix("k", ipPfxs[0])
+		},
+		"IPPrefixes": func(c Context) Context {
+			return c.IPPrefixes("k", ipPfxs)
+		},
+		"MACAddr": func(c Context) Context {
+			return c.MACAddr("k", macAddr)
 		},
 	}
 	logger := New(io.Discard)

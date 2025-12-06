@@ -377,13 +377,13 @@ func (c Context) Times(key string, t []time.Time) Context {
 	return c
 }
 
-// Dur adds the fields key with d divided by unit and stored as a float.
+// Dur adds the field key with d divided by unit and stored as a float.
 func (c Context) Dur(key string, d time.Duration) Context {
 	c.l.context = enc.AppendDuration(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
 	return c
 }
 
-// Durs adds the fields key with d divided by unit and stored as a float.
+// Durs adds the field key with d divided by unit and stored as a float.
 func (c Context) Durs(key string, d []time.Duration) Context {
 	c.l.context = enc.AppendDurations(enc.AppendKey(c.l.context, key), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
 	return c
@@ -461,19 +461,31 @@ func (c Context) Stack() Context {
 	return c
 }
 
-// IPAddr adds IPv4 or IPv6 Address to the context
+// IPAddr adds adds the field key with ip as a net.IP IPv4 or IPv6 Address to the context
 func (c Context) IPAddr(key string, ip net.IP) Context {
 	c.l.context = enc.AppendIPAddr(enc.AppendKey(c.l.context, key), ip)
 	return c
 }
 
-// IPPrefix adds IPv4 or IPv6 Prefix (address and mask) to the context
+// IPAddrs adds the field key with ip as a []net.IP array of IPv4 or IPv6 Address to the context
+func (c Context) IPAddrs(key string, ip []net.IP) Context {
+	c.l.context = enc.AppendIPAddrs(enc.AppendKey(c.l.context, key), ip)
+	return c
+}
+
+// IPPrefix adds adds the field key with pfx as a []net.IPNet IPv4 or IPv6 Prefix (address and mask) to the context
 func (c Context) IPPrefix(key string, pfx net.IPNet) Context {
 	c.l.context = enc.AppendIPPrefix(enc.AppendKey(c.l.context, key), pfx)
 	return c
 }
 
-// MACAddr adds MAC address to the context
+// IPPrefix adds adds the field key with pfx as a []net.IPNet array of IPv4 or IPv6 Prefix (address and mask) to the context
+func (c Context) IPPrefixes(key string, pfx []net.IPNet) Context {
+	c.l.context = enc.AppendIPPrefixes(enc.AppendKey(c.l.context, key), pfx)
+	return c
+}
+
+// MACAddr adds adds the field key with ha as a net.HardwareAddr MAC address to the context
 func (c Context) MACAddr(key string, ha net.HardwareAddr) Context {
 	c.l.context = enc.AppendMACAddr(enc.AppendKey(c.l.context, key), ha)
 	return c

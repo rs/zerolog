@@ -72,7 +72,7 @@ var IntegerTimeFieldFormat = time.RFC3339
 var NanoTimeFieldFormat = time.RFC3339Nano
 
 func appendCborTypePrefix(dst []byte, major byte, number uint64) []byte {
-	byteCount := 8
+	var byteCount int
 	var minor byte
 	switch {
 	case number < 256:

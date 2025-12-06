@@ -418,18 +418,49 @@ func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
 	return append(dst, o...)
 }
 
-// AppendIPAddr adds IPv4 or IPv6 address to dst.
+// AppendIPAddr adds a net.IP IPv4 or IPv6 address to dst.
 func (e Encoder) AppendIPAddr(dst []byte, ip net.IP) []byte {
 	return e.AppendString(dst, ip.String())
 }
 
-// AppendIPPrefix adds IPv4 or IPv6 Prefix (address & mask) to dst.
-func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
-	return e.AppendString(dst, pfx.String())
-
+// AppendIPAddrs adds a []net.IP array of IPv4 or IPv6 address to dst.
+func (e Encoder) AppendIPAddrs(dst []byte, ips []net.IP) []byte {
+	if len(ips) == 0 {
+		return append(dst, '[', ']')
+	}
+	dst = append(dst, '[')
+	dst = e.AppendString(dst, ips[0].String())
+	if len(ips) > 1 {
+		for _, ip := range ips[1:] {
+			dst = e.AppendString(append(dst, ','), ip.String())
+		}
+	}
+	dst = append(dst, ']')
+	return dst
 }
 
-// AppendMACAddr adds MAC address to dst.
+// AppendIPPrefix adds a net.IPNet IPv4 or IPv6 Prefix (address & mask) to dst.
+func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
+	return e.AppendString(dst, pfx.String())
+}
+
+// AppendIPPrefixes adds a []net.IPNet array of IPv4 or IPv6 Prefix (address & mask) to dst.
+func (e Encoder) AppendIPPrefixes(dst []byte, pfxs []net.IPNet) []byte {
+	if len(pfxs) == 0 {
+		return append(dst, '[', ']')
+	}
+	dst = append(dst, '[')
+	dst = e.AppendString(dst, pfxs[0].String())
+	if len(pfxs) > 1 {
+		for _, pfx := range pfxs[1:] {
+			dst = e.AppendString(append(dst, ','), pfx.String())
+		}
+	}
+	dst = append(dst, ']')
+	return dst
+}
+
+// AppendMACAddr adds a net.HardwareAddr MAC address to dst.
 func (e Encoder) AppendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
 	return e.AppendString(dst, ha.String())
 }

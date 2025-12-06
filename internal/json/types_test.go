@@ -121,6 +121,44 @@ func Test_appendIP(t *testing.T) {
 	}
 }
 
+var IPAddrArrayTestCases = []struct {
+	input []net.IP
+	want  []byte
+}{
+	{[]net.IP{}, []byte(`[]`)},
+	{[]net.IP{{127, 0, 0, 0}}, []byte(`["127.0.0.0"]`)},
+	{[]net.IP{{0, 0, 0, 0}, {192, 168, 0, 100}}, []byte(`["0.0.0.0","192.168.0.100"]`)},
+}
+
+func Test_appendIPAddr_array(t *testing.T) {
+	for _, tt := range IPAddrArrayTestCases {
+		t.Run("IPAddrs", func(t *testing.T) {
+			if got := enc.AppendIPAddrs([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("appendIPAddr() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+var IPPrefixArrayTestCases = []struct {
+	input []net.IPNet
+	want  []byte
+}{
+	{[]net.IPNet{}, []byte(`[]`)},
+	{[]net.IPNet{{IP: net.IP{127, 0, 0, 0}, Mask: net.CIDRMask(24, 32)}}, []byte(`["127.0.0.0/24"]`)},
+	{[]net.IPNet{{IP: net.IP{0, 0, 0, 0}, Mask: net.CIDRMask(0, 32)}, {IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}}, []byte(`["0.0.0.0/0","192.168.0.100/24"]`)},
+}
+
+func Test_appendIPPrefix_array(t *testing.T) {
+	for _, tt := range IPPrefixArrayTestCases {
+		t.Run("IPPrefixes", func(t *testing.T) {
+			if got := enc.AppendIPPrefixes([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("appendIPAddr() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_appendIPPrefix(t *testing.T) {
 	IPv4Prefixtests := []struct {
 		input net.IPNet

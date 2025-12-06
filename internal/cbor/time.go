@@ -27,8 +27,7 @@ func (e Encoder) appendFloatTimestamp(dst []byte, t time.Time) []byte {
 	dst = append(dst, major|minor)
 	secs := t.Unix()
 	nanos := t.Nanosecond()
-	var val float64
-	val = float64(secs)*1.0 + float64(nanos)*1e-9
+	val := float64(secs)*1.0 + float64(nanos)*1e-9
 	return e.AppendFloat64(dst, val, -1)
 }
 

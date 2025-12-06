@@ -447,7 +447,7 @@ func (e Encoder) AppendType(dst []byte, i interface{}) []byte {
 	return e.AppendString(dst, reflect.TypeOf(i).String())
 }
 
-// AppendIPAddr encodes and inserts an IP Address (IPv4 or IPv6).
+// AppendIPAddr adds a net.IP IPv4 or IPv6 address into the dst byte array.
 func (e Encoder) AppendIPAddr(dst []byte, ip net.IP) []byte {
 	dst = append(dst, majorTypeTags|additionalTypeIntUint16)
 	dst = append(dst, byte(additionalTypeTagNetworkAddr>>8))
@@ -455,7 +455,26 @@ func (e Encoder) AppendIPAddr(dst []byte, ip net.IP) []byte {
 	return e.AppendBytes(dst, ip)
 }
 
-// AppendIPPrefix encodes and inserts an IP Address Prefix (Address + Mask Length).
+// AppendIPAddrs adds a []net.IP array of IPv4 or IPv6 address into the dst byte array.
+func (e Encoder) AppendIPAddrs(dst []byte, ips []net.IP) []byte {
+	major := majorTypeArray
+	l := len(ips)
+	if l == 0 {
+		return e.AppendArrayEnd(e.AppendArrayStart(dst))
+	}
+	if l <= additionalMax {
+		lb := byte(l)
+		dst = append(dst, major|lb)
+	} else {
+		dst = appendCborTypePrefix(dst, major, uint64(l))
+	}
+	for _, v := range ips {
+		dst = e.AppendIPAddr(dst, v)
+	}
+	return dst
+}
+
+// AppendIPPrefix adds a net.IPNet IPv4 or IPv6 Prefix (address & mask) into the dst byte array.
 func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
 	dst = append(dst, majorTypeTags|additionalTypeIntUint16)
 	dst = append(dst, byte(additionalTypeTagNetworkPrefix>>8))
@@ -467,6 +486,25 @@ func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
 	dst = e.AppendBytes(dst, pfx.IP)
 	maskLen, _ := pfx.Mask.Size()
 	return e.AppendUint8(dst, uint8(maskLen))
+}
+
+// AppendIPPrefixes adds a []net.IPNet array of IPv4 or IPv6 Prefix (address & mask) into the dst byte array.
+func (e Encoder) AppendIPPrefixes(dst []byte, pfxs []net.IPNet) []byte {
+	major := majorTypeArray
+	l := len(pfxs)
+	if l == 0 {
+		return e.AppendArrayEnd(e.AppendArrayStart(dst))
+	}
+	if l <= additionalMax {
+		lb := byte(l)
+		dst = append(dst, major|lb)
+	} else {
+		dst = appendCborTypePrefix(dst, major, uint64(l))
+	}
+	for _, v := range pfxs {
+		dst = e.AppendIPPrefix(dst, v)
+	}
+	return dst
 }
 
 // AppendMACAddr encodes and inserts a Hardware (MAC) address.

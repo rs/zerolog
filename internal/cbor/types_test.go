@@ -44,6 +44,8 @@ var booleanArrayTestCases = []struct {
 	binary string
 	json   string
 }{
+	{[]bool{}, "\x9f\xff", "[]"},
+	{[]bool{false}, "\x81\xf4", "[false]"},
 	{[]bool{true, false, true}, "\x83\xf5\xf4\xf5", "[true,false,true]"},
 	{[]bool{true, false, false, true, false, true}, "\x86\xf5\xf4\xf4\xf5\xf4\xf5", "[true,false,false,true,false,true]"},
 }
@@ -134,6 +136,8 @@ var integerArrayTestCases = []struct {
 	binary string
 	json   string
 }{
+	{[]int{}, "\x9f\xff", "[]"},
+	{[]int{32768}, "\x81\x19\x80\x00", "[32768]"},
 	{[]int{-1, 0, 200, 20}, "\x84\x20\x00\x18\xc8\x14", "[-1,0,200,20]"},
 	{[]int{-200, -10, 200, 400}, "\x84\x38\xc7\x29\x18\xc8\x19\x01\x90", "[-200,-10,200,400]"},
 	{[]int{1, 2, 3}, "\x83\x01\x02\x03", "[1,2,3]"},
@@ -202,6 +206,28 @@ func TestAppendNetworkAddr(t *testing.T) {
 	}
 }
 
+var IPAddrArrayTestCases = []struct {
+	val    []net.IP
+	binary string
+	json   string
+}{
+	{[]net.IP{}, "\x9f\xff", "[]"},
+	{[]net.IP{{127, 0, 0, 0}}, "\x81\xd9\x01\x04\x44\x7f\x00\x00\x00", "[127.0.0.0]"},
+	{[]net.IP{{0, 0, 0, 0}, {192, 168, 0, 100}}, "\x82\xd9\x01\x04\x44\x00\x00\x00\x00\xd9\x01\x04\x44\xc0\xa8\x00\x64", "[0.0.0.0,192.168.0.100]"},
+}
+
+func TestAppendIPAddrArray(t *testing.T) {
+	for _, tc := range IPAddrArrayTestCases {
+		s := enc.AppendIPAddrs([]byte{}, tc.val)
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendIPAddr(%s)=0x%s, want: 0x%s",
+				tc.json, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+
 var macAddrTestCases = []struct {
 	macaddr net.HardwareAddr
 	text    string // ASCII representation of macaddr
@@ -240,6 +266,28 @@ func TestAppendIPPrefix(t *testing.T) {
 		if got != tc.binary {
 			t.Errorf("AppendIPPrefix(%s)=0x%s, want: 0x%s",
 				tc.pfx.String(), hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+
+var IPPrefixArrayTestCases = []struct {
+	val    []net.IPNet
+	binary string
+	json   string
+}{
+	{[]net.IPNet{}, "\x9f\xff", "[]"},
+	{[]net.IPNet{{IP: net.IP{127, 0, 0, 0}, Mask: net.CIDRMask(24, 32)}}, "\x81\xd9\x01\x05\xa1\x44\x7f\x00\x00\x00\x18\x18", "[127.0.0.0/24]"},
+	{[]net.IPNet{{IP: net.IP{0, 0, 0, 0}, Mask: net.CIDRMask(0, 32)}, {IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}}, "\x82\xd9\x01\x05\xa1\x44\x00\x00\x00\x00\x00\xd9\x01\x05\xa1\x44\xc0\xa8\x00\x64\x18\x18", "[0.0.0.0/0,192.168.0.100/24]"},
+}
+
+func TestAppendIPPrefixArray(t *testing.T) {
+	for _, tc := range IPPrefixArrayTestCases {
+		s := enc.AppendIPPrefixes([]byte{}, tc.val)
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendIPPrefix(%s)=0x%s, want: 0x%s",
+				tc.json, hex.EncodeToString(s),
 				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}
