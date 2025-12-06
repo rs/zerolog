@@ -278,7 +278,7 @@ var IPPrefixArrayTestCases = []struct {
 }{
 	{[]net.IPNet{}, "\x9f\xff", "[]"},
 	{[]net.IPNet{{IP: net.IP{127, 0, 0, 0}, Mask: net.CIDRMask(24, 32)}}, "\x81\xd9\x01\x05\xa1\x44\x7f\x00\x00\x00\x18\x18", "[127.0.0.0/24]"},
-	{[]net.IPNet{{IP: net.IP{0, 0, 0, 0}, Mask: net.CIDRMask(0, 32)}, {IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}}, "\x82\xd9\x01\x05\xa1\x44\x00\x00\x00\x00\x00\xd9\x01\x05\xa1\x44\xc0\xa8\x00\x64\x18\x18", "[0.0.0.0/32,192.168.0.100/24]"},
+	{[]net.IPNet{{IP: net.IP{0, 0, 0, 0}, Mask: net.CIDRMask(0, 32)}, {IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}}, "\x82\xd9\x01\x05\xa1\x44\x00\x00\x00\x00\x00\xd9\x01\x05\xa1\x44\xc0\xa8\x00\x64\x18\x18", "[0.0.0.0/0,192.168.0.100/24]"},
 }
 
 func TestAppendIPPrefixArray(t *testing.T) {
