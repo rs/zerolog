@@ -1,7 +1,9 @@
 package cbor
 
 import (
+	"bytes"
 	"encoding/hex"
+	"math"
 	"net"
 	"testing"
 )
@@ -76,22 +78,26 @@ var integerTestCases = []struct {
 	{10, "\x0a"},
 	{22, "\x16"},
 	{23, "\x17"},
+
 	// Value in 1 byte.
 	{24, "\x18\x18"},
 	{25, "\x18\x19"},
 	{26, "\x18\x1a"},
-	{100, "\x18\x64"},
+	{127, "\x18\x7f"},
 	{254, "\x18\xfe"},
 	{255, "\x18\xff"},
+
 	// Value in 2 bytes.
 	{256, "\x19\x01\x00"},
 	{257, "\x19\x01\x01"},
 	{1000, "\x19\x03\xe8"},
 	{0xFFFF, "\x19\xff\xff"},
+
 	// Value in 4 bytes.
 	{0x10000, "\x1a\x00\x01\x00\x00"},
 	{0x7FFFFFFE, "\x1a\x7f\xff\xff\xfe"},
 	{1000000, "\x1a\x00\x0f\x42\x40"},
+
 	// Negative number test cases.
 	// Value included in the type.
 	{-1, "\x20"},
@@ -102,21 +108,217 @@ var integerTestCases = []struct {
 	{-22, "\x35"},
 	{-23, "\x36"},
 	{-24, "\x37"},
+
 	// Value in 1 byte.
 	{-25, "\x38\x18"},
 	{-26, "\x38\x19"},
 	{-100, "\x38\x63"},
+	{-128, "\x38\x7f"},
 	{-254, "\x38\xfd"},
 	{-255, "\x38\xfe"},
 	{-256, "\x38\xff"},
+
 	// Value in 2 bytes.
 	{-257, "\x39\x01\x00"},
 	{-258, "\x39\x01\x01"},
 	{-1000, "\x39\x03\xe7"},
+
 	// Value in 4 bytes.
 	{-0x10001, "\x3a\x00\x01\x00\x00"},
 	{-0x7FFFFFFE, "\x3a\x7f\xff\xff\xfd"},
 	{-1000000, "\x3a\x00\x0f\x42\x3f"},
+
+	//Constants
+	{math.MaxInt8, "\x18\x7f"},
+	{math.MinInt8, "\x38\x7f"},
+	{math.MaxInt16, "\x19\x7f\xff"},
+	{math.MinInt16, "\x39\x7f\xff"},
+	{math.MaxInt32, "\x1a\x7f\xff\xff\xff"},
+	{math.MinInt32, "\x3a\x7f\xff\xff\xff"},
+	{math.MaxInt64, "\x1b\x7f\xff\xff\xff\xff\xff\xff\xff"},
+	{math.MinInt64, "\x3b\x7f\xff\xff\xff\xff\xff\xff\xff"},
+}
+
+func TestAppendInt8(t *testing.T) {
+	for _, tc := range integerTestCases {
+		if (tc.val < math.MinInt8) || (tc.val > math.MaxInt8) {
+			continue
+		}
+		s := enc.AppendInt8([]byte{}, int8(tc.val))
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendInt8(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+func TestAppendInts8(t *testing.T) {
+	array := make([]int8, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x1b) // for signed 8-bit elements
+	for _, tc := range integerTestCases {
+		if (tc.val < math.MinInt8) || (tc.val > math.MaxInt8) {
+			continue
+		}
+		array = append(array, int8(tc.val))
+		want = append(want, tc.binary...)
+	}
+
+	got := enc.AppendInts8([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts8(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]int8, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendInts8([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts8(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendInt16(t *testing.T) {
+	for _, tc := range integerTestCases {
+		if (tc.val < math.MinInt16) || (tc.val > math.MaxInt16) {
+			continue
+		}
+		s := enc.AppendInt16([]byte{}, int16(tc.val))
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendInt16(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+func TestAppendInts16(t *testing.T) {
+	array := make([]int16, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x28) // for signed 16-bit elements
+	for _, tc := range integerTestCases {
+		if (tc.val < math.MinInt16) || (tc.val > math.MaxInt16) {
+			continue
+		}
+		array = append(array, int16(tc.val))
+		want = append(want, tc.binary...)
+	}
+
+	got := enc.AppendInts16([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts16(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]int16, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendInts16([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts16(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendInt32(t *testing.T) {
+	for _, tc := range integerTestCases {
+		if (tc.val < math.MinInt32) || (tc.val > math.MaxInt32) {
+			continue
+		}
+		s := enc.AppendInt32([]byte{}, int32(tc.val))
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendInt32(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+func TestAppendInts32(t *testing.T) {
+	array := make([]int32, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x31) // for signed 32-bit elements
+	for _, tc := range integerTestCases {
+		if (tc.val < math.MinInt32) || (tc.val > math.MaxInt32) {
+			continue
+		}
+		array = append(array, int32(tc.val))
+		want = append(want, tc.binary...)
+	}
+
+	got := enc.AppendInts32([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]int32, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendInts32([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendInt64(t *testing.T) {
+	for _, tc := range integerTestCases {
+		s := enc.AppendInt64([]byte{}, int64(tc.val))
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendInt64(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+func TestAppendInts64(t *testing.T) {
+	array := make([]int64, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x33) // for signed 64-bit elements
+	for _, tc := range integerTestCases {
+		array = append(array, int64(tc.val))
+		want = append(want, tc.binary...)
+	}
+
+	got := enc.AppendInts64([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]int64, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendInts64([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
 }
 
 func TestAppendInt(t *testing.T) {
@@ -128,6 +330,300 @@ func TestAppendInt(t *testing.T) {
 				tc.val, hex.EncodeToString(s),
 				hex.EncodeToString([]byte(tc.binary)))
 		}
+	}
+}
+func TestAppendInts(t *testing.T) {
+	array := make([]int, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x33) // for signed int elements
+	for _, tc := range integerTestCases {
+		array = append(array, int(tc.val))
+		want = append(want, tc.binary...)
+	}
+
+	got := enc.AppendInts([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]int, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendInts([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+type unsignedIntTestCase struct {
+	val       uint
+	binary    string
+	bigbinary string
+}
+
+var additionalUnsignedIntegerTestCases = []unsignedIntTestCase{
+	{0x7FFFFFFF, "\x18\xff", "\x1a\x7f\xff\xff\xff"},
+	{0x80000000, "\x19\xff\xff", "\x1a\x80\x00\x00\x00"},
+	{1000000, "\x1b\x80\x00\x00\x00\x00\x00\x00\x00", "\x1a\x00\x0f\x42\x40"},
+
+	//Constants
+	{math.MaxUint8, "\x18\xff", "\x18\xff"},
+	{math.MaxUint16, "\x19\xff\xff", "\x19\xff\xff"},
+	{math.MaxUint32, "\x1a\xff\xff\xff\xff", "\x1a\xff\xff\xff\xff"},
+	{math.MaxUint64, "\x1b\xff\xff\xff\xff\xff\xff\xff\xff", "\x1b\xff\xff\xff\xff\xff\xff\xff\xff"},
+}
+
+func UnsignedIntegerTestCases() []unsignedIntTestCase {
+	size := len(integerTestCases) + len(additionalUnsignedIntegerTestCases)
+	cases := make([]unsignedIntTestCase, 0, size)
+	cases = append(cases, additionalUnsignedIntegerTestCases...)
+	for _, itc := range integerTestCases {
+		if itc.val < 0 {
+			continue
+		}
+		cases = append(cases, unsignedIntTestCase{val: uint(itc.val), binary: itc.binary, bigbinary: itc.binary})
+	}
+	return cases
+}
+
+var unsignedIntegerTestCases = UnsignedIntegerTestCases()
+
+func TestAppendUint8(t *testing.T) {
+	for _, tc := range unsignedIntegerTestCases {
+		if tc.val > math.MaxUint8 {
+			continue
+		}
+		s := enc.AppendUint8([]byte{}, uint8(tc.val))
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendUint8(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+func TestAppendUints8(t *testing.T) {
+	array := make([]uint8, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x91) // start array for unsigned 8-bit elements
+	for _, tc := range unsignedIntegerTestCases {
+		if tc.val > math.MaxUint8 {
+			continue
+		}
+		array = append(array, uint8(tc.val))
+		want = append(want, tc.binary...)
+	}
+
+	got := enc.AppendUints8([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints8(%v)=0x%s, want: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]uint8, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendUints8([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints8(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendUint16(t *testing.T) {
+	for _, tc := range unsignedIntegerTestCases {
+		if tc.val > math.MaxUint16 {
+			continue
+		}
+		s := enc.AppendUint16([]byte{}, uint16(tc.val))
+		got := string(s)
+		if got != tc.binary {
+			t.Errorf("AppendUint16(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+
+	}
+}
+func TestAppendUints16(t *testing.T) {
+	array := make([]uint16, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x97) // start array for unsigned 16-bit elements
+	for _, tc := range unsignedIntegerTestCases {
+		if tc.val > math.MaxUint16 {
+			continue
+		}
+		array = append(array, uint16(tc.val))
+		want = append(want, tc.binary...)
+	}
+
+	got := enc.AppendUints16([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints16(%v)=0x%s, want: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]uint16, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendUints16([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints8(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendUint32(t *testing.T) {
+	for _, tc := range unsignedIntegerTestCases {
+		if tc.val > math.MaxUint32 {
+			continue
+		}
+		s := enc.AppendUint32([]byte{}, uint32(tc.val))
+		got := string(s)
+		want := tc.bigbinary
+		if got != want {
+			t.Errorf("AppendUint32(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(want)))
+		}
+	}
+}
+func TestAppendUints32(t *testing.T) {
+	array := make([]uint32, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x1f) // for unsigned  32-bit elements
+	for _, tc := range unsignedIntegerTestCases {
+		if tc.val > math.MaxUint32 {
+			continue
+		}
+		array = append(array, uint32(tc.val))
+		want = append(want, tc.bigbinary...)
+	}
+
+	got := enc.AppendUints32([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]uint32, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendUints32([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendUint64(t *testing.T) {
+	for _, tc := range unsignedIntegerTestCases {
+		s := enc.AppendUint64([]byte{}, uint64(tc.val))
+		got := string(s)
+		want := tc.bigbinary
+		if got != want {
+			t.Errorf("AppendUint64(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(want)))
+		}
+	}
+}
+func TestAppendUints64(t *testing.T) {
+	array := make([]uint64, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x21) // for unsigned 64-bit elements
+	for _, tc := range unsignedIntegerTestCases {
+		array = append(array, uint64(tc.val))
+		want = append(want, tc.bigbinary...)
+	}
+
+	got := enc.AppendUints64([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]uint64, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendUints64([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendUint(t *testing.T) {
+	for _, tc := range unsignedIntegerTestCases {
+		s := enc.AppendUint([]byte{}, tc.val)
+		got := string(s)
+		want := tc.bigbinary
+		if tc.val == math.MaxUint64 {
+			want = "\x20" // this is special case for uint max value when using AppendUint
+		}
+		if got != want {
+			t.Errorf("AppendUint(0x%x)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(want)))
+		}
+	}
+}
+func TestAppendUints(t *testing.T) {
+	array := make([]uint, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start array
+	want = append(want, 0x21) // for unsigned int elements
+	for _, tc := range unsignedIntegerTestCases {
+		array = append(array, uint(tc.val))
+		expected := tc.bigbinary
+		if tc.val == math.MaxUint64 {
+			expected = "\x20" // this is special case for uint max value when using AppendUint
+		}
+		want = append(want, expected...)
+	}
+
+	got := enc.AppendUints([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]uint, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendUints([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 
@@ -169,6 +665,11 @@ var float32TestCases = []struct {
 	{65504.0, "\xfa\x47\x7f\xe0\x00"},
 	{-4.0, "\xfa\xc0\x80\x00\x00"},
 	{0.00006103515625, "\xfa\x38\x80\x00\x00"},
+	{float32(math.Inf(0)), "\xfa\x7f\x80\x00\x00"},
+	{float32(math.Inf(-1)), "\xfa\xff\x80\x00\x00"},
+	{float32(math.NaN()), "\xfa\x7f\xc0\x00\x00"},
+	{math.SmallestNonzeroFloat32, "\xfa\x00\x00\x00\x01"},
+	{math.MaxFloat32, "\xfa\x7f\x7f\xff\xff"},
 }
 
 func TestAppendFloat32(t *testing.T) {
@@ -177,6 +678,36 @@ func TestAppendFloat32(t *testing.T) {
 		got := string(s)
 		if got != tc.binary {
 			t.Errorf("AppendFloat32(%f)=0x%s, want: 0x%s",
+				tc.val, hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.binary)))
+		}
+	}
+}
+
+var float64TestCases = []struct {
+	val    float64
+	binary string
+}{
+	{0.0, "\xfa\x00\x00\x00\x00"},
+	{-0.0, "\xfa\x00\x00\x00\x00"},
+	{1.0, "\xfa\x3f\x80\x00\x00"},
+	{1.5, "\xfa\x3f\xc0\x00\x00"},
+	{65504.0, "\xfa\x47\x7f\xe0\x00"},
+	{-4.0, "\xfa\xc0\x80\x00\x00"},
+	{0.00006103515625, "\xfa\x38\x80\x00\x00"},
+	{math.Inf(0), "\xfa\x7f\x80\x00\x00\x00\x00\x00\x00"},
+	{math.Inf(-1), "\xfa\xff\x80\x00\x00\x00\x00\x00\x00"},
+	{math.NaN(), "\xfb\x7f\xf8\x00\x00\x00\x00\x00\x00"},
+	{math.SmallestNonzeroFloat64, "\xfa\x00\x00\x00\x00\x00\x00\x00\x01"},
+	{math.MaxFloat64, "\xfa\x7f\x7f\xff\xff"},
+}
+
+func TestAppendFloat64(t *testing.T) {
+	for _, tc := range float64TestCases {
+		s := enc.AppendFloat64([]byte{}, tc.val, -1)
+		got := string(s)
+		if got != tc.binary && ((got == "NaN") != math.IsNaN(tc.val)) {
+			t.Errorf("AppendFloat64(%f)=0x%s, want: 0x%s",
 				tc.val, hex.EncodeToString(s),
 				hex.EncodeToString([]byte(tc.binary)))
 		}

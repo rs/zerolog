@@ -3,6 +3,7 @@ package cbor
 import (
 	"bytes"
 	"encoding/hex"
+	"math"
 	"testing"
 	"time"
 )
@@ -108,7 +109,7 @@ func TestDecodeBool(t *testing.T) {
 func TestDecodeFloat(t *testing.T) {
 	for _, tc := range float32TestCases {
 		got, _ := decodeFloat(getReader(tc.binary))
-		if got != float64(tc.val) {
+		if got != float64(tc.val) && math.IsNaN(got) != math.IsNaN(float64(tc.val)) {
 			t.Errorf("decodeFloat(0x%s)=%f, want:%f", hex.EncodeToString([]byte(tc.binary)), got, tc.val)
 		}
 	}

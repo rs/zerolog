@@ -1,6 +1,8 @@
 package json
 
 import (
+	"fmt"
+	"net"
 	"testing"
 )
 
@@ -68,6 +70,42 @@ func TestAppendString(t *testing.T) {
 		b := enc.AppendString([]byte{}, tt.in)
 		if got, want := string(b), tt.out; got != want {
 			t.Errorf("appendString(%q) = %#q, want %#q", tt.in, got, want)
+		}
+	}
+}
+
+var encodeStringsTests = []struct {
+	in  []string
+	out string
+}{
+	{[]string{}, `[]`},
+	{[]string{"A"}, `["A"]`},
+	{[]string{"A", "B"}, `["A","B"]`},
+}
+
+func TestAppendStrings(t *testing.T) {
+	for _, tt := range encodeStringsTests {
+		b := enc.AppendStrings([]byte{}, tt.in)
+		if got, want := string(b), tt.out; got != want {
+			t.Errorf("appendStrings(%q) = %#q, want %#q", tt.in, got, want)
+		}
+	}
+}
+
+var encodeStringersTests = []struct {
+	in  []fmt.Stringer
+	out string
+}{
+	{[]fmt.Stringer{}, `[]`},
+	{[]fmt.Stringer{net.IPv4bcast}, `["255.255.255.255"]`},
+	{[]fmt.Stringer{net.IPv4allsys, net.IPv4allrouter}, `["224.0.0.1","224.0.0.2"]`},
+}
+
+func TestAppendStringers(t *testing.T) {
+	for _, tt := range encodeStringersTests {
+		b := enc.AppendStringers([]byte{}, tt.in)
+		if got, want := string(b), tt.out; got != want {
+			t.Errorf("appendStrings(%q) = %#q, want %#q", tt.in, got, want)
 		}
 	}
 }
