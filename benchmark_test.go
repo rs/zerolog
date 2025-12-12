@@ -181,21 +181,6 @@ func BenchmarkLogFieldType(b *testing.B) {
 		"Type": func(e *Event) *Event {
 			return e.Type("k", fixtures.Type)
 		},
-		"IPAddr": func(e *Event) *Event {
-			return e.IPAddr("k", ipAddrs[0])
-		},
-		"IPAddrs": func(e *Event) *Event {
-			return e.IPAddrs("k", ipAddrs)
-		},
-		"IPPrefix": func(e *Event) *Event {
-			return e.IPPrefix("k", ipPfxs[0])
-		},
-		"IPPrefixes": func(e *Event) *Event {
-			return e.IPPrefixes("k", ipPfxs)
-		},
-		"MACAddr": func(e *Event) *Event {
-			return e.MACAddr("k", macAddr)
-		},
 	}
 
 	logger := New(io.Discard)
