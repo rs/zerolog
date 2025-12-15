@@ -5,7 +5,7 @@ import (
 	"unicode/utf8"
 )
 
-const hex = "0123456789abcdef"
+const hexCharacters = "0123456789abcdef"
 
 var noEscapeTable = [256]bool{}
 
@@ -137,7 +137,7 @@ func appendStringComplex(dst []byte, s string, i int) []byte {
 		case '\t':
 			dst = append(dst, '\\', 't')
 		default:
-			dst = append(dst, '\\', 'u', '0', '0', hex[b>>4], hex[b&0xF])
+			dst = append(dst, '\\', 'u', '0', '0', hexCharacters[b>>4], hexCharacters[b&0xF])
 		}
 		i++
 		start = i
