@@ -2,6 +2,7 @@ package cbor
 
 import (
 	"bytes"
+	"encoding/hex"
 	"testing"
 )
 
@@ -78,6 +79,53 @@ func TestAppendString(t *testing.T) {
 	b := enc.AppendString([]byte{}, inp)
 	if got := string(b); got != want {
 		t.Errorf("appendString(%q) = %#q, want %#q", inp, got, want)
+	}
+}
+func TestAppendStrings(t *testing.T) {
+	array := []string{}
+	for _, tt := range encodeStringTests {
+		array = append(array, tt.plain)
+	}
+	want := make([]byte, 0)
+	want = append(want, 0x8d) // start array length 13
+	for _, tt := range encodeStringTests {
+		want = append(want, []byte(tt.binary)...)
+	}
+
+	got := enc.AppendStrings([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendStrings(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]string, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x80) // start an empty string array
+	got = enc.AppendStrings([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendStrings(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now large array case
+	array = make([]string, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a large array
+	want = append(want, 0x18) // of length 24
+	for i := 0; i < len(array); i++ {
+		array[i] = "test"
+		want = append(want, []byte("\x64test")...)
+	}
+	got = enc.AppendStrings([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendStrings(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 
