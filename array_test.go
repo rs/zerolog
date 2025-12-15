@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -42,8 +43,16 @@ func TestArray(t *testing.T) {
 		Dict(Dict().
 			Str("bar", "baz").
 			Int("n", 1),
-		)
-	want := `[true,1,2,3,4,5,6,7,8,9,10,11.98122,12.987654321,"a","b","1f",{"some":"json"},"0001-01-01T00:00:00Z","192.168.0.10","127.0.0.0/24","01:23:45:67:89:ab",{"Pub":"A","tag":"j"},{"name":"zot","age":-35},0,{"bar":"baz","n":1}]`
+		).
+		Err(nil).
+		Err(fmt.Errorf("failure")).
+		Err(errorObjectMarshalerImpl{fmt.Errorf("oops")}).
+		Object(logObjectMarshalerImpl{
+			name: "ZIT",
+			age:  22,
+		})
+
+	want := `[true,1,2,3,4,5,6,7,8,9,10,11.98122,12.987654321,"a","b","1f",{"some":"json"},"0001-01-01T00:00:00Z","192.168.0.10","127.0.0.0/24","01:23:45:67:89:ab",{"Pub":"A","tag":"j"},{"name":"zot","age":-35},0,{"bar":"baz","n":1},null,"failure",{"error":"OOPS"},{"name":"zit","age":-22}]`
 	if got := decodeObjectToStr(a.write([]byte{})); got != want {
 		t.Errorf("Array.write()\ngot:  %s\nwant: %s", got, want)
 	}
