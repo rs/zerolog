@@ -59,11 +59,7 @@ func (a *Array) write(dst []byte) []byte {
 // Object marshals an object that implement the LogObjectMarshaler
 // interface and appends it to the array.
 func (a *Array) Object(obj LogObjectMarshaler) *Array {
-	e := Dict()
-	obj.MarshalZerologObject(e)
-	e.buf = enc.AppendEndMarker(e.buf)
-	a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
-	putEvent(e)
+	a.buf = appendObject(enc.AppendArrayDelim(a.buf), obj)
 	return a
 }
 
@@ -95,11 +91,7 @@ func (a *Array) RawJSON(val []byte) *Array {
 func (a *Array) Err(err error) *Array {
 	switch m := ErrorMarshalFunc(err).(type) {
 	case LogObjectMarshaler:
-		e := newEvent(nil, 0)
-		e.buf = e.buf[:0]
-		e.appendObject(m)
-		a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
-		putEvent(e)
+		a = a.Object(m)
 	case error:
 		if m == nil || isNilValue(m) {
 			a.buf = enc.AppendNil(enc.AppendArrayDelim(a.buf))
