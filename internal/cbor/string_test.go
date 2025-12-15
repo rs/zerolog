@@ -2,6 +2,7 @@ package cbor
 
 import (
 	"bytes"
+	"encoding/hex"
 	"testing"
 )
 
@@ -12,6 +13,13 @@ var encodeStringTests = []struct {
 }{
 	{"", "\x60", ""},
 	{"\\", "\x61\x5c", "\\\\"},
+	{"\"", "\x61\x22", "\\\""},
+	{"\b", "\x61\x08", "\\b"},
+	{"\f", "\x61\x0c", "\\f"},
+	{"\n", "\x61\x0a", "\\n"},
+	{"\r", "\x61\x0d", "\\r"},
+	{"\t", "\x61\x09", "\\t"},
+	{"Hi\t", "\x63Hi\x09", "Hi\\t"},
 	{"\x00", "\x61\x00", "\\u0000"},
 	{"\x01", "\x61\x01", "\\u0001"},
 	{"\x02", "\x61\x02", "\\u0002"},
@@ -44,6 +52,9 @@ var encodeByteTests = []struct {
 	{[]byte("\x02"), "\x41\x02"},
 	{[]byte("\x03"), "\x41\x03"},
 	{[]byte("\x04"), "\x41\x04"},
+	{[]byte("\f"), "\x41\x0C"},
+	{[]byte("\n"), "\x41\x0A"},
+	{[]byte("\r"), "\x41\x0D"},
 	{[]byte("*"), "\x41*"},
 	{[]byte("a"), "\x41a"},
 	{[]byte("IETF"), "\x44IETF"},
@@ -75,6 +86,53 @@ func TestAppendString(t *testing.T) {
 	b := enc.AppendString([]byte{}, inp)
 	if got := string(b); got != want {
 		t.Errorf("appendString(%q) = %#q, want %#q", inp, got, want)
+	}
+}
+func TestAppendStrings(t *testing.T) {
+	array := []string{}
+	for _, tt := range encodeStringTests {
+		array = append(array, tt.plain)
+	}
+	want := make([]byte, 0)
+	want = append(want, 0x94) // start array length 24
+	for _, tt := range encodeStringTests {
+		want = append(want, []byte(tt.binary)...)
+	}
+
+	got := enc.AppendStrings([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendStrings(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]string, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x80) // start an empty string array
+	got = enc.AppendStrings([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendStrings(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now large array case
+	array = make([]string, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a large array
+	want = append(want, 0x18) // of length 24
+	for i := 0; i < len(array); i++ {
+		array[i] = "test"
+		want = append(want, []byte("\x64test")...)
+	}
+	got = enc.AppendStrings([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendStrings(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 

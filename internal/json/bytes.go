@@ -23,7 +23,7 @@ func (Encoder) AppendBytes(dst, s []byte) []byte {
 func (Encoder) AppendHex(dst, s []byte) []byte {
 	dst = append(dst, '"')
 	for _, v := range s {
-		dst = append(dst, hex[v>>4], hex[v&0x0f])
+		dst = append(dst, hexCharacters[v>>4], hexCharacters[v&0x0f])
 	}
 	return append(dst, '"')
 }
@@ -73,7 +73,7 @@ func appendBytesComplex(dst, s []byte, i int) []byte {
 		case '\t':
 			dst = append(dst, '\\', 't')
 		default:
-			dst = append(dst, '\\', 'u', '0', '0', hex[b>>4], hex[b&0xF])
+			dst = append(dst, '\\', 'u', '0', '0', hexCharacters[b>>4], hexCharacters[b&0xF])
 		}
 		i++
 		start = i

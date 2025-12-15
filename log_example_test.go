@@ -507,6 +507,17 @@ func ExampleContext_IPAddr() {
 	// Output: {"HostIP":"192.168.0.100","message":"hello world"}
 }
 
+func ExampleContext_IPAddrs() {
+	hostIP := net.IP{192, 168, 0, 100}
+	log := zerolog.New(os.Stdout).With().
+		IPAddrs("HostIP", []net.IP{hostIP}).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"HostIP":["192.168.0.100"],"message":"hello world"}
+}
+
 func ExampleContext_IPPrefix() {
 	route := net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(24, 32)}
 	log := zerolog.New(os.Stdout).With().
@@ -516,6 +527,17 @@ func ExampleContext_IPPrefix() {
 	log.Log().Msg("hello world")
 
 	// Output: {"Route":"192.168.0.0/24","message":"hello world"}
+}
+
+func ExampleContext_IPPrefixes() {
+	route := net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(24, 32)}
+	log := zerolog.New(os.Stdout).With().
+		IPPrefixes("Route", []net.IPNet{route}).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"Route":["192.168.0.0/24"],"message":"hello world"}
 }
 
 func ExampleContext_MACAddr() {
@@ -559,4 +581,19 @@ func ExampleContext_Fields_slice() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","bar":"baz","n":1,"message":"hello world"}
+}
+
+func ExampleContext_Times() {
+	t1 := time.Time{}
+	t2 := t1.Add(time.Second * 10)
+	t := []time.Time{t1, t2}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Times("times", t).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","times":["0001-01-01T00:00:00Z","0001-01-01T00:00:10Z"],"message":"hello world"}
 }

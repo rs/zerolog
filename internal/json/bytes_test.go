@@ -3,24 +3,26 @@ package json
 import (
 	"testing"
 	"unicode"
+
+	"github.com/rs/zerolog/internal"
 )
 
 var enc = Encoder{}
 
 func TestAppendBytes(t *testing.T) {
-	for _, tt := range encodeStringTests {
-		b := enc.AppendBytes([]byte{}, []byte(tt.in))
-		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendBytes(%q) = %#q, want %#q", tt.in, got, want)
+	for _, tt := range internal.EncodeStringTests {
+		b := enc.AppendBytes([]byte{}, []byte(tt.In))
+		if got, want := string(b), tt.Out; got != want {
+			t.Errorf("appendBytes(%q) = %#q, want %#q", tt.In, got, want)
 		}
 	}
 }
 
 func TestAppendHex(t *testing.T) {
-	for _, tt := range encodeHexTests {
-		b := enc.AppendHex([]byte{}, []byte{tt.in})
-		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendHex(%x) = %s, want %s", tt.in, got, want)
+	for _, tt := range internal.EncodeHexTests {
+		b := enc.AppendHex([]byte{}, []byte{tt.In})
+		if got, want := string(b), tt.Out; got != want {
+			t.Errorf("appendHex(%x) = %s, want %s", tt.In, got, want)
 		}
 	}
 }

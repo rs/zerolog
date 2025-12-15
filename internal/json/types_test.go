@@ -1,13 +1,140 @@
 package json
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math"
-	"math/rand"
 	"net"
 	"reflect"
 	"testing"
+
+	"github.com/rs/zerolog/internal"
 )
+
+func TestAppendNil(t *testing.T) {
+	got := enc.AppendNil([]byte{})
+	want := []byte(`null`)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendNil() = %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendBeginMarker(t *testing.T) {
+	got := enc.AppendBeginMarker([]byte{})
+	want := []byte(`{`)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBeginMarker()\ngot:  %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendEndMarker(t *testing.T) {
+	got := enc.AppendEndMarker([]byte{})
+	want := []byte(`}`)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendEndMarker()\ngot:  %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendArrayStart(t *testing.T) {
+	got := enc.AppendArrayStart([]byte{})
+	want := []byte("[")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayStart() = %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendArrayEnd(t *testing.T) {
+	got := enc.AppendArrayEnd([]byte{})
+	want := []byte("]")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayEnd() = %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendArrayDelim(t *testing.T) {
+	got := enc.AppendArrayDelim([]byte{})
+	want := []byte("")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayDelim() = 0x%s, want: 0x%s",
+			string(got),
+			string(want))
+	}
+
+	got = enc.AppendArrayDelim([]byte("a"))
+	want = []byte("a,")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayDelim() = 0x%s, want: 0x%s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendLineBreak(t *testing.T) {
+	got := enc.AppendLineBreak([]byte{})
+	want := []byte("\n")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendLineBreak() = 0x%s, want: 0x%s",
+			string(got),
+			string(want))
+	}
+}
+
+// inline copy from globals.go of InterfaceMarshalFunc used in tests to avoid import cycle
+func interfaceMarshalFunc(v interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(v)
+	if err != nil {
+		return nil, err
+	}
+	b := buf.Bytes()
+	if len(b) > 0 {
+		// Remove trailing \n which is added by Encode.
+		return b[:len(b)-1], nil
+	}
+	return b, nil
+}
+
+func TestAppendInterface(t *testing.T) {
+	oldJSONMarshalFunc := JSONMarshalFunc
+	defer func() {
+		JSONMarshalFunc = oldJSONMarshalFunc
+	}()
+
+	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
+		return interfaceMarshalFunc(v)
+	}
+
+	var i int = 17
+	got := enc.AppendInterface([]byte{}, i)
+	want := make([]byte, 0)
+	want = append(want, []byte("17")...) // of type interface, two characters
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInterface\ngot:  0x%s\nwant: 0x%s",
+			string(got),
+			string(want))
+	}
+
+	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
+		return nil, errors.New("test")
+	}
+
+	got = enc.AppendInterface([]byte{}, nil)
+	want = make([]byte, 0)
+	want = append(want, []byte("\"marshaling error: test\"")...) // of type interface, two characters
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInterface\ngot:  0x%s\nwant: 0x%s",
+			string(got),
+			string(want))
+	}
+}
 
 func TestAppendType(t *testing.T) {
 	w := map[string]func(interface{}) []byte{
@@ -70,7 +197,7 @@ func TestAppendType(t *testing.T) {
 	}
 }
 
-func Test_appendMAC(t *testing.T) {
+func TestAppendMAC(t *testing.T) {
 	MACtests := []struct {
 		input string
 		want  []byte
@@ -88,7 +215,70 @@ func Test_appendMAC(t *testing.T) {
 	}
 }
 
-func Test_appendIP(t *testing.T) {
+func TestAppendBool(t *testing.T) {
+	for _, tc := range internal.BooleanTestCases {
+		s := enc.AppendBool([]byte{}, tc.Val)
+		got := string(s)
+		if got != tc.Json {
+			t.Errorf("AppendBool(%s)=0x%s, want: 0x%s",
+				tc.Json,
+				string(s),
+				string([]byte(tc.Binary)))
+		}
+	}
+}
+
+func TestAppendBoolArray(t *testing.T) {
+	for _, tc := range internal.BooleanArrayTestCases {
+		s := enc.AppendBools([]byte{}, tc.Val)
+		got := string(s)
+		if got != tc.Json {
+			t.Errorf("AppendBools(%s)=0x%s, want: 0x%s",
+				tc.Json,
+				hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.Binary)))
+		}
+	}
+
+	// now empty array case
+	array := make([]bool, 0)
+	want := make([]byte, 0)
+	want = append(want, []byte("[]")...) // start and end array
+	got := enc.AppendBools([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBools(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a large array case
+	array = make([]bool, 24)
+	want = make([]byte, 0)
+	want = append(want, []byte("[")...) // start a large array
+	for i := 0; i < 24; i++ {
+		array[i] = bool(i%2 == 1)
+		if array[i] {
+			want = append(want, []byte("true")...)
+		} else {
+			want = append(want, []byte("false")...)
+		}
+		if (i + 1) < 24 {
+			want = append(want, []byte(",")...)
+		}
+	}
+	want = append(want, []byte("]")...) // end a large array
+
+	got = enc.AppendBools([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBools(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			string(got),
+			string(want))
+	}
+}
+
+func TestAppendIP(t *testing.T) {
 	IPv4tests := []struct {
 		input net.IP
 		want  []byte
@@ -130,7 +320,7 @@ var IPAddrArrayTestCases = []struct {
 	{[]net.IP{{0, 0, 0, 0}, {192, 168, 0, 100}}, []byte(`["0.0.0.0","192.168.0.100"]`)},
 }
 
-func Test_appendIPAddr_array(t *testing.T) {
+func TestAppendIPAddrs(t *testing.T) {
 	for _, tt := range IPAddrArrayTestCases {
 		t.Run("IPAddrs", func(t *testing.T) {
 			if got := enc.AppendIPAddrs([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
@@ -149,7 +339,7 @@ var IPPrefixArrayTestCases = []struct {
 	{[]net.IPNet{{IP: net.IP{0, 0, 0, 0}, Mask: net.CIDRMask(0, 32)}, {IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}}, []byte(`["0.0.0.0/0","192.168.0.100/24"]`)},
 }
 
-func Test_appendIPPrefix_array(t *testing.T) {
+func TestAppendIPPrefixes(t *testing.T) {
 	for _, tt := range IPPrefixArrayTestCases {
 		t.Run("IPPrefixes", func(t *testing.T) {
 			if got := enc.AppendIPPrefixes([]byte{}, tt.input); !reflect.DeepEqual(got, tt.want) {
@@ -159,7 +349,7 @@ func Test_appendIPPrefix_array(t *testing.T) {
 	}
 }
 
-func Test_appendIPPrefix(t *testing.T) {
+func TestAppendIPPrefix(t *testing.T) {
 	IPv4Prefixtests := []struct {
 		input net.IPNet
 		want  []byte
@@ -193,7 +383,7 @@ func Test_appendIPPrefix(t *testing.T) {
 	}
 }
 
-func Test_appendMac(t *testing.T) {
+func TestAppendMACAddr(t *testing.T) {
 	MACtests := []struct {
 		input net.HardwareAddr
 		want  []byte
@@ -211,7 +401,7 @@ func Test_appendMac(t *testing.T) {
 	}
 }
 
-func Test_appendType(t *testing.T) {
+func TestAppendType2(t *testing.T) {
 	typeTests := []struct {
 		label string
 		input interface{}
@@ -233,7 +423,7 @@ func Test_appendType(t *testing.T) {
 	}
 }
 
-func Test_appendObjectData(t *testing.T) {
+func TestAppendObjectData(t *testing.T) {
 	tests := []struct {
 		dst  []byte
 		obj  []byte
@@ -250,342 +440,5 @@ func Test_appendObjectData(t *testing.T) {
 				t.Errorf("appendObjectData() = %s, want %s", got, tt.want)
 			}
 		})
-	}
-}
-
-var float64Tests = []struct {
-	Name string
-	Val  float64
-	Want string
-}{
-	{
-		Name: "Positive integer",
-		Val:  1234.0,
-		Want: "1234",
-	},
-	{
-		Name: "Negative integer",
-		Val:  -5678.0,
-		Want: "-5678",
-	},
-	{
-		Name: "Positive decimal",
-		Val:  12.3456,
-		Want: "12.3456",
-	},
-	{
-		Name: "Negative decimal",
-		Val:  -78.9012,
-		Want: "-78.9012",
-	},
-	{
-		Name: "Large positive number",
-		Val:  123456789.0,
-		Want: "123456789",
-	},
-	{
-		Name: "Large negative number",
-		Val:  -987654321.0,
-		Want: "-987654321",
-	},
-	{
-		Name: "Zero",
-		Val:  0.0,
-		Want: "0",
-	},
-	{
-		Name: "Smallest positive value",
-		Val:  math.SmallestNonzeroFloat64,
-		Want: "5e-324",
-	},
-	{
-		Name: "Largest positive value",
-		Val:  math.MaxFloat64,
-		Want: "1.7976931348623157e+308",
-	},
-	{
-		Name: "Smallest negative value",
-		Val:  -math.SmallestNonzeroFloat64,
-		Want: "-5e-324",
-	},
-	{
-		Name: "Largest negative value",
-		Val:  -math.MaxFloat64,
-		Want: "-1.7976931348623157e+308",
-	},
-	{
-		Name: "NaN",
-		Val:  math.NaN(),
-		Want: `"NaN"`,
-	},
-	{
-		Name: "+Inf",
-		Val:  math.Inf(1),
-		Want: `"+Inf"`,
-	},
-	{
-		Name: "-Inf",
-		Val:  math.Inf(-1),
-		Want: `"-Inf"`,
-	},
-	{
-		Name: "Clean up e-09 to e-9 case 1",
-		Val:  1e-9,
-		Want: "1e-9",
-	},
-	{
-		Name: "Clean up e-09 to e-9 case 2",
-		Val:  -2.236734e-9,
-		Want: "-2.236734e-9",
-	},
-}
-
-func TestEncoder_AppendFloat64(t *testing.T) {
-	for _, tc := range float64Tests {
-		t.Run(tc.Name, func(t *testing.T) {
-			var b []byte
-			b = (Encoder{}).AppendFloat64(b, tc.Val, -1)
-			if s := string(b); tc.Want != s {
-				t.Errorf("%q", s)
-			}
-		})
-	}
-}
-
-func FuzzEncoder_AppendFloat64(f *testing.F) {
-	for _, tc := range float64Tests {
-		f.Add(tc.Val)
-	}
-	f.Fuzz(func(t *testing.T, val float64) {
-		actual := (Encoder{}).AppendFloat64(nil, val, -1)
-		if len(actual) == 0 {
-			t.Fatal("empty buffer")
-		}
-
-		if actual[0] == '"' {
-			switch string(actual) {
-			case `"NaN"`:
-				if !math.IsNaN(val) {
-					t.Fatalf("expected %v got NaN", val)
-				}
-			case `"+Inf"`:
-				if !math.IsInf(val, 1) {
-					t.Fatalf("expected %v got +Inf", val)
-				}
-			case `"-Inf"`:
-				if !math.IsInf(val, -1) {
-					t.Fatalf("expected %v got -Inf", val)
-				}
-			default:
-				t.Fatalf("unexpected string: %s", actual)
-			}
-			return
-		}
-
-		if expected, err := json.Marshal(val); err != nil {
-			t.Error(err)
-		} else if string(actual) != string(expected) {
-			t.Errorf("expected %s, got %s", expected, actual)
-		}
-
-		var parsed float64
-		if err := json.Unmarshal(actual, &parsed); err != nil {
-			t.Fatal(err)
-		}
-
-		if parsed != val {
-			t.Fatalf("expected %v, got %v", val, parsed)
-		}
-	})
-}
-
-var float32Tests = []struct {
-	Name string
-	Val  float32
-	Want string
-}{
-	{
-		Name: "Positive integer",
-		Val:  1234.0,
-		Want: "1234",
-	},
-	{
-		Name: "Negative integer",
-		Val:  -5678.0,
-		Want: "-5678",
-	},
-	{
-		Name: "Positive decimal",
-		Val:  12.3456,
-		Want: "12.3456",
-	},
-	{
-		Name: "Negative decimal",
-		Val:  -78.9012,
-		Want: "-78.9012",
-	},
-	{
-		Name: "Large positive number",
-		Val:  123456789.0,
-		Want: "123456790",
-	},
-	{
-		Name: "Large negative number",
-		Val:  -987654321.0,
-		Want: "-987654340",
-	},
-	{
-		Name: "Zero",
-		Val:  0.0,
-		Want: "0",
-	},
-	{
-		Name: "Smallest positive value",
-		Val:  math.SmallestNonzeroFloat32,
-		Want: "1e-45",
-	},
-	{
-		Name: "Largest positive value",
-		Val:  math.MaxFloat32,
-		Want: "3.4028235e+38",
-	},
-	{
-		Name: "Smallest negative value",
-		Val:  -math.SmallestNonzeroFloat32,
-		Want: "-1e-45",
-	},
-	{
-		Name: "Largest negative value",
-		Val:  -math.MaxFloat32,
-		Want: "-3.4028235e+38",
-	},
-	{
-		Name: "NaN",
-		Val:  float32(math.NaN()),
-		Want: `"NaN"`,
-	},
-	{
-		Name: "+Inf",
-		Val:  float32(math.Inf(1)),
-		Want: `"+Inf"`,
-	},
-	{
-		Name: "-Inf",
-		Val:  float32(math.Inf(-1)),
-		Want: `"-Inf"`,
-	},
-	{
-		Name: "Clean up e-09 to e-9 case 1",
-		Val:  1e-9,
-		Want: "1e-9",
-	},
-	{
-		Name: "Clean up e-09 to e-9 case 2",
-		Val:  -2.236734e-9,
-		Want: "-2.236734e-9",
-	},
-}
-
-func TestEncoder_AppendFloat32(t *testing.T) {
-	for _, tc := range float32Tests {
-		t.Run(tc.Name, func(t *testing.T) {
-			var b []byte
-			b = (Encoder{}).AppendFloat32(b, tc.Val, -1)
-			if s := string(b); tc.Want != s {
-				t.Errorf("%q", s)
-			}
-		})
-	}
-}
-
-func FuzzEncoder_AppendFloat32(f *testing.F) {
-	for _, tc := range float32Tests {
-		f.Add(tc.Val)
-	}
-	f.Fuzz(func(t *testing.T, val float32) {
-		actual := (Encoder{}).AppendFloat32(nil, val, -1)
-		if len(actual) == 0 {
-			t.Fatal("empty buffer")
-		}
-
-		if actual[0] == '"' {
-			val := float64(val)
-			switch string(actual) {
-			case `"NaN"`:
-				if !math.IsNaN(val) {
-					t.Fatalf("expected %v got NaN", val)
-				}
-			case `"+Inf"`:
-				if !math.IsInf(val, 1) {
-					t.Fatalf("expected %v got +Inf", val)
-				}
-			case `"-Inf"`:
-				if !math.IsInf(val, -1) {
-					t.Fatalf("expected %v got -Inf", val)
-				}
-			default:
-				t.Fatalf("unexpected string: %s", actual)
-			}
-			return
-		}
-
-		if expected, err := json.Marshal(val); err != nil {
-			t.Error(err)
-		} else if string(actual) != string(expected) {
-			t.Errorf("expected %s, got %s", expected, actual)
-		}
-
-		var parsed float32
-		if err := json.Unmarshal(actual, &parsed); err != nil {
-			t.Fatal(err)
-		}
-
-		if parsed != val {
-			t.Fatalf("expected %v, got %v", val, parsed)
-		}
-	})
-}
-
-func generateFloat32s(n int) []float32 {
-	floats := make([]float32, n)
-	for i := 0; i < n; i++ {
-		floats[i] = rand.Float32()
-	}
-	return floats
-}
-
-func generateFloat64s(n int) []float64 {
-	floats := make([]float64, n)
-	for i := 0; i < n; i++ {
-		floats[i] = rand.Float64()
-	}
-	return floats
-}
-
-// this is really just for the memory allocation characteristics
-func BenchmarkEncoder_AppendFloat32(b *testing.B) {
-	floats := append(generateFloat32s(5000), float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1)))
-	dst := make([]byte, 0, 128)
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		for _, f := range floats {
-			dst = (Encoder{}).AppendFloat32(dst[:0], f, -1)
-		}
-	}
-}
-
-// this is really just for the memory allocation characteristics
-func BenchmarkEncoder_AppendFloat64(b *testing.B) {
-	floats := append(generateFloat64s(5000), math.NaN(), math.Inf(1), math.Inf(-1))
-	dst := make([]byte, 0, 128)
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		for _, f := range floats {
-			dst = (Encoder{}).AppendFloat64(dst[:0], f, -1)
-		}
 	}
 }

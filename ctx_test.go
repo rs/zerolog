@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/rs/zerolog/internal/cbor"
@@ -78,7 +79,15 @@ type logObjectMarshalerImpl struct {
 }
 
 func (t logObjectMarshalerImpl) MarshalZerologObject(e *Event) {
-	e.Str("name", "custom_value").Int("age", t.age)
+	e.Str("name", strings.ToLower(t.name)).Int("age", -t.age)
+}
+
+type errorObjectMarshalerImpl struct {
+	error
+}
+
+func (t errorObjectMarshalerImpl) MarshalZerologObject(e *Event) {
+	e.Str("error", strings.ToUpper(t.error.Error()))
 }
 
 func Test_InterfaceLogObjectMarshaler(t *testing.T) {
@@ -89,13 +98,13 @@ func Test_InterfaceLogObjectMarshaler(t *testing.T) {
 	log2 := Ctx(ctx)
 
 	withLog := log2.With().Interface("obj", &logObjectMarshalerImpl{
-		name: "foo",
+		name: "FOO",
 		age:  29,
 	}).Logger()
 
 	withLog.Info().Msg("test")
 
-	if got, want := cbor.DecodeIfBinaryToString(buf.Bytes()), `{"level":"info","obj":{"name":"custom_value","age":29},"message":"test"}`+"\n"; got != want {
+	if got, want := cbor.DecodeIfBinaryToString(buf.Bytes()), `{"level":"info","obj":{"name":"foo","age":-29},"message":"test"}`+"\n"; got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
