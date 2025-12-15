@@ -1,6 +1,7 @@
 package cbor
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -13,7 +14,7 @@ func TestAppendTimeNow(t *testing.T) {
 	s := enc.AppendTime([]byte{}, tm, "unused")
 	got := string(s)
 
-	tm1 := float64(tm.Unix()) + float64(tm.Nanosecond())*1E-9
+	tm1 := float64(tm.Unix()) + float64(tm.Nanosecond())*1e-9
 	tm2 := math.Float64bits(tm1)
 	var tm3 [8]byte
 	for i := uint(0); i < 8; i++ {
@@ -74,6 +75,140 @@ func TestAppendTimePastPresentFloat(t *testing.T) {
 				hex.EncodeToString(b),
 				hex.EncodeToString([]byte(want)))
 		}
+	}
+}
+func TestAppendTimes(t *testing.T) {
+	const timeFloatFmt = "2006-01-02T15:04:05.999999-07:00"
+	array := make([]time.Time, len(timeFloatTestcases))
+	want := make([]byte, 0)
+	want = append(want, 0x82) // start small array
+	for i, tt := range timeFloatTestcases {
+		array[i], _ = time.Parse(timeFloatFmt, tt.rfcStr)
+		want = append(want, []byte(tt.out)...)
+	}
+
+	got := enc.AppendTimes([]byte{}, array, "unused")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendTimes(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]time.Time, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendTimes([]byte{}, array, "unused")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendTimes(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now large array case
+	testtime, _ := time.Parse(timeFloatFmt, timeFloatTestcases[0].rfcStr)
+	outbytes := timeFloatTestcases[0].out
+	array = make([]time.Time, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a large array
+	want = append(want, 0x18) // of length 24
+	for i := 0; i < len(array); i++ {
+		array[i] = testtime
+		want = append(want, []byte(outbytes)...)
+	}
+	got = enc.AppendTimes([]byte{}, array, "unused")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendTimes(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+var durTestcases = []struct {
+	duration   time.Duration
+	floatout   string
+	integerout string
+}{
+	{1000, "\xfb\x3f\xf0\x00\x00\x00\x00\x00\x00", "\x01"},
+	{2000, "\xfb\x40\x00\x00\x00\x00\x00\x00\x00", "\x02"},
+	{200000, "\xfb\x40\x69\x00\x00\x00\x00\x00\x00", "\x18\xc8"},
+}
+
+func TestAppendDurationFloat(t *testing.T) {
+	for _, tt := range durTestcases {
+		dur := tt.duration
+		want := []byte{}
+		want = append(want, []byte(tt.floatout)...)
+		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, false, -1)
+		if !bytes.Equal(got, want) {
+			t.Errorf("AppendDuration(%v)=\ngot:  0x%s\nwant: 0x%s",
+				dur,
+				hex.EncodeToString(got),
+				hex.EncodeToString(want))
+		}
+	}
+}
+func TestAppendDurationInteger(t *testing.T) {
+	for _, tt := range durTestcases {
+		dur := tt.duration
+		want := []byte{}
+		want = append(want, []byte(tt.integerout)...)
+		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, true, -1)
+		if !bytes.Equal(got, want) {
+			t.Errorf("AppendDuration(%v)=\ngot:  0x%s\nwant: 0x%s",
+				dur,
+				hex.EncodeToString(got),
+				hex.EncodeToString(want))
+		}
+	}
+}
+func TestAppendDurations(t *testing.T) {
+	array := make([]time.Duration, len(durTestcases))
+	want := make([]byte, 0)
+	want = append(want, 0x83) // start 3 element array
+	for i, tt := range durTestcases {
+		array[i] = tt.duration
+		want = append(want, []byte(tt.floatout)...)
+	}
+
+	got := enc.AppendDurations([]byte{}, array, time.Microsecond, false, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendDurations(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]time.Duration, 0)
+	want = make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got = enc.AppendDurations([]byte{}, array, time.Microsecond, false, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendDurations(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now large array case
+	testtime := durTestcases[0].duration
+	outbytes := durTestcases[0].floatout
+	array = make([]time.Duration, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a large array
+	want = append(want, 0x18) // of length 24
+	for i := 0; i < len(array); i++ {
+		array[i] = testtime
+		want = append(want, []byte(outbytes)...)
+	}
+	got = enc.AppendDurations([]byte{}, array, time.Microsecond, false, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendDurations(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 
