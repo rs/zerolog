@@ -3,12 +3,11 @@ package cbor
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"math"
 	"net"
 	"testing"
-
-	"github.com/rs/zerolog"
 )
 
 var enc = Encoder{}
@@ -69,6 +68,23 @@ func TestAppendLineBreak(t *testing.T) {
 	}
 }
 
+// inline copy from globals.go of InterfaceMarshalFunc used in tests to avoid import cycle
+func interfaceMarshalFunc(v interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(v)
+	if err != nil {
+		return nil, err
+	}
+	b := buf.Bytes()
+	if len(b) > 0 {
+		// Remove trailing \n which is added by Encode.
+		return b[:len(b)-1], nil
+	}
+	return b, nil
+}
+
 func TestAppendInterface(t *testing.T) {
 	oldJSONMarshalFunc := JSONMarshalFunc
 	defer func() {
@@ -76,7 +92,7 @@ func TestAppendInterface(t *testing.T) {
 	}()
 
 	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
-		return zerolog.InterfaceMarshalFunc(v)
+		return interfaceMarshalFunc(v)
 	}
 
 	var i int = 17
