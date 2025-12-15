@@ -141,6 +141,7 @@ func TestWith(t *testing.T) {
 
 	// Validate CallerWithSkipFrameCount.
 	out.Reset()
+	ctx = New(out).With()
 	_, file, line, _ = runtime.Caller(0)
 	caller = fmt.Sprintf("%s:%d", file, line+5)
 	log = ctx.CallerWithSkipFrameCount(3).Logger()
@@ -149,7 +150,38 @@ func TestWith(t *testing.T) {
 	}()
 	// The above line is a little contrived, but the line above should be the line due
 	// to the extra frame skip.
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","json":{"some":"json"},"error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"float32":11.101,"float64":12.30303,"time":"0001-01-01T00:00:00Z","type":"float64","caller":"`+caller+`"}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestWithPlurals(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := New(out).With().
+		Strs("strings", []string{"foo", "bar"}).
+		Strs("strings_nil", nil).
+		Stringers("stringers", []fmt.Stringer{net.IP{127, 0, 0, 1}, nil}).
+		Stringers("stringers_nil", nil).
+		Errs("errs", []error{errors.New("some error"), errors.New("some other error")}).
+		Bools("bool", []bool{true, false}).
+		Ints("int", []int{1, 2}).
+		Ints8("int8", []int8{2, 3}).
+		Ints16("int16", []int16{3, 4}).
+		Ints32("int32", []int32{4, 5}).
+		Ints64("int64", []int64{5, 6}).
+		Uints("uint", []uint{6, 7}).
+		Uints8("uint8", []uint8{7, 8}).
+		Uints16("uint16", []uint16{8, 9}).
+		Uints32("uint32", []uint32{9, 10}).
+		Uints64("uint64", []uint64{10, 11}).
+		Floats32("float32", []float32{1.1, 2.2}).
+		Floats64("float64", []float64{2.2, 3.3}).
+		Times("time", []time.Time{time.Time{}.AddDate(0, 1, 2), time.Time{}.AddDate(4, 5, 6)}).
+		Durs("dur", []time.Duration{1 * time.Second, 2 * time.Second})
+	log := ctx.Logger()
+	log.Log().Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()),
+		`{"strings":["foo","bar"],"strings_nil":[],"stringers":["127.0.0.1",null],"stringers_nil":null,"errs":["some error","some other error"],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
