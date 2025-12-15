@@ -103,11 +103,20 @@ func BenchmarkLogArrayObject(b *testing.B) {
 func BenchmarkLogFieldType(b *testing.B) {
 	fixtures := makeFieldFixtures()
 	types := map[string]func(e *Event) *Event{
+		"Any": func(e *Event) *Event {
+			return e.Any("k", fixtures.Interfaces[0])
+		},
 		"Bool": func(e *Event) *Event {
 			return e.Bool("k", fixtures.Bools[0])
 		},
 		"Bools": func(e *Event) *Event {
 			return e.Bools("k", fixtures.Bools)
+		},
+		"Bytes": func(e *Event) *Event {
+			return e.Bytes("k", fixtures.Bytes)
+		},
+		"Hex": func(e *Event) *Event {
+			return e.Hex("k", fixtures.Bytes)
 		},
 		"Int": func(e *Event) *Event {
 			return e.Int("k", fixtures.Ints[0])
@@ -115,17 +124,29 @@ func BenchmarkLogFieldType(b *testing.B) {
 		"Ints": func(e *Event) *Event {
 			return e.Ints("k", fixtures.Ints)
 		},
-		"Float": func(e *Event) *Event {
-			return e.Float64("k", fixtures.Floats[0])
+		"Float32": func(e *Event) *Event {
+			return e.Float32("k", fixtures.Floats32[0])
 		},
-		"Floats": func(e *Event) *Event {
-			return e.Floats64("k", fixtures.Floats)
+		"Floats32": func(e *Event) *Event {
+			return e.Floats32("k", fixtures.Floats32)
+		},
+		"Float64": func(e *Event) *Event {
+			return e.Float64("k", fixtures.Floats64[0])
+		},
+		"Floats64": func(e *Event) *Event {
+			return e.Floats64("k", fixtures.Floats64)
 		},
 		"Str": func(e *Event) *Event {
 			return e.Str("k", fixtures.Strings[0])
 		},
 		"Strs": func(e *Event) *Event {
 			return e.Strs("k", fixtures.Strings)
+		},
+		"Stringer": func(e *Event) *Event {
+			return e.Stringer("k", fixtures.Stringers[0])
+		},
+		"Stringers": func(e *Event) *Event {
+			return e.Stringers("k", fixtures.Stringers)
 		},
 		"Err": func(e *Event) *Event {
 			return e.Err(fixtures.Errs[0])
@@ -162,6 +183,9 @@ func BenchmarkLogFieldType(b *testing.B) {
 		},
 		"Object": func(e *Event) *Event {
 			return e.Object("k", fixtures.Objects[0])
+		},
+		"Timestamp": func(e *Event) *Event {
+			return e.Timestamp()
 		},
 		"IPAddr": func(e *Event) *Event {
 			return e.IPAddr("k", fixtures.IPAddrs[0])
@@ -204,11 +228,20 @@ func BenchmarkContextFieldType(b *testing.B) {
 
 	fixtures := makeFieldFixtures()
 	types := map[string]func(c Context) Context{
+		"Any": func(c Context) Context {
+			return c.Any("k", fixtures.Interfaces[0])
+		},
 		"Bool": func(c Context) Context {
 			return c.Bool("k", fixtures.Bools[0])
 		},
 		"Bools": func(c Context) Context {
 			return c.Bools("k", fixtures.Bools)
+		},
+		"Bytes": func(c Context) Context {
+			return c.Bytes("k", fixtures.Bytes)
+		},
+		"Hex": func(c Context) Context {
+			return c.Hex("k", fixtures.Bytes)
 		},
 		"Int": func(c Context) Context {
 			return c.Int("k", fixtures.Ints[0])
@@ -216,11 +249,17 @@ func BenchmarkContextFieldType(b *testing.B) {
 		"Ints": func(c Context) Context {
 			return c.Ints("k", fixtures.Ints)
 		},
-		"Float": func(c Context) Context {
-			return c.Float64("k", fixtures.Floats[0])
+		"Float32": func(c Context) Context {
+			return c.Float32("k", fixtures.Floats32[0])
 		},
-		"Floats": func(c Context) Context {
-			return c.Floats64("k", fixtures.Floats)
+		"Floats32": func(c Context) Context {
+			return c.Floats32("k", fixtures.Floats32)
+		},
+		"Float64": func(c Context) Context {
+			return c.Float64("k", fixtures.Floats64[0])
+		},
+		"Floats64": func(c Context) Context {
+			return c.Floats64("k", fixtures.Floats64)
 		},
 		"Str": func(c Context) Context {
 			return c.Str("k", fixtures.Strings[0])
@@ -229,7 +268,10 @@ func BenchmarkContextFieldType(b *testing.B) {
 			return c.Strs("k", fixtures.Strings)
 		},
 		"Stringer": func(c Context) Context {
-			return c.Stringer("k", fixtures.Stringer)
+			return c.Stringer("k", fixtures.Stringers[0])
+		},
+		"Stringers": func(c Context) Context {
+			return c.Stringers("k", fixtures.Stringers)
 		},
 		"Err": func(c Context) Context {
 			return c.Err(fixtures.Errs[0])
