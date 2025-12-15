@@ -13,6 +13,13 @@ var encodeStringTests = []struct {
 }{
 	{"", "\x60", ""},
 	{"\\", "\x61\x5c", "\\\\"},
+	{"\"", "\x61\x22", "\\\""},
+	{"\b", "\x61\x08", "\\b"},
+	{"\f", "\x61\x0c", "\\f"},
+	{"\n", "\x61\x0a", "\\n"},
+	{"\r", "\x61\x0d", "\\r"},
+	{"\t", "\x61\x09", "\\t"},
+	{"Hi\t", "\x63Hi\x09", "Hi\\t"},
 	{"\x00", "\x61\x00", "\\u0000"},
 	{"\x01", "\x61\x01", "\\u0001"},
 	{"\x02", "\x61\x02", "\\u0002"},
@@ -87,7 +94,7 @@ func TestAppendStrings(t *testing.T) {
 		array = append(array, tt.plain)
 	}
 	want := make([]byte, 0)
-	want = append(want, 0x8d) // start array length 13
+	want = append(want, 0x94) // start array length 24
 	for _, tt := range encodeStringTests {
 		want = append(want, []byte(tt.binary)...)
 	}
