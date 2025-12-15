@@ -812,53 +812,225 @@ func (l loggableError) MarshalZerologObject(e *Event) {
 	e.Str("message", l.error.Error()+": loggableError")
 }
 
-func TestErrorMarshalFunc(t *testing.T) {
-	out := &bytes.Buffer{}
-	log := New(out)
+type nonLoggable struct {
+	where string
+	how   int
+	what  string
+}
 
+func TestErrorMarshalFunc_None(t *testing.T) {
 	// test default behaviour
-	log.Log().Err(errors.New("err")).Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err","message":"msg"}`+"\n"; got != want {
-		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-	}
-	out.Reset()
-
-	log.Log().Err(loggableError{errors.New("err")}).Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":{"message":"err: loggableError"},"message":"msg"}`+"\n"; got != want {
-		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-	}
-	out.Reset()
-
-	// test overriding the ErrorMarshalFunc
-	originalErrorMarshalFunc := ErrorMarshalFunc
-	defer func() {
-		ErrorMarshalFunc = originalErrorMarshalFunc
-	}()
-
-	ErrorMarshalFunc = func(err error) interface{} {
+	testErrorMarshalFunc(t, nil, []string{
+		"default",
+		`{"message":"msg"}`,
+		`{"error":"err","message":"msg"}`,
+		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":["foo","bar"],"message":"msg"}`,
+	})
+}
+func TestErrorMarshalFunc_AppendedString(t *testing.T) {
+	// test returning an appended string from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		if err == nil {
+			return nil
+		}
 		return err.Error() + ": marshaled string"
-	}
-	log.Log().Err(errors.New("err")).Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err: marshaled string","message":"msg"}`+"\n"; got != want {
-		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-	}
+	}, []string{
+		"appended string",
+		`{"message":"msg"}`,
+		`{"error":"err: marshaled string","message":"msg"}`,
+		`{"error":"err: marshaled string","message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":["foo: marshaled string","bar: marshaled string"],"message":"msg"}`,
+	})
+}
+func TestErrorMarshalFunc_NilError(t *testing.T) {
+	// test returning an nil error from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		return error(nil)
+	}, []string{
+		"nil error",
+		`{"message":"msg"}`,
+		`{"message":"msg"}`,
+		`{"message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":[null,null],"message":"msg"}`,
+	})
+}
 
-	out.Reset()
-	ErrorMarshalFunc = func(err error) interface{} {
-		return errors.New(err.Error() + ": new error")
-	}
-	log.Log().Err(errors.New("err")).Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"err: new error","message":"msg"}`+"\n"; got != want {
-		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-	}
+func TestErrorMarshalFunc_UntypedNil(t *testing.T) {
+	// test returning an untyped nil from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		return nil
+	}, []string{
+		"untyped nil",
+		`{"message":"msg"}`,
+		`{"message":"msg"}`,
+		`{"message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":[null,null],"message":"msg"}`,
+	})
+}
 
-	out.Reset()
-	ErrorMarshalFunc = func(err error) interface{} {
+type wrappedError struct {
+	error
+	msg string
+}
+
+func (w wrappedError) Error() string {
+	if w.error == nil {
+		return w.msg
+	}
+	return w.error.Error() + ": " + w.msg
+}
+
+func TestErrorMarshalFunc_WrappedError(t *testing.T) {
+	// test returning an wrapped error from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		if err == nil {
+			return nil
+		} else if we, ok := err.(wrappedError); ok {
+			return we
+		} else {
+			return wrappedError{err, "addendum"}
+		}
+	}, []string{
+		"wrapped error",
+		`{"message":"msg"}`,
+		`{"error":"err: addendum","message":"msg"}`,
+		`{"error":"err: addendum","message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":["foo: addendum","bar: addendum"],"message":"msg"}`,
+	})
+}
+
+func TestErrorMarshalFunc_LoggableType(t *testing.T) {
+	// test returning a loggable type from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
 		return loggableError{err}
+	}, []string{
+		"loggable type",
+		`{"error":{},"message":"msg"}`,
+		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
+		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":[{"message":"foo: loggableError"},{"message":"bar: loggableError"}],"message":"msg"}`,
+	})
+}
+func TestErrorMarshalFunc_String(t *testing.T) {
+	// test returning a string type from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		return "i'm an err" // return just a string
+	}, []string{
+		"string type",
+		`{"error":"i'm an err","message":"msg"}`,
+		`{"error":"i'm an err","message":"msg"}`,
+		`{"error":"i'm an err","message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":["i'm an err","i'm an err"],"message":"msg"}`,
+	})
+}
+
+func TestErrorMarshalFunc_NonLoggableType(t *testing.T) {
+	// test returning a non-loggable type from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		if err == nil {
+			return nil
+		}
+		return nonLoggable{where: "here", how: 42, what: err.Error()}
+	}, []string{
+		"non-loggable type",
+		`{"message":"msg"}`,
+		`{"error":{},"message":"msg"}`,
+		`{"error":{},"message":"msg"}`,
+		`{"errs":[],"message":"msg"}`,
+		`{"errs":[{},{}],"message":"msg"}`,
+	})
+}
+
+func testErrorMarshalFunc(t *testing.T, errFunc func(err error) interface{}, wants []string) {
+	if errFunc != nil {
+		originalErrorMarshalFunc := ErrorMarshalFunc
+		defer func() {
+			ErrorMarshalFunc = originalErrorMarshalFunc
+		}()
+
+		ErrorMarshalFunc = errFunc
 	}
-	log.Log().Err(errors.New("err")).Msg("msg")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":{"message":"err: loggableError"},"message":"msg"}`+"\n"; got != want {
-		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+
+	testcase := wants[0]
+	var err error
+
+	err = nil
+	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(nil)", wants[1], func(ctx Context) Context {
+		ctx = ctx.Err(err)
+		return ctx
+	})
+	testEventErrorMarshalFunc(t, testcase+" / e.Err(nil)", wants[1], func(e *Event) *Event {
+		e.Err(err)
+		return e
+	})
+
+	err = errors.New("err")
+	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(error)", wants[2], func(ctx Context) Context {
+		ctx = ctx.Err(err)
+		return ctx
+	})
+	testEventErrorMarshalFunc(t, testcase+" / e.Err(error)", wants[2], func(e *Event) *Event {
+		e.Err(err)
+		return e
+	})
+
+	err = loggableError{errors.New("err")}
+	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(loggable)", wants[3], func(ctx Context) Context {
+		ctx = ctx.Err(err)
+		return ctx
+	})
+	testEventErrorMarshalFunc(t, testcase+" / e.Err(loggable)", wants[3], func(e *Event) *Event {
+		e.Err(err)
+		return e
+	})
+
+	var errs []error = nil
+	testContextErrorMarshalFunc(t, testcase+" / ctx.Errs(nil)", wants[4], func(ctx Context) Context {
+		ctx = ctx.Errs("errs", errs)
+		return ctx
+	})
+	testEventErrorMarshalFunc(t, testcase+" / e.Errs(nil)", wants[4], func(e *Event) *Event {
+		e.Errs("errs", errs)
+		return e
+	})
+
+	errs = []error{errors.New("foo"), errors.New("bar")}
+	testContextErrorMarshalFunc(t, testcase+" / ctx.Errs([])", wants[5], func(ctx Context) Context {
+		ctx = ctx.Errs("errs", []error{errors.New("foo"), errors.New("bar")})
+		return ctx
+	})
+	testEventErrorMarshalFunc(t, testcase+" / e.Errs([])", wants[5], func(e *Event) *Event {
+		e.Errs("errs", errs)
+		return e
+	})
+}
+
+func testEventErrorMarshalFunc(t *testing.T, testcase string, wants string, test func(e *Event) *Event) {
+	out := &bytes.Buffer{}
+	logger := New(out)
+	test(logger.Log()).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), wants+"\n"; got != want {
+		t.Errorf("%s output:\ngot:  %v\nwant: %v", testcase, got, want)
+	}
+}
+
+func testContextErrorMarshalFunc(t *testing.T, testcase string, wants string, test func(ctx Context) Context) {
+	out := &bytes.Buffer{}
+	ctx := New(out).With()
+
+	ctx = test(ctx)
+	logger := ctx.Logger()
+	logger.Log().Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), wants+"\n"; got != want {
+		t.Errorf("%s output:\ngot:  %v\nwant: %v", testcase, got, want)
 	}
 }
 
