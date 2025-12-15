@@ -82,6 +82,14 @@ func (t logObjectMarshalerImpl) MarshalZerologObject(e *Event) {
 	e.Str("name", strings.ToLower(t.name)).Int("age", -t.age)
 }
 
+type errorObjectMarshalerImpl struct {
+	error
+}
+
+func (t errorObjectMarshalerImpl) MarshalZerologObject(e *Event) {
+	e.Str("error", strings.ToUpper(t.error.Error()))
+}
+
 func Test_InterfaceLogObjectMarshaler(t *testing.T) {
 	var buf bytes.Buffer
 	log := New(&buf)

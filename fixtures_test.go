@@ -95,7 +95,7 @@ func makeFieldFixtures() *fieldFixtures {
 	ipPfxV6 := net.IPNet{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x00}, Mask: net.CIDRMask(64, 128)}
 	ipPfxs := []net.IPNet{ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6, ipPfxV4, ipPfxV6}
 	macAddr := net.HardwareAddr{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E}
-	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e")}
+	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e"), nil, errorObjectMarshalerImpl{fmt.Errorf("oops")}}
 	ctx := context.Background()
 	stringer := net.IP{127, 0, 0, 1}
 
