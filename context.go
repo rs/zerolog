@@ -96,6 +96,18 @@ func (c Context) Stringer(key string, val fmt.Stringer) Context {
 	return c
 }
 
+// Stringers adds the field key with vals as an array of strings by calling .String() on each entry
+// to the logger context.
+func (c Context) Stringers(key string, vals []fmt.Stringer) Context {
+	if vals != nil {
+		c.l.context = enc.AppendStringers(enc.AppendKey(c.l.context, key), vals)
+		return c
+	}
+
+	c.l.context = enc.AppendInterface(enc.AppendKey(c.l.context, key), nil)
+	return c
+}
+
 // Bytes adds the field key with val as a []byte to the logger context.
 func (c Context) Bytes(key string, val []byte) Context {
 	c.l.context = enc.AppendBytes(enc.AppendKey(c.l.context, key), val)
