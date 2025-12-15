@@ -3,6 +3,7 @@ package zerolog
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"reflect"
 	"time"
@@ -22,30 +23,54 @@ func (o fixtureObj) MarshalZerologObject(e *Event) {
 
 type fieldFixtures struct {
 	Bools      []bool
+	Bytes      []byte
 	Ctx        context.Context
 	Durations  []time.Duration
 	Errs       []error
-	Floats     []float64
+	Floats32   []float32
+	Floats64   []float64
 	Interfaces []struct {
 		Pub  string
 		Tag  string `json:"tag"`
 		priv int
 	}
-	Ints     []int
-	IPAddrs  []net.IP
-	IPPfxs   []net.IPNet
-	MACAddr  net.HardwareAddr
-	Objects  []fixtureObj
-	Stringer net.IP
-	Strings  []string
-	Times    []time.Time
-	Type     reflect.Type
+	Ints      []int
+	Ints8     []int8
+	Ints16    []int16
+	Ints32    []int32
+	Ints64    []int64
+	Uints     []uint
+	Uints8    []uint8
+	Uints16   []uint16
+	Uints32   []uint32
+	Uints64   []uint64
+	IPAddrs   []net.IP
+	IPPfxs    []net.IPNet
+	MACAddr   net.HardwareAddr
+	Objects   []fixtureObj
+	RawCBOR   []byte
+	RawJSON   []byte
+	Stringers []fmt.Stringer
+	Strings   []string
+	Times     []time.Time
+	Type      reflect.Type
 }
 
 func makeFieldFixtures() *fieldFixtures {
 	bools := []bool{true, false, true, false, true, false, true, false, true, false}
+	bytes := []byte(`abcdef`)
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	floats := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	ints8 := []int8{-8, 8}
+	ints16 := []int16{-16, 16}
+	ints32 := []int32{-32, 32}
+	ints64 := []int64{-64, 64}
+	uints := []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	uints8 := []uint8{8, uint8(^uint8(0))}
+	uints16 := []uint16{16, uint16(^uint16(0))}
+	uints32 := []uint32{32, uint32(^uint32(0))}
+	uints64 := []uint64{64, uint64(^uint64(0))}
+	floats32 := []float32{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	floats64 := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	strings := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 	durations := []time.Duration{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	times := []time.Time{
@@ -97,21 +122,36 @@ func makeFieldFixtures() *fieldFixtures {
 	macAddr := net.HardwareAddr{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E}
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e"), nil, errorObjectMarshalerImpl{fmt.Errorf("oops")}}
 	ctx := context.Background()
-	stringer := net.IP{127, 0, 0, 1}
+	stringers := []fmt.Stringer{ipAddrs[0], durations[0]}
+	rawJSON := []byte(`{"some":"json"}`)
+	rawCBOR := []byte{0xA1, 0x64, 0x73, 0x6F, 0x6D, 0x65, 0x64, 0x61, 0x74, 0x61} // {"some":"data"}
 
 	return &fieldFixtures{
 		Bools:      bools,
+		Bytes:      bytes,
 		Ctx:        ctx,
 		Durations:  durations,
 		Errs:       errs,
-		Floats:     floats,
+		Floats32:   floats32,
+		Floats64:   floats64,
 		Interfaces: interfaces,
 		Ints:       ints,
+		Ints8:      ints8,
+		Ints16:     ints16,
+		Ints32:     ints32,
+		Ints64:     ints64,
+		Uints:      uints,
+		Uints8:     uints8,
+		Uints16:    uints16,
+		Uints32:    uints32,
+		Uints64:    uints64,
 		IPAddrs:    ipAddrs,
 		IPPfxs:     ipPfxs,
 		MACAddr:    macAddr,
 		Objects:    objects,
-		Stringer:   stringer,
+		RawCBOR:    rawCBOR,
+		RawJSON:    rawJSON,
+		Stringers:  stringers,
 		Strings:    strings,
 		Times:      times,
 		Type:       reflect.TypeOf(12345),
