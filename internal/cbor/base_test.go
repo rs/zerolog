@@ -7,11 +7,6 @@ import (
 )
 
 func TestAppendKey(t *testing.T) {
-	//if len(dst) < 1 {
-	//	dst = e.AppendBeginMarker(dst)
-	//}
-	//return e.AppendString(dst, key)
-
 	want := make([]byte, 0)
 	want = append(want, 0xbf) // start string
 	want = append(want, 0x63) // length 3
