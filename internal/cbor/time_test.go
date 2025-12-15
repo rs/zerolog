@@ -7,6 +7,8 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"github.com/rs/zerolog/internal"
 )
 
 func TestAppendTimeNow(t *testing.T) {
@@ -28,50 +30,33 @@ func TestAppendTimeNow(t *testing.T) {
 	}
 }
 
-var timeIntegerTestcases = []struct {
-	txt    string
-	binary string
-	rfcStr string
-}{
-	{"2013-02-03T19:54:00-08:00", "\xc1\x1a\x51\x0f\x30\xd8", "2013-02-04T03:54:00Z"},
-	{"1950-02-03T19:54:00-08:00", "\xc1\x3a\x25\x71\x93\xa7", "1950-02-04T03:54:00Z"},
-}
-
 func TestAppendTimePastPresentInteger(t *testing.T) {
-	for _, tt := range timeIntegerTestcases {
-		tin, err := time.Parse(time.RFC3339, tt.txt)
+	for _, tt := range internal.TimeIntegerTestcases {
+		tin, err := time.Parse(time.RFC3339, tt.Txt)
 		if err != nil {
-			fmt.Println("Cannot parse input", tt.txt, ".. Skipping!", err)
+			fmt.Println("Cannot parse input", tt.Txt, ".. Skipping!", err)
 			continue
 		}
 		b := enc.AppendTime([]byte{}, tin, "unused")
-		if got, want := string(b), tt.binary; got != want {
-			t.Errorf("appendString(%s) = 0x%s, want 0x%s", tt.txt,
+		if got, want := string(b), tt.Binary; got != want {
+			t.Errorf("appendString(%s) = 0x%s, want 0x%s", tt.Txt,
 				hex.EncodeToString(b),
 				hex.EncodeToString([]byte(want)))
 		}
 	}
 }
 
-var timeFloatTestcases = []struct {
-	rfcStr string
-	out    string
-}{
-	{"2006-01-02T15:04:05.999999-08:00", "\xc1\xfb\x41\xd0\xee\x6c\x59\x7f\xff\xfc"},
-	{"1956-01-02T15:04:05.999999-08:00", "\xc1\xfb\xc1\xba\x53\x81\x1a\x00\x00\x11"},
-}
-
 func TestAppendTimePastPresentFloat(t *testing.T) {
 	const timeFloatFmt = "2006-01-02T15:04:05.999999-07:00"
-	for _, tt := range timeFloatTestcases {
-		tin, err := time.Parse(timeFloatFmt, tt.rfcStr)
+	for _, tt := range internal.TimeFloatTestcases {
+		tin, err := time.Parse(timeFloatFmt, tt.RfcStr)
 		if err != nil {
-			fmt.Println("Cannot parse input", tt.rfcStr, ".. Skipping!")
+			fmt.Println("Cannot parse input", tt.RfcStr, ".. Skipping!")
 			continue
 		}
 		b := enc.AppendTime([]byte{}, tin, "unused")
-		if got, want := string(b), tt.out; got != want {
-			t.Errorf("appendString(%s) = 0x%s, want 0x%s", tt.rfcStr,
+		if got, want := string(b), tt.Out; got != want {
+			t.Errorf("appendString(%s) = 0x%s, want 0x%s", tt.RfcStr,
 				hex.EncodeToString(b),
 				hex.EncodeToString([]byte(want)))
 		}
@@ -79,12 +64,12 @@ func TestAppendTimePastPresentFloat(t *testing.T) {
 }
 func TestAppendTimes(t *testing.T) {
 	const timeFloatFmt = "2006-01-02T15:04:05.999999-07:00"
-	array := make([]time.Time, len(timeFloatTestcases))
+	array := make([]time.Time, len(internal.TimeFloatTestcases))
 	want := make([]byte, 0)
 	want = append(want, 0x82) // start small array
-	for i, tt := range timeFloatTestcases {
-		array[i], _ = time.Parse(timeFloatFmt, tt.rfcStr)
-		want = append(want, []byte(tt.out)...)
+	for i, tt := range internal.TimeFloatTestcases {
+		array[i], _ = time.Parse(timeFloatFmt, tt.RfcStr)
+		want = append(want, []byte(tt.Out)...)
 	}
 
 	got := enc.AppendTimes([]byte{}, array, "unused")
@@ -107,8 +92,8 @@ func TestAppendTimes(t *testing.T) {
 	}
 
 	// now large array case
-	testtime, _ := time.Parse(timeFloatFmt, timeFloatTestcases[0].rfcStr)
-	outbytes := timeFloatTestcases[0].out
+	testtime, _ := time.Parse(timeFloatFmt, internal.TimeFloatTestcases[0].RfcStr)
+	outbytes := internal.TimeFloatTestcases[0].Out
 	array = make([]time.Time, 24)
 	want = make([]byte, 0)
 	want = append(want, 0x98) // start a large array
@@ -126,21 +111,11 @@ func TestAppendTimes(t *testing.T) {
 	}
 }
 
-var durTestcases = []struct {
-	duration   time.Duration
-	floatout   string
-	integerout string
-}{
-	{1000, "\xfb\x3f\xf0\x00\x00\x00\x00\x00\x00", "\x01"},
-	{2000, "\xfb\x40\x00\x00\x00\x00\x00\x00\x00", "\x02"},
-	{200000, "\xfb\x40\x69\x00\x00\x00\x00\x00\x00", "\x18\xc8"},
-}
-
 func TestAppendDurationFloat(t *testing.T) {
-	for _, tt := range durTestcases {
-		dur := tt.duration
+	for _, tt := range internal.DurTestcases {
+		dur := tt.Duration
 		want := []byte{}
-		want = append(want, []byte(tt.floatout)...)
+		want = append(want, []byte(tt.FloatOut)...)
 		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, false, -1)
 		if !bytes.Equal(got, want) {
 			t.Errorf("AppendDuration(%v)=\ngot:  0x%s\nwant: 0x%s",
@@ -151,10 +126,10 @@ func TestAppendDurationFloat(t *testing.T) {
 	}
 }
 func TestAppendDurationInteger(t *testing.T) {
-	for _, tt := range durTestcases {
-		dur := tt.duration
+	for _, tt := range internal.DurTestcases {
+		dur := tt.Duration
 		want := []byte{}
-		want = append(want, []byte(tt.integerout)...)
+		want = append(want, []byte(tt.IntegerOut)...)
 		got := enc.AppendDuration([]byte{}, dur, time.Microsecond, true, -1)
 		if !bytes.Equal(got, want) {
 			t.Errorf("AppendDuration(%v)=\ngot:  0x%s\nwant: 0x%s",
@@ -165,12 +140,12 @@ func TestAppendDurationInteger(t *testing.T) {
 	}
 }
 func TestAppendDurations(t *testing.T) {
-	array := make([]time.Duration, len(durTestcases))
+	array := make([]time.Duration, len(internal.DurTestcases))
 	want := make([]byte, 0)
 	want = append(want, 0x83) // start 3 element array
-	for i, tt := range durTestcases {
-		array[i] = tt.duration
-		want = append(want, []byte(tt.floatout)...)
+	for i, tt := range internal.DurTestcases {
+		array[i] = tt.Duration
+		want = append(want, []byte(tt.FloatOut)...)
 	}
 
 	got := enc.AppendDurations([]byte{}, array, time.Microsecond, false, -1)
@@ -193,8 +168,8 @@ func TestAppendDurations(t *testing.T) {
 	}
 
 	// now large array case
-	testtime := durTestcases[0].duration
-	outbytes := durTestcases[0].floatout
+	testtime := internal.DurTestcases[0].Duration
+	outbytes := internal.DurTestcases[0].FloatOut
 	array = make([]time.Duration, 24)
 	want = make([]byte, 0)
 	want = append(want, 0x98) // start a large array
