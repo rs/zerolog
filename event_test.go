@@ -38,6 +38,16 @@ func TestEvent_AnErr(t *testing.T) {
 	}
 }
 
+func TestEvent_writeWithNil(t *testing.T) {
+	var e *Event = nil
+	got := e.write()
+
+	var want *Event = nil
+	if got != nil {
+		t.Errorf("Event.write() = %v, want %v", got, want)
+	}
+}
+
 func TestEvent_ObjectWithNil(t *testing.T) {
 	var buf bytes.Buffer
 	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
@@ -70,11 +80,18 @@ func TestEvent_WithNilEvent(t *testing.T) {
 
 	fixtures := makeFieldFixtures()
 	types := map[string]func() *Event{
+		"Array": func() *Event {
+			arr := Arr()
+			return e.Array("k", arr)
+		},
 		"Bool": func() *Event {
 			return e.Bool("k", fixtures.Bools[0])
 		},
 		"Bools": func() *Event {
 			return e.Bools("k", fixtures.Bools)
+		},
+		"Fields": func() *Event {
+			return e.Fields(fixtures)
 		},
 		"Int": func() *Event {
 			return e.Int("k", fixtures.Ints[0])
@@ -82,17 +99,86 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		"Ints": func() *Event {
 			return e.Ints("k", fixtures.Ints)
 		},
-		"Float": func() *Event {
-			return e.Float64("k", fixtures.Floats[0])
+		"Int8": func() *Event {
+			return e.Int8("k", fixtures.Ints8[0])
 		},
-		"Floats": func() *Event {
-			return e.Floats64("k", fixtures.Floats)
+		"Ints8": func() *Event {
+			return e.Ints8("k", fixtures.Ints8)
+		},
+		"Int16": func() *Event {
+			return e.Int16("k", fixtures.Ints16[0])
+		},
+		"Ints16": func() *Event {
+			return e.Ints16("k", fixtures.Ints16)
+		},
+		"Int32": func() *Event {
+			return e.Int32("k", fixtures.Ints32[0])
+		},
+		"Ints32": func() *Event {
+			return e.Ints32("k", fixtures.Ints32)
+		},
+		"Int64": func() *Event {
+			return e.Int64("k", fixtures.Ints64[0])
+		},
+		"Ints64": func() *Event {
+			return e.Ints64("k", fixtures.Ints64)
+		},
+		"Uint": func() *Event {
+			return e.Uint("k", fixtures.Uints[0])
+		},
+		"Uints": func() *Event {
+			return e.Uints("k", fixtures.Uints)
+		},
+		"Uint8": func() *Event {
+			return e.Uint8("k", fixtures.Uints8[0])
+		},
+		"Uints8": func() *Event {
+			return e.Uints8("k", fixtures.Uints8)
+		},
+		"Uint16": func() *Event {
+			return e.Uint16("k", fixtures.Uints16[0])
+		},
+		"Uints16": func() *Event {
+			return e.Uints16("k", fixtures.Uints16)
+		},
+		"Uint32": func() *Event {
+			return e.Uint32("k", fixtures.Uints32[0])
+		},
+		"Uints32": func() *Event {
+			return e.Uints32("k", fixtures.Uints32)
+		},
+		"Uint64": func() *Event {
+			return e.Uint64("k", fixtures.Uints64[0])
+		},
+		"Uints64": func() *Event {
+			return e.Uints64("k", fixtures.Uints64)
+		},
+		"Float64": func() *Event {
+			return e.Float64("k", fixtures.Floats64[0])
+		},
+		"Floats64": func() *Event {
+			return e.Floats64("k", fixtures.Floats64)
+		},
+		"Float32": func() *Event {
+			return e.Float32("k", fixtures.Floats32[0])
+		},
+		"Floats32": func() *Event {
+			return e.Floats32("k", fixtures.Floats32)
+		},
+		"RawCBOR": func() *Event {
+			return e.RawCBOR("k", fixtures.RawCBOR)
+		},
+		"RawJSON": func() *Event {
+			return e.RawJSON("k", fixtures.RawJSON)
 		},
 		"Str": func() *Event {
 			return e.Str("k", fixtures.Strings[0])
 		},
 		"Strs": func() *Event {
 			return e.Strs("k", fixtures.Strings)
+		},
+		"Stringers": func() *Event {
+			return e.Stringers("k", fixtures.Stringers)
 		},
 		"Err": func() *Event {
 			return e.Err(fixtures.Errs[0])
@@ -108,6 +194,11 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		},
 		"Times": func() *Event {
 			return e.Times("k", fixtures.Times)
+		},
+		"Dict": func() *Event {
+			d := Dict()
+			d.Str("greeting", "hello")
+			return e.Dict("k", d)
 		},
 		"Dur": func() *Event {
 			return e.Dur("k", fixtures.Durations[0])
@@ -130,6 +221,9 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		"Object": func() *Event {
 			return e.Object("k", fixtures.Objects[0])
 		},
+		"EmbedObject": func() *Event {
+			return e.EmbedObject(fixtures.Objects[0])
+		},
 		"Timestamp": func() *Event {
 			return e.Timestamp()
 		},
@@ -151,6 +245,15 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		"Type": func() *Event {
 			return e.Type("k", fixtures.Type)
 		},
+		"Caller": func() *Event {
+			return e.Caller(1)
+		},
+		"CallerSkip": func() *Event {
+			return e.CallerSkipFrame(2)
+		},
+		"Stack": func() *Event {
+			return e.Stack()
+		},
 	}
 
 	for name := range types {
@@ -158,5 +261,43 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		if got := f(); got != nil {
 			t.Errorf("Event.Bool() = %v, want %v", got, nil)
 		}
+	}
+
+	e.Send()
+	e.Msg("nothing")
+	e.Msgf("what %s", "nothing")
+
+	got := e.write()
+	if got != nil {
+		t.Errorf("Event.write() = %v, want %v", got, e)
+	}
+
+	called := false
+	e.MsgFunc(func() string {
+		called = true
+		return "called"
+	})
+	if called {
+		t.Errorf("Event.MsgFunc() should not be called on nil Event")
+	}
+}
+
+func TestEvent_MsgFunc(t *testing.T) {
+	var buf bytes.Buffer
+	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
+
+	called := false
+	e.MsgFunc(func() string {
+		called = true
+		return "called"
+	})
+	if !called {
+		t.Errorf("Event.MsgFunc() was not called on non-nil Event")
+	}
+
+	want := `{"message":"called"}`
+	got := strings.TrimSpace(buf.String())
+	if got != want {
+		t.Errorf("Event.MsgFunc() = %q, want %q", got, want)
 	}
 }
