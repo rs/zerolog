@@ -3,9 +3,12 @@ package cbor
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math"
 	"net"
 	"testing"
+
+	"github.com/rs/zerolog"
 )
 
 var enc = Encoder{}
@@ -15,7 +18,118 @@ func TestAppendNil(t *testing.T) {
 	got := string(s)
 	want := "\xf6"
 	if got != want {
-		t.Errorf("appendNull() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+		t.Errorf("AppendNil() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+}
+func TestAppendBeginMarker(t *testing.T) {
+	s := enc.AppendBeginMarker([]byte{})
+	got := string(s)
+	want := "\xbf"
+	if got != want {
+		t.Errorf("AppendBeginMarker() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+}
+func TestAppendEndMarker(t *testing.T) {
+	s := enc.AppendEndMarker([]byte{})
+	got := string(s)
+	want := "\xff"
+	if got != want {
+		t.Errorf("AppendEndMarker() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+}
+func TestAppendObjectData(t *testing.T) {
+	data := []byte{0xbf, 0x02, 0x03}
+	s := enc.AppendObjectData([]byte{}, data)
+	got := string(s)
+	want := "\x02\x03" // the begin marker is not copied
+	if got != want {
+		t.Errorf("AppendObjectData() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+}
+func TestAppendArrayDelim(t *testing.T) {
+	s := enc.AppendArrayDelim([]byte{})
+	got := string(s)
+	want := ""
+	if got != want {
+		t.Errorf("AppendArrayDelim() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+}
+func TestAppendLineBreak(t *testing.T) {
+	s := enc.AppendLineBreak([]byte{})
+	got := string(s)
+	want := ""
+	if got != want {
+		t.Errorf("AppendLineBreak() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+}
+
+func TestAppendInterface(t *testing.T) {
+	oldJSONMarshalFunc := JSONMarshalFunc
+	defer func() {
+		JSONMarshalFunc = oldJSONMarshalFunc
+	}()
+
+	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
+		return zerolog.InterfaceMarshalFunc(v)
+	}
+
+	var i int = 17
+	got := enc.AppendInterface([]byte{}, i)
+	want := make([]byte, 0)
+	want = append(want, 0xd9, 0x01) // start an array
+	want = append(want, 0x06, 0x42) // of type interface, two characters
+	want = append(want, 0x31, 0x37) // with literal int 17
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInterface\ngot:  0x%s\nwant: 0x%s",
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
+		return nil, errors.New("test")
+	}
+
+	got = enc.AppendInterface([]byte{}, nil)
+	want = make([]byte, 0)
+	want = append(want, 0x76)                                // string
+	want = append(want, []byte("marshaling error: test")...) // of type interface, two characters
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInterface\ngot:  0x%s\nwant: 0x%s",
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+}
+
+func TestAppendType(t *testing.T) {
+	s := enc.AppendType([]byte{}, "")
+	got := string(s)
+	want := "\x66string"
+	if got != want {
+		t.Errorf("AppendType() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+
+	s = enc.AppendType([]byte{}, nil)
+	got = string(s)
+	want = "\x65<nil>"
+	if got != want {
+		t.Errorf("AppendType() = 0x%s, want: 0x%s", hex.EncodeToString(s),
+			hex.EncodeToString([]byte(want)))
+	}
+
+	var n *int = nil
+	s = enc.AppendType([]byte{}, n)
+	got = string(s)
+	want = "\x64*int"
+	if got != want {
+		t.Errorf("AppendType() = 0x%s, want: 0x%s", hex.EncodeToString(s),
 			hex.EncodeToString([]byte(want)))
 	}
 }
@@ -61,6 +175,34 @@ func TestAppendBoolArray(t *testing.T) {
 				tc.json, hex.EncodeToString(s),
 				hex.EncodeToString([]byte(tc.binary)))
 		}
+	}
+
+	// now empty array case
+	array := make([]bool, 0)
+	want := make([]byte, 0)
+	want = append(want, 0x9f) // start and end array
+	want = append(want, 0xff) // for empty array
+	got := enc.AppendBools([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBools(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a large array case
+	array = make([]bool, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a large array
+	want = append(want, 0x18) // for 24 elements
+	for i := 0; i < 24; i++ {
+		array[i] = bool(i%2 == 1)
+		want = append(want, 0xf4|byte(i&0x01)) // 0xf4 is false, 0xf5 is true
+	}
+	got = enc.AppendBools([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBools(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 
@@ -184,6 +326,21 @@ func TestAppendInts8(t *testing.T) {
 			array, hex.EncodeToString(got),
 			hex.EncodeToString(want))
 	}
+
+	// now small array case
+	array = make([]int8, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a small array
+	for i := 0; i < 21; i++ {
+		array[i] = int8(i)
+		want = append(want, byte(i))
+	}
+	got = enc.AppendInts8([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts8(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
 }
 
 func TestAppendInt16(t *testing.T) {
@@ -225,6 +382,21 @@ func TestAppendInts16(t *testing.T) {
 	want = make([]byte, 0)
 	want = append(want, 0x9f) // start and end array
 	want = append(want, 0xff) // for empty array
+	got = enc.AppendInts16([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts16(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a small array case
+	array = make([]int16, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a smaller array
+	for i := 0; i < 21; i++ {
+		array[i] = int16(i)
+		want = append(want, byte(i))
+	}
 	got = enc.AppendInts16([]byte{}, array)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendInts16(%v)\ngot:  0x%s\nwant: 0x%s",
@@ -278,6 +450,21 @@ func TestAppendInts32(t *testing.T) {
 			array, hex.EncodeToString(got),
 			hex.EncodeToString(want))
 	}
+
+	// now a small array case
+	array = make([]int32, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a smaller array
+	for i := 0; i < 21; i++ {
+		array[i] = int32(i)
+		want = append(want, byte(i))
+	}
+	got = enc.AppendInts32([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
 }
 
 func TestAppendInt64(t *testing.T) {
@@ -319,6 +506,21 @@ func TestAppendInts64(t *testing.T) {
 			array, hex.EncodeToString(got),
 			hex.EncodeToString(want))
 	}
+
+	// now a small array case
+	array = make([]int64, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a smaller array
+	for i := 0; i < 21; i++ {
+		array[i] = int64(i)
+		want = append(want, byte(i))
+	}
+	got = enc.AppendInts64([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
 }
 
 func TestAppendInt(t *testing.T) {
@@ -354,6 +556,21 @@ func TestAppendInts(t *testing.T) {
 	want = make([]byte, 0)
 	want = append(want, 0x9f) // start and end array
 	want = append(want, 0xff) // for empty array
+	got = enc.AppendInts([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInts(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a small array case
+	array = make([]int, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a smaller array
+	for i := 0; i < 21; i++ {
+		array[i] = int(i)
+		want = append(want, byte(i))
+	}
 	got = enc.AppendInts([]byte{}, array)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendInts(%v)\ngot:  0x%s\nwant: 0x%s",
@@ -439,6 +656,22 @@ func TestAppendUints8(t *testing.T) {
 			array, hex.EncodeToString(got),
 			hex.EncodeToString(want))
 	}
+
+	// now a large array case
+	array = make([]uint8, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a large array
+	want = append(want, 0x18) // for 24 elements
+	for i := 0; i < 24; i++ {
+		array[i] = uint8(i)
+		want = append(want, byte(i))
+	}
+	got = enc.AppendUints8([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints8(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
 }
 
 func TestAppendUint16(t *testing.T) {
@@ -483,6 +716,22 @@ func TestAppendUints16(t *testing.T) {
 	got = enc.AppendUints16([]byte{}, array)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendUints8(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a large array case
+	array = make([]uint16, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a larger array
+	want = append(want, 0x18) // for 24 elements
+	for i := 0; i < 24; i++ {
+		array[i] = uint16(i)
+		want = append(want, byte(i))
+	}
+	got = enc.AppendUints16([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints16(%v)\ngot:  0x%s\nwant: 0x%s",
 			array, hex.EncodeToString(got),
 			hex.EncodeToString(want))
 	}
@@ -534,6 +783,21 @@ func TestAppendUints32(t *testing.T) {
 			array, hex.EncodeToString(got),
 			hex.EncodeToString(want))
 	}
+
+	// now a small array case
+	array = make([]uint32, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a smaller array
+	for i := 0; i < 21; i++ {
+		array[i] = uint32(i)
+		want = append(want, byte(i))
+	}
+	got = enc.AppendUints32([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
 }
 
 func TestAppendUint64(t *testing.T) {
@@ -570,6 +834,21 @@ func TestAppendUints64(t *testing.T) {
 	want = make([]byte, 0)
 	want = append(want, 0x9f) // start and end array
 	want = append(want, 0xff) // for empty array
+	got = enc.AppendUints64([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a small array case
+	array = make([]uint64, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a smaller array
+	for i := 0; i < 21; i++ {
+		array[i] = uint64(i)
+		want = append(want, byte(i))
+	}
 	got = enc.AppendUints64([]byte{}, array)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendUints64(%v)\ngot:  0x%s\nwant: 0x%s",
@@ -619,6 +898,21 @@ func TestAppendUints(t *testing.T) {
 	want = make([]byte, 0)
 	want = append(want, 0x9f) // start and end array
 	want = append(want, 0xff) // for empty array
+	got = enc.AppendUints([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendUints(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a small array case
+	array = make([]uint, 21)
+	want = make([]byte, 0)
+	want = append(want, 0x95) // start a smaller array
+	for i := 0; i < 21; i++ {
+		array[i] = uint(i)
+		want = append(want, byte(i))
+	}
 	got = enc.AppendUints([]byte{}, array)
 	if !bytes.Equal(got, want) {
 		t.Errorf("AppendUints(%v)\ngot:  0x%s\nwant: 0x%s",
@@ -676,11 +970,52 @@ func TestAppendFloat32(t *testing.T) {
 	for _, tc := range float32TestCases {
 		s := enc.AppendFloat32([]byte{}, tc.val, -1)
 		got := string(s)
-		if got != tc.binary {
-			t.Errorf("AppendFloat32(%f)=0x%s, want: 0x%s",
+		want := tc.binary
+		if got != want {
+			t.Errorf("AppendFloat32(0x%x)=0x%s, want: 0x%s",
 				tc.val, hex.EncodeToString(s),
-				hex.EncodeToString([]byte(tc.binary)))
+				hex.EncodeToString([]byte(want)))
 		}
+	}
+}
+func TestAppendFloats32(t *testing.T) {
+	array := []float32{1.0, 1.5}
+	want := make([]byte, 0)
+	want = append(want, 0x82)                         // start array for float elements
+	want = append(want, 0xfa, 0x3f, 0x80, 0x00, 0x00) // 32 bit 1.0
+	want = append(want, 0xfa, 0x3f, 0xc0, 0x00, 0x00) // 32 bit 1.5
+
+	got := enc.AppendFloats32([]byte{}, array, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendFloats32(%v)=0x%s, want: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = []float32{}
+	want = make([]byte, 0)
+	want = append(want, 0x9f, 0xff) // start and end array
+	got = enc.AppendFloats32([]byte{}, array, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendFloats32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a large array case
+	array = make([]float32, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a larger array
+	want = append(want, 0x18) // for 24 elements
+	for i := 0; i < 24; i++ {
+		want = append(want, 0xfa, 0x00, 0x00, 0x00, 0x00)
+	}
+	got = enc.AppendFloats32([]byte{}, array, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendFloats32(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 
@@ -711,6 +1046,46 @@ func TestAppendFloat64(t *testing.T) {
 				tc.val, hex.EncodeToString(s),
 				hex.EncodeToString([]byte(tc.binary)))
 		}
+	}
+}
+func TestAppendFloats64(t *testing.T) {
+	array := []float64{1.0, 1.5}
+	want := make([]byte, 0)
+	want = append(want, 0x82)                                                 // start array for float elements
+	want = append(want, 0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00) // 64 bit 1.0
+	want = append(want, 0xfb, 0x3f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00) // 64 bit 1.5
+
+	got := enc.AppendFloats64([]byte{}, array, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendFloats64(%v)=0x%s, want: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = []float64{}
+	want = make([]byte, 0)
+	want = append(want, 0x9f, 0xff) // start and end array
+	got = enc.AppendFloats64([]byte{}, array, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendFloats64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a large array case
+	array = make([]float64, 24)
+	want = make([]byte, 0)
+	want = append(want, 0x98) // start a larger array
+	want = append(want, 0x18) // for 24 elements
+	for i := 0; i < 24; i++ {
+		want = append(want, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+	}
+	got = enc.AppendFloats64([]byte{}, array, -1)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendFloats64(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 
@@ -756,6 +1131,22 @@ func TestAppendIPAddrArray(t *testing.T) {
 				tc.json, hex.EncodeToString(s),
 				hex.EncodeToString([]byte(tc.binary)))
 		}
+	}
+
+	// now a large array case
+	array := make([]net.IP, 24)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start a larger array
+	want = append(want, 0x18) // for 24 elements
+	for i := 0; i < 24; i++ {
+		array[i] = net.IP{0, 0, 0, byte(i)}
+		want = append(want, 0xd9, 0x01, 0x04, 0x44, 0x00, 0x00, 0x00, byte(i))
+	}
+	got := enc.AppendIPAddrs([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendIPAddrs(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
 	}
 }
 
@@ -822,6 +1213,48 @@ func TestAppendIPPrefixArray(t *testing.T) {
 				hex.EncodeToString([]byte(tc.binary)))
 		}
 	}
+
+	// now a large array case
+	array := make([]net.IPNet, 24)
+	want := make([]byte, 0)
+	want = append(want, 0x98) // start a larger array
+	want = append(want, 0x18) // for 24 elements
+	for i := 0; i < 24; i++ {
+		array[i] = net.IPNet{IP: net.IP{0, 0, 0, byte(i)}, Mask: net.CIDRMask(24, 32)}
+		want = append(want, 0xd9, 0x01, 0x05, 0xa1, 0x44, 0x00, 0x00, 0x00, byte(i), 0x18, 0x18)
+	}
+	got := enc.AppendIPPrefixes([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendIPPrefixes(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendHex(t *testing.T) {
+	array := []byte{0x01, 0x02}
+	want := make([]byte, 0)
+	want = append(want, 0xd9, 0x01) // start array
+	want = append(want, 0x07, 0x42) // array of two elements
+	want = append(want, 0x01, 0x02) // 0x01, 0x02
+	got := enc.AppendHex([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendHex(%v)=0x%s, want: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now empty array case
+	array = make([]byte, 0)
+	want = make([]byte, 0)
+	want = append(want, 0xd9, 0x01) // start an array
+	want = append(want, 0x07, 0x40) // array of zero elements
+	got = enc.AppendHex([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendHex(%v)\ngot:  0x%s\nwant: 0x%s",
+			array, hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
 }
 
 func BenchmarkAppendInt(b *testing.B) {
@@ -869,7 +1302,6 @@ func BenchmarkAppendInt(b *testing.B) {
 		})
 	}
 }
-
 func BenchmarkAppendFloat(b *testing.B) {
 	type st struct {
 		sz  byte
