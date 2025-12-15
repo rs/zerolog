@@ -1,13 +1,151 @@
 package json
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math"
 	"math/rand"
 	"net"
 	"reflect"
 	"testing"
+
+	"github.com/rs/zerolog/internal"
 )
+
+func TestAppendNil(t *testing.T) {
+	got := enc.AppendNil([]byte{})
+	want := []byte(`null`)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendNil() = %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendBeginMarker(t *testing.T) {
+	got := enc.AppendBeginMarker([]byte{})
+	want := []byte(`{`)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBeginMarker()\ngot:  %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendEndMarker(t *testing.T) {
+	got := enc.AppendEndMarker([]byte{})
+	want := []byte(`}`)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendEndMarker()\ngot:  %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendObjectData(t *testing.T) {
+	data := []byte{0x02, 0x03}
+	got := enc.AppendObjectData([]byte{}, data)
+	want := []byte("\x02\x03") // the begin marker is not copied
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendObjectData() = 0x%s, want: 0x%s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendArrayStart(t *testing.T) {
+	got := enc.AppendArrayStart([]byte{})
+	want := []byte("[")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayStart() = %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendArrayEnd(t *testing.T) {
+	got := enc.AppendArrayEnd([]byte{})
+	want := []byte("]")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayEnd() = %s, want: %s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendArrayDelim(t *testing.T) {
+	got := enc.AppendArrayDelim([]byte{})
+	want := []byte("")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayDelim() = 0x%s, want: 0x%s",
+			string(got),
+			string(want))
+	}
+
+	got = enc.AppendArrayDelim([]byte("a"))
+	want = []byte("a,")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendArrayDelim() = 0x%s, want: 0x%s",
+			string(got),
+			string(want))
+	}
+}
+func TestAppendLineBreak(t *testing.T) {
+	got := enc.AppendLineBreak([]byte{})
+	want := []byte("\n")
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendLineBreak() = 0x%s, want: 0x%s",
+			string(got),
+			string(want))
+	}
+}
+
+// inline copy from globals.go of InterfaceMarshalFunc used in tests to avoid import cycle
+func interfaceMarshalFunc(v interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(v)
+	if err != nil {
+		return nil, err
+	}
+	b := buf.Bytes()
+	if len(b) > 0 {
+		// Remove trailing \n which is added by Encode.
+		return b[:len(b)-1], nil
+	}
+	return b, nil
+}
+
+func TestAppendInterface(t *testing.T) {
+	oldJSONMarshalFunc := JSONMarshalFunc
+	defer func() {
+		JSONMarshalFunc = oldJSONMarshalFunc
+	}()
+
+	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
+		return interfaceMarshalFunc(v)
+	}
+
+	var i int = 17
+	got := enc.AppendInterface([]byte{}, i)
+	want := make([]byte, 0)
+	want = append(want, []byte("17")...) // of type interface, two characters
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInterface\ngot:  0x%s\nwant: 0x%s",
+			string(got),
+			string(want))
+	}
+
+	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
+		return nil, errors.New("test")
+	}
+
+	got = enc.AppendInterface([]byte{}, nil)
+	want = make([]byte, 0)
+	want = append(want, []byte("\"marshaling error: test\"")...) // of type interface, two characters
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendInterface\ngot:  0x%s\nwant: 0x%s",
+			string(got),
+			string(want))
+	}
+}
 
 func TestAppendType(t *testing.T) {
 	w := map[string]func(interface{}) []byte{
@@ -85,6 +223,69 @@ func Test_appendMAC(t *testing.T) {
 				t.Errorf("appendMACAddr() = %s, want %s", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestAppendBool(t *testing.T) {
+	for _, tc := range internal.BooleanTestCases {
+		s := enc.AppendBool([]byte{}, tc.Val)
+		got := string(s)
+		if got != tc.Json {
+			t.Errorf("AppendBool(%s)=0x%s, want: 0x%s",
+				tc.Json,
+				string(s),
+				string([]byte(tc.Binary)))
+		}
+	}
+}
+
+func TestAppendBoolArray(t *testing.T) {
+	for _, tc := range internal.BooleanArrayTestCases {
+		s := enc.AppendBools([]byte{}, tc.Val)
+		got := string(s)
+		if got != tc.Json {
+			t.Errorf("AppendBools(%s)=0x%s, want: 0x%s",
+				tc.Json,
+				hex.EncodeToString(s),
+				hex.EncodeToString([]byte(tc.Binary)))
+		}
+	}
+
+	// now empty array case
+	array := make([]bool, 0)
+	want := make([]byte, 0)
+	want = append(want, []byte("[]")...) // start and end array
+	got := enc.AppendBools([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBools(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			hex.EncodeToString(got),
+			hex.EncodeToString(want))
+	}
+
+	// now a large array case
+	array = make([]bool, 24)
+	want = make([]byte, 0)
+	want = append(want, []byte("[")...) // start a large array
+	for i := 0; i < 24; i++ {
+		array[i] = bool(i%2 == 1)
+		if array[i] {
+			want = append(want, []byte("true")...)
+		} else {
+			want = append(want, []byte("false")...)
+		}
+		if (i + 1) < 24 {
+			want = append(want, []byte(",")...)
+		}
+	}
+	want = append(want, []byte("]")...) // end a large array
+
+	got = enc.AppendBools([]byte{}, array)
+	if !bytes.Equal(got, want) {
+		t.Errorf("AppendBools(%v)\ngot:  0x%s\nwant: 0x%s",
+			array,
+			string(got),
+			string(want))
 	}
 }
 
