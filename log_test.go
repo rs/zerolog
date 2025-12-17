@@ -255,7 +255,7 @@ func TestFieldsMap_Arrays(t *testing.T) {
 		"ints32":   []int32{4},
 		"ints64":   []int64{5},
 		"uints":    []uint{6},
-		"uint8s":   []uint8{7},
+		"uint8s":   []uint8{44},
 		"uints16":  []uint16{8},
 		"uints32":  []uint32{9},
 		"uints64":  []uint64{10},
@@ -268,7 +268,8 @@ func TestFieldsMap_Arrays(t *testing.T) {
 		"times":    []time.Time{{}},
 		"objs":     []fixtureObj{{"a", "b", 1}},
 	}).Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"bools":[true],"durs":[1000],"errors":["some error"],"floats32":[11],"floats64":[12],"ints":[1],"ints16":[3],"ints32":[4],"ints64":[5],"ints8":[1],"ipnets":["2001:db8:85a3::8a2e:370:7334/64"],"ipv6s":["2001:db8:85a3::8a2e:370:7334"],"macaddrs":["ABorPE1e"],"objs":[{"Pub":"a","tag":"b"}],"strings":["foo"],"times":["0001-01-01T00:00:00Z"],"uint8s":"\u0007","uints":[6],"uints16":[8],"uints32":[9],"uints64":[10]}`+"\n"; got != want {
+	// special case: []uint8 is logged as base64 string so we use "," for 44
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"bools":[true],"durs":[1000],"errors":["some error"],"floats32":[11],"floats64":[12],"ints":[1],"ints16":[3],"ints32":[4],"ints64":[5],"ints8":[1],"ipnets":["2001:db8:85a3::8a2e:370:7334/64"],"ipv6s":["2001:db8:85a3::8a2e:370:7334"],"macaddrs":["ABorPE1e"],"objs":[{"Pub":"a","tag":"b"}],"strings":["foo"],"times":["0001-01-01T00:00:00Z"],"uint8s":",","uints":[6],"uints16":[8],"uints32":[9],"uints64":[10]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
