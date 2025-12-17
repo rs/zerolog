@@ -232,6 +232,7 @@ func (u User) MarshalZerologObject(e *Event) {
 
 type Users []User
 
+// User implements LogObjectMarshaler
 func (uu Users) MarshalZerologArray(a *Array) {
 	for _, u := range uu {
 		a.Object(u)
@@ -289,24 +290,17 @@ func ExampleEvent_Object() {
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
 
-// this avoids the !go1.24 error in example below... if you're not on go1.24, don't use Objects
-// cannot use u (variable of type []User) as []LogObjectMarshaler value in argument to New(&dst).With().Str("foo", "bar").Objects
-func downcastToLogObjectMarshalerSlice(users []User) []LogObjectMarshaler {
-	loms := make([]LogObjectMarshaler, len(users))
-	for i, u := range users {
-		loms[i] = u
-	}
-	return loms
-}
-
 func ExampleContext_Objects() {
-	// User implements LogObjectMarshaler
-	u := []User{{"John", 35, time.Time{}}, {"Bob", 55, time.Time{}}}
+	// In go, arrays are type invariant so even if you have a variable u of type []User array and User implements
+	// the LogObjectMarshaler interface, you cannot pass that to func that takes an []LogObjectMarshaler array in the
+	// Objects call. In 1.24+ it allows passing the variadic covariant slice (e.g. u...) but the unit test needs to
+	// work in earlier versions so we'll declare the array as []LogObjectMarshaler here.
+	u := []LogObjectMarshaler{User{"John", 35, time.Time{}}, User{"Bob", 55, time.Time{}}}
 
 	dst := bytes.Buffer{}
 	log := New(&dst).With().
 		Str("foo", "bar").
-		Objects("users", downcastToLogObjectMarshalerSlice(u)).
+		Objects("users", u).
 		Logger()
 
 	log.Log().Msg("hello world")
