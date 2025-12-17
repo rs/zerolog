@@ -47,9 +47,9 @@ type fieldFixtures struct {
 	IPAddrs   []net.IP
 	IPPfxs    []net.IPNet
 	MACAddr   net.HardwareAddr
-	Objects   []fixtureObj
+	Objects   []LogObjectMarshaler
 	RawCBOR   []byte
-	RawJSON   []byte
+	RawJSONs  [][]byte
 	Stringers []fmt.Stringer
 	Strings   []string
 	Times     []time.Time
@@ -101,17 +101,17 @@ func makeFieldFixtures() *fieldFixtures {
 		{"I", "b", 3},
 		{"J", "a", 4},
 	}
-	objects := []fixtureObj{
-		{"a", "z", 1},
-		{"b", "y", 2},
-		{"c", "x", 3},
-		{"d", "w", 4},
-		{"e", "v", 5},
-		{"f", "u", 6},
-		{"g", "t", 7},
-		{"h", "s", 8},
-		{"i", "r", 9},
-		{"j", "q", 10},
+	objects := []LogObjectMarshaler{
+		fixtureObj{"a", "z", 1},
+		fixtureObj{"b", "y", 2},
+		fixtureObj{"c", "x", 3},
+		fixtureObj{"d", "w", 4},
+		fixtureObj{"e", "v", 5},
+		fixtureObj{"f", "u", 6},
+		fixtureObj{"g", "t", 7},
+		fixtureObj{"h", "s", 8},
+		fixtureObj{"i", "r", 9},
+		fixtureObj{"j", "q", 10},
 	}
 	ipAddrV4 := net.IP{192, 168, 0, 1}
 	ipAddrV6 := net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}
@@ -123,7 +123,7 @@ func makeFieldFixtures() *fieldFixtures {
 	errs := []error{errors.New("a"), errors.New("b"), errors.New("c"), errors.New("d"), errors.New("e"), nil, errorObjectMarshalerImpl{fmt.Errorf("oops")}}
 	ctx := context.Background()
 	stringers := []fmt.Stringer{ipAddrs[0], durations[0]}
-	rawJSON := []byte(`{"some":"json"}`)
+	rawJSONs := [][]byte{[]byte(`{"some":"json"}`), []byte(`{"longer":[1111,2222,3333,4444,5555]}`)}
 	rawCBOR := []byte{0xA1, 0x64, 0x73, 0x6F, 0x6D, 0x65, 0x64, 0x61, 0x74, 0x61} // {"some":"data"}
 
 	return &fieldFixtures{
@@ -150,7 +150,7 @@ func makeFieldFixtures() *fieldFixtures {
 		MACAddr:    macAddr,
 		Objects:    objects,
 		RawCBOR:    rawCBOR,
-		RawJSON:    rawJSON,
+		RawJSONs:   rawJSONs,
 		Stringers:  stringers,
 		Strings:    strings,
 		Times:      times,

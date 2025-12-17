@@ -3,6 +3,8 @@
 package log_test
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"os"
@@ -119,7 +121,13 @@ func ExampleFatal() {
 	// Outputs: {"level":"fatal","time":1199811905,"error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
 }
 
-// TODO: Panic
+// Example of a log at a particular "level" (in this case, "panic")
+func ExamplePanic() {
+	setup()
+
+	log.Panic().Msg("Cannot start")
+	// Outputs: {"level":"panic","time":1199811905,"message":"Cannot start"} then panics
+}
 
 // This example uses command-line flags to demonstrate various outputs
 // depending on the chosen log level.
@@ -147,16 +155,91 @@ func Example() {
 	// Output: {"level":"info","time":1199811905,"message":"This message appears when log level set to Debug or Info"}
 }
 
-// TODO: Output
+// Example of using the SetOutput function in the log package to change the output destination
+func ExampleOutput() {
+	setup()
 
-// TODO: With
+	out := &bytes.Buffer{}
+	tee := log.Output(out)
+	tee.Info().Msg("hello world")
+	written := out.Len()
 
-// TODO: Level
+	log.Info().Int("bytes", written).Msg("wrote")
+	// Output: {"level":"info","bytes":59,"time":1199811905,"message":"wrote"}
+}
 
-// TODO: Sample
+// Example of using the With function to add context fields
+func ExampleWith() {
+	setup()
 
-// TODO: Hook
+	// you have to assign the result of With() to a new Logger and can't inline the level calls
+	// because they need a *Logger receiver
+	augmented := log.With().Str("service", "myservice").Logger()
+	augmented.Info().Msg("hello world")
+	// Output: {"level":"info","service":"myservice","time":1199811905,"message":"hello world"}
+}
 
-// TODO: WithLevel
+// Example of using the Level function to set the log level
+func ExampleLevel() {
+	setup()
 
-// TODO: Ctx
+	// you have to assign the result of Level() to a new Logger and can't inline the level calls
+	// because they need a *Logger receiver
+	leveled := log.Level(zerolog.ErrorLevel)
+	leveled.Info().Msg("hello world")
+	leveled.Error().Msg("I said HELLO")
+	// Output: {"level":"error","time":1199811905,"message":"I said HELLO"}
+}
+
+type valueKeyType int
+
+var valueKey valueKeyType = 42
+
+var captainHook = zerolog.HookFunc(func(e *zerolog.Event, l zerolog.Level, msg string) {
+	e.Interface("key", e.GetCtx().Value(valueKey))
+	e.Bool("is_error", l > zerolog.ErrorLevel)
+	e.Int("msg_len", len(msg))
+})
+
+// Example of using the Logger Hook function to add hooks
+func ExampleLogger_Hook() {
+	setup()
+
+	hooked := log.Hook(captainHook)
+	hooked.Info().Msg("watch out!")
+	// Output: {"level":"info","time":1199811905,"key":null,"is_error":false,"msg_len":10,"message":"watch out!"}
+}
+
+// Example of using the WithLevel function to set the log level
+func ExampleWithLevel() {
+	setup()
+
+	// you have to assign the result of Level() to a new Logger and can't inline the level calls
+	// because they need a *Logger receiver
+	event := log.WithLevel(zerolog.ErrorLevel)
+	event.Msg("taxes are due")
+	// Output: {"level":"error","time":1199811905,"message":"taxes are due"}
+}
+
+// Example of using the Ctx function in the log package to log with context
+func ExampleCtx() {
+	setup()
+
+	hooked := log.Hook(captainHook)
+	ctx := context.WithValue(context.Background(), valueKey, "12345")
+	logger := hooked.With().Ctx(ctx).Logger()
+	log.Ctx(logger.WithContext(ctx)).Info().Msg("hello world")
+	// Output: {"level":"info","time":1199811905,"key":"12345","is_error":false,"msg_len":11,"message":"hello world"}
+}
+
+// Example of using the Sample function in the log package to set a sampler
+func ExampleSample() {
+	setup()
+
+	sampled := log.Sample(&zerolog.BasicSampler{N: 2})
+	sampled.Info().Msg("hello world")
+	sampled.Info().Msg("I said, hello world")
+	sampled.Info().Msg("Can you here me now world")
+	// Output: {"level":"info","time":1199811905,"message":"hello world"}
+	// {"level":"info","time":1199811905,"message":"Can you here me now world"}
+}

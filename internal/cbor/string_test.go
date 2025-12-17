@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"testing"
+
+	"github.com/rs/zerolog/internal"
 )
 
 var encodeStringTests = []struct {
@@ -129,10 +131,47 @@ func TestAppendStrings(t *testing.T) {
 	}
 	got = enc.AppendStrings([]byte{}, array)
 	if !bytes.Equal(got, want) {
-		t.Errorf("AppendStrings(%v)\ngot:  0x%s\nwant: 0x%s",
+		t.Errorf("AppendStrings(%v)\ngot:  %s\nwant: %s",
 			array,
 			hex.EncodeToString(got),
 			hex.EncodeToString(want))
+	}
+}
+
+func TestAppendStringer(t *testing.T) {
+	oldJSONMarshalFunc := JSONMarshalFunc
+	defer func() {
+		JSONMarshalFunc = oldJSONMarshalFunc
+	}()
+
+	JSONMarshalFunc = func(v interface{}) ([]byte, error) {
+		return internal.InterfaceMarshalFunc(v)
+	}
+
+	for _, tt := range internal.EncodeStringerTests {
+		got := enc.AppendStringer([]byte{}, tt.In)
+		want := []byte(tt.Binary)
+		if !bytes.Equal(got, want) {
+			t.Errorf("AppendStrings(%v)\ngot:  %s\nwant: %s",
+				tt.In,
+				hex.EncodeToString(got),
+				hex.EncodeToString(want))
+		}
+	}
+}
+
+func TestAppendStringers(t *testing.T) {
+	for _, tt := range internal.EncodeStringersTests {
+		want := make([]byte, 0)
+		want = append(want, []byte(tt.Binary)...)
+
+		got := enc.AppendStringers([]byte{}, tt.In)
+		if !bytes.Equal(got, want) {
+			t.Errorf("AppendStrings(%v)\ngot:  %s\nwant: %s",
+				tt,
+				hex.EncodeToString(got),
+				hex.EncodeToString(want))
+		}
 	}
 }
 
@@ -155,6 +194,7 @@ func TestAppendBytes(t *testing.T) {
 		t.Errorf("appendString(%q) = %#q, want %#q", inp, got, want)
 	}
 }
+
 func BenchmarkAppendString(b *testing.B) {
 	tests := map[string]string{
 		"NoEncoding":       `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,

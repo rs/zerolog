@@ -3,6 +3,7 @@ package zerolog
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -162,7 +163,7 @@ func TestWithPlurals(t *testing.T) {
 		Strs("strings_nil", nil).
 		Stringers("stringers", []fmt.Stringer{net.IP{127, 0, 0, 1}, nil}).
 		Stringers("stringers_nil", nil).
-		Errs("errs", []error{errors.New("some error"), errors.New("some other error")}).
+		Errs("errs", []error{errors.New("some error"), errors.New("some other error"), nil, errorObjectMarshalerImpl{fmt.Errorf("oops")}}).
 		Bools("bool", []bool{true, false}).
 		Ints("int", []int{1, 2}).
 		Ints8("int8", []int8{2, 3}).
@@ -181,7 +182,7 @@ func TestWithPlurals(t *testing.T) {
 	log := ctx.Logger()
 	log.Log().Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()),
-		`{"strings":["foo","bar"],"strings_nil":[],"stringers":["127.0.0.1",null],"stringers_nil":null,"errs":["some error","some other error"],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
+		`{"strings":["foo","bar"],"strings_nil":[],"stringers":["127.0.0.1",null],"stringers_nil":null,"errs":["some error","some other error",null,{"error":"OOPS"}],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -228,12 +229,71 @@ func TestFieldsMap(t *testing.T) {
 		"float32": float32(11),
 		"float64": float64(12),
 		"ipv6":    net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
+		"ipnet":   net.IPNet{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}, Mask: net.CIDRMask(64, 128)},
+		"macaddr": net.HardwareAddr{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E},
 		"dur":     1 * time.Second,
 		"time":    time.Time{},
 		"obj":     fixtureObj{"a", "b", 1},
 		"any":     struct{ A string }{"test"},
+		"raw":     json.RawMessage(`{"some":"json"}`),
 	}).Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"any":{"A":"test"},"bool":true,"bytes":"bar","dur":1000,"error":"some error","float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"ipv6":"2001:db8:85a3::8a2e:370:7334","nil":null,"obj":{"Pub":"a","Tag":"b","priv":1},"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"any":{"A":"test"},"bool":true,"bytes":"bar","dur":1000,"error":"some error","float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"ipnet":"2001:db8:85a3::8a2e:370:7334/64","ipv6":"2001:db8:85a3::8a2e:370:7334","macaddr":"00:1a:2b:3c:4d:5e","nil":null,"obj":{"Pub":"a","Tag":"b","priv":1},"raw":{"some":"json"},"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+func TestFieldsMap_Arrays(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields(map[string]interface{}{
+		"strings":  []string{"foo"},
+		"bools":    []bool{true},
+		"errors":   []error{errors.New("some error")},
+		"ints":     []int{1},
+		"ints8":    []int8{1},
+		"ints16":   []int16{3},
+		"ints32":   []int32{4},
+		"ints64":   []int64{5},
+		"uints":    []uint{6},
+		"uint8s":   []uint8{7},
+		"uints16":  []uint16{8},
+		"uints32":  []uint32{9},
+		"uints64":  []uint64{10},
+		"floats32": []float32{11},
+		"floats64": []float64{12},
+		"ipv6s":    []net.IP{{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}},
+		"ipnets":   []net.IPNet{{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}, Mask: net.CIDRMask(64, 128)}},
+		"macaddrs": []net.HardwareAddr{{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E}},
+		"durs":     []time.Duration{1 * time.Second},
+		"times":    []time.Time{{}},
+		"objs":     []fixtureObj{{"a", "b", 1}},
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"bools":[true],"durs":[1000],"errors":["some error"],"floats32":[11],"floats64":[12],"ints":[1],"ints16":[3],"ints32":[4],"ints64":[5],"ints8":[1],"ipnets":["2001:db8:85a3::8a2e:370:7334/64"],"ipv6s":["2001:db8:85a3::8a2e:370:7334"],"macaddrs":["ABorPE1e"],"objs":[{"Pub":"a","tag":"b"}],"strings":["foo"],"times":["0001-01-01T00:00:00Z"],"uint8s":"\u0007","uints":[6],"uints16":[8],"uints32":[9],"uints64":[10]}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+func TestFieldsErr(t *testing.T) {
+	var err error = nil
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields(map[string]interface{}{
+		"nil":      nil,
+		"nilerror": err,
+		"error":    errors.New("some error"),
+		"loggable": loggableError{errors.New("loggable")},
+		"marshal":  errorObjectMarshalerImpl{fmt.Errorf("oops")},
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"some error","loggable":{"message":"loggable loggableError"},"marshal":{"error":"OOPS"},"nil":null,"nilerror":null}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+func TestFieldsErrs(t *testing.T) {
+	var err error = nil
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields(map[string]interface{}{
+		"errors": []error{errors.New("some error"), nil, err, loggableError{errors.New("loggable")}, errorObjectMarshalerImpl{fmt.Errorf("oops")}},
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"errors":["some error",null,null,{"message":"loggable loggableError"},{"error":"OOPS"}]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
