@@ -234,10 +234,11 @@ func TestFieldsMap(t *testing.T) {
 		"dur":     1 * time.Second,
 		"time":    time.Time{},
 		"obj":     fixtureObj{"a", "b", 1},
+		"objs":    []LogObjectMarshaler{fixtureObj{"a", "b", 1}, fixtureObj{"c", "d", 2}},
 		"any":     struct{ A string }{"test"},
 		"raw":     json.RawMessage(`{"some":"json"}`),
 	}).Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"any":{"A":"test"},"bool":true,"bytes":"bar","dur":1000,"error":"some error","float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"ipnet":"2001:db8:85a3::8a2e:370:7334/64","ipv6":"2001:db8:85a3::8a2e:370:7334","macaddr":"00:1a:2b:3c:4d:5e","nil":null,"obj":{"Pub":"a","Tag":"b","priv":1},"raw":{"some":"json"},"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"any":{"A":"test"},"bool":true,"bytes":"bar","dur":1000,"error":"some error","float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"ipnet":"2001:db8:85a3::8a2e:370:7334/64","ipv6":"2001:db8:85a3::8a2e:370:7334","macaddr":"00:1a:2b:3c:4d:5e","nil":null,"obj":{"Pub":"a","Tag":"b","priv":1},"objs":[{"Pub":"a","Tag":"b","priv":1},{"Pub":"c","Tag":"d","priv":2}],"raw":{"some":"json"},"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }

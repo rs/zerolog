@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package log_test
@@ -155,7 +156,7 @@ func Example() {
 	// Output: {"level":"info","time":1199811905,"message":"This message appears when log level set to Debug or Info"}
 }
 
-// Example of using the SetOutput function in the log package to change the output destination
+// Example of using the Output function in the log package to change the output destination
 func ExampleOutput() {
 	setup()
 
