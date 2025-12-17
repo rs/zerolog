@@ -184,6 +184,9 @@ func BenchmarkLogFieldType(b *testing.B) {
 		"Object": func(e *Event) *Event {
 			return e.Object("k", fixtures.Objects[0])
 		},
+		"Objects": func(e *Event) *Event {
+			return e.Objects("k", fixtures.Objects)
+		},
 		"Timestamp": func(e *Event) *Event {
 			return e.Timestamp()
 		},
@@ -308,6 +311,9 @@ func BenchmarkContextFieldType(b *testing.B) {
 		},
 		"Object": func(c Context) Context {
 			return c.Object("k", fixtures.Objects[0])
+		},
+		"Objects": func(c Context) Context {
+			return c.Objects("k", fixtures.Objects)
 		},
 		"Timestamp": func(c Context) Context {
 			return c.Timestamp()

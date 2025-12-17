@@ -64,6 +64,15 @@ func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 	return c
 }
 
+// Object marshals an object that implement the LogObjectMarshaler interface.
+func (c Context) Objects(key string, objs []LogObjectMarshaler) Context {
+	e := newEvent(LevelWriterAdapter{io.Discard}, 0)
+	e.Objects(key, objs)
+	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
+	putEvent(e)
+	return c
+}
+
 // EmbedObject marshals and Embeds an object that implement the LogObjectMarshaler interface.
 func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
 	e := newEvent(LevelWriterAdapter{io.Discard}, 0)

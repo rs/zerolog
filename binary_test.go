@@ -289,6 +289,22 @@ func ExampleEvent_Object() {
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
 
+func ExampleContext_Objects() {
+	// User implements LogObjectMarshaler
+	u := []User{{"John", 35, time.Time{}}, {"Bob", 55, time.Time{}}}
+
+	dst := bytes.Buffer{}
+	log := New(&dst).With().
+		Str("foo", "bar").
+		Objects("users", u...).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
+	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bob","age":55,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+}
+
 func ExampleEvent_EmbedObject() {
 	price := Price{val: 6449, prec: 2, unit: "$"}
 

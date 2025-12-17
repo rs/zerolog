@@ -223,6 +223,9 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		"Object": func() *Event {
 			return e.Object("k", fixtures.Objects[0])
 		},
+		"Objects": func() *Event {
+			return e.Objects("k", fixtures.Objects)
+		},
 		"EmbedObject": func() *Event {
 			return e.EmbedObject(fixtures.Objects[0])
 		},
