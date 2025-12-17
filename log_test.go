@@ -869,7 +869,7 @@ func (l loggableError) MarshalZerologObject(e *Event) {
 	if l.error == nil {
 		return
 	}
-	e.Str("message", l.error.Error()+": loggableError")
+	e.Str("message", l.error.Error()+" loggableError")
 }
 
 type nonLoggable struct {
@@ -877,62 +877,6 @@ type nonLoggable struct {
 	how   int
 	what  string
 }
-
-func TestErrorMarshalFunc_None(t *testing.T) {
-	// test default behaviour
-	testErrorMarshalFunc(t, nil, []string{
-		"default",
-		`{"message":"msg"}`,
-		`{"error":"err","message":"msg"}`,
-		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["foo","bar"],"message":"msg"}`,
-	})
-}
-func TestErrorMarshalFunc_AppendedString(t *testing.T) {
-	// test returning an appended string from ErrorMarshalFunc
-	testErrorMarshalFunc(t, func(err error) interface{} {
-		if err == nil {
-			return nil
-		}
-		return err.Error() + ": marshaled string"
-	}, []string{
-		"appended string",
-		`{"message":"msg"}`,
-		`{"error":"err: marshaled string","message":"msg"}`,
-		`{"error":"err: marshaled string","message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["foo: marshaled string","bar: marshaled string"],"message":"msg"}`,
-	})
-}
-func TestErrorMarshalFunc_NilError(t *testing.T) {
-	// test returning an nil error from ErrorMarshalFunc
-	testErrorMarshalFunc(t, func(err error) interface{} {
-		return error(nil)
-	}, []string{
-		"nil error",
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[null,null],"message":"msg"}`,
-	})
-}
-
-func TestErrorMarshalFunc_UntypedNil(t *testing.T) {
-	// test returning an untyped nil from ErrorMarshalFunc
-	testErrorMarshalFunc(t, func(err error) interface{} {
-		return nil
-	}, []string{
-		"untyped nil",
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[null,null],"message":"msg"}`,
-	})
-}
-
 type wrappedError struct {
 	error
 	msg string
@@ -945,6 +889,81 @@ func (w wrappedError) Error() string {
 	return w.error.Error() + ": " + w.msg
 }
 
+func TestErrorMarshalFunc_Default(t *testing.T) {
+	// test default behaviour
+	testErrorMarshalFunc(t, nil, "default",
+		"",
+		"null",
+
+		`"zot"`,
+		`"zot"`,
+
+		`{"message":"log loggableError"}`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"foo","bar"`,
+	)
+}
+func TestErrorMarshalFunc_AppendedString(t *testing.T) {
+	// test returning an appended string from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		if err == nil {
+			return nil
+		}
+		return err.Error() + ": marshaled"
+	}, "appended string",
+		"",
+		"null",
+
+		`"zot: marshaled"`,
+		`"zot: marshaled"`,
+
+		`"log: marshaled"`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"foo: marshaled","bar: marshaled"`,
+	)
+}
+func TestErrorMarshalFunc_NilError(t *testing.T) {
+	// test returning an nil error from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		return error(nil)
+	}, "nil error",
+		"",
+		"null",
+
+		"",
+		"null",
+
+		"",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"null,null",
+	)
+}
+
+func TestErrorMarshalFunc_UntypedNil(t *testing.T) {
+	// test returning an untyped nil from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		return nil
+	}, "untyped nil",
+		"",
+		"null",
+
+		"",
+		"null",
+
+		"",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"null,null",
+	)
+}
+
 func TestErrorMarshalFunc_WrappedError(t *testing.T) {
 	// test returning an wrapped error from ErrorMarshalFunc
 	testErrorMarshalFunc(t, func(err error) interface{} {
@@ -955,41 +974,56 @@ func TestErrorMarshalFunc_WrappedError(t *testing.T) {
 		} else {
 			return wrappedError{err, "addendum"}
 		}
-	}, []string{
-		"wrapped error",
-		`{"message":"msg"}`,
-		`{"error":"err: addendum","message":"msg"}`,
-		`{"error":"err: addendum","message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["foo: addendum","bar: addendum"],"message":"msg"}`,
-	})
+	}, "wrapped error",
+		"",
+		"null",
+
+		`"zot: addendum"`,
+		`"zot: addendum"`,
+
+		`"log: addendum"`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"foo: addendum","bar: addendum"`,
+	)
 }
 
 func TestErrorMarshalFunc_LoggableType(t *testing.T) {
 	// test returning a loggable type from ErrorMarshalFunc
 	testErrorMarshalFunc(t, func(err error) interface{} {
 		return loggableError{err}
-	}, []string{
-		"loggable type",
-		`{"error":{},"message":"msg"}`,
-		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
-		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[{"message":"foo: loggableError"},{"message":"bar: loggableError"}],"message":"msg"}`,
-	})
+	}, "loggable type",
+		"{}",
+		"null",
+
+		`{"message":"zot loggableError"}`,
+		`{"message":"zot loggableError"}`,
+
+		`{"message":"log loggableError"}`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`{"message":"foo loggableError"},{"message":"bar loggableError"}`,
+	)
 }
 func TestErrorMarshalFunc_String(t *testing.T) {
 	// test returning a string type from ErrorMarshalFunc
 	testErrorMarshalFunc(t, func(err error) interface{} {
 		return "i'm an err" // return just a string
-	}, []string{
-		"string type",
-		`{"error":"i'm an err","message":"msg"}`,
-		`{"error":"i'm an err","message":"msg"}`,
-		`{"error":"i'm an err","message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["i'm an err","i'm an err"],"message":"msg"}`,
-	})
+	}, "string type",
+		`"i'm an err"`,
+		"null",
+
+		`"i'm an err"`,
+		`"i'm an err"`,
+
+		`"i'm an err"`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"i'm an err","i'm an err"`,
+	)
 }
 
 func TestErrorMarshalFunc_NonLoggableType(t *testing.T) {
@@ -999,17 +1033,59 @@ func TestErrorMarshalFunc_NonLoggableType(t *testing.T) {
 			return nil
 		}
 		return nonLoggable{where: "here", how: 42, what: err.Error()}
-	}, []string{
-		"non-loggable type",
-		`{"message":"msg"}`,
-		`{"error":{},"message":"msg"}`,
-		`{"error":{},"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[{},{}],"message":"msg"}`,
-	})
+	}, "non-loggable type",
+		"",
+		"null",
+
+		"{}",
+		"{}",
+
+		"{}",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"{},{}",
+	)
 }
 
-func testErrorMarshalFunc(t *testing.T, errFunc func(err error) interface{}, wants []string) {
+func TestErrorMarshalFunc_NilMarshal(t *testing.T) {
+	// test returning a nil from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		var nilerr error = nil
+		return nilerr
+	}, "nil-marshal",
+		"",
+		"null",
+
+		"",
+		"null",
+
+		"",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"null,null",
+	)
+}
+
+func testErrorMarshalFunc(t *testing.T,
+	errFunc func(err error) interface{},
+	testcase string,
+
+	whenNil string,
+	whenNilField string,
+
+	hasValue string,
+	hasValueField string,
+
+	whenLoggable string,
+	whenLoggableField string,
+
+	errsNilValue string,
+	errsValue string,
+) {
+	const suffix = `"message":"msg"}`
+
 	if errFunc != nil {
 		originalErrorMarshalFunc := ErrorMarshalFunc
 		defer func() {
@@ -1019,61 +1095,109 @@ func testErrorMarshalFunc(t *testing.T, errFunc func(err error) interface{}, wan
 		ErrorMarshalFunc = errFunc
 	}
 
-	testcase := wants[0]
 	var err error
+	wantNil := `{`
+	if whenNil != "" {
+		wantNil = wantNil + `"error":` + whenNil + `,`
+	}
+	wantNil = wantNil + suffix
 
+	wantNilField := `{"err":` + whenNilField + `,` + suffix
 	err = nil
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(nil)", wants[1], func(ctx Context) Context {
+	testContextErrorMarshalFunc(t, testcase+" / context.Err(nil)", wantNil, func(ctx Context) Context {
 		ctx = ctx.Err(err)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Err(nil)", wants[1], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Err(nil)", wantNil, func(e *Event) *Event {
 		e.Err(err)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Err(nil)", wantNilField, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"err": err})
+		return e
+	})
 
-	err = errors.New("err")
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(error)", wants[2], func(ctx Context) Context {
+	wantErr := `{`
+	if hasValue != "" {
+		wantErr = wantErr + `"error":` + hasValue + `,`
+	}
+	wantErr = wantErr + suffix
+	wantErrField := `{"err":` + hasValueField + `,` + suffix
+	err = errors.New("zot")
+	testContextErrorMarshalFunc(t, testcase+" / context.Err(error)", wantErr, func(ctx Context) Context {
 		ctx = ctx.Err(err)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Err(error)", wants[2], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Err(error)", wantErr, func(e *Event) *Event {
 		e.Err(err)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Err(error)", wantErrField, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"err": err})
+		return e
+	})
 
-	err = loggableError{errors.New("err")}
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(loggable)", wants[3], func(ctx Context) Context {
+	wantLoggable := `{`
+	if whenLoggable != "" {
+		wantLoggable = wantLoggable + `"error":` + whenLoggable + `,`
+	}
+	wantLoggable = wantLoggable + suffix
+	wantLoggableField := `{"err":` + whenLoggableField + `,` + suffix
+	err = loggableError{errors.New("log")}
+	testContextErrorMarshalFunc(t, testcase+" / context.Err(loggable)", wantLoggable, func(ctx Context) Context {
 		ctx = ctx.Err(err)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Err(loggable)", wants[3], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Err(loggable)", wantLoggable, func(e *Event) *Event {
 		e.Err(err)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Err(loggable)", wantLoggableField, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"err": err})
+		return e
+	})
 
+	wantErrsNil := `{"errs":` + errsNilValue + `,` + suffix
 	var errs []error = nil
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Errs(nil)", wants[4], func(ctx Context) Context {
+	testContextErrorMarshalFunc(t, testcase+" / context.Errs(nil)", wantErrsNil, func(ctx Context) Context {
 		ctx = ctx.Errs("errs", errs)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Errs(nil)", wants[4], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Errs(nil)", wantErrsNil, func(e *Event) *Event {
 		e.Errs("errs", errs)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Errs(nil)", wantErrsNil, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"errs": errs})
+		return e
+	})
 
+	wantErrs := `{"errs":[` + errsValue + `],` + suffix
 	errs = []error{errors.New("foo"), errors.New("bar")}
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Errs([])", wants[5], func(ctx Context) Context {
+	testContextErrorMarshalFunc(t, testcase+" / context.Errs([])", wantErrs, func(ctx Context) Context {
 		ctx = ctx.Errs("errs", []error{errors.New("foo"), errors.New("bar")})
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Errs([])", wants[5], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Errs([])", wantErrs, func(e *Event) *Event {
 		e.Errs("errs", errs)
+		return e
+	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Errs([])", wantErrs, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"errs": errs})
 		return e
 	})
 }
 
 func testEventErrorMarshalFunc(t *testing.T, testcase string, wants string, test func(e *Event) *Event) {
+	out := &bytes.Buffer{}
+	logger := New(out)
+	test(logger.Log()).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), wants+"\n"; got != want {
+		t.Errorf("%s output:\ngot:  %v\nwant: %v", testcase, got, want)
+	}
+}
+
+func testFieldsErrorMarshalFunc(t *testing.T, testcase string, wants string, test func(e *Event) *Event) {
 	out := &bytes.Buffer{}
 	logger := New(out)
 	test(logger.Log()).Msg("msg")
