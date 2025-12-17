@@ -289,6 +289,16 @@ func ExampleEvent_Object() {
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
 
+// this avoids the !go1.24 error in example below... if you're not on go1.24, don't use Objects
+// cannot use u (variable of type []User) as []LogObjectMarshaler value in argument to New(&dst).With().Str("foo", "bar").Objects
+func downcastToLogObjectMarshalerSlice(users []User) []LogObjectMarshaler {
+	loms := make([]LogObjectMarshaler, len(users))
+	for i, u := range users {
+		loms[i] = u
+	}
+	return loms
+}
+
 func ExampleContext_Objects() {
 	// User implements LogObjectMarshaler
 	u := []User{{"John", 35, time.Time{}}, {"Bob", 55, time.Time{}}}
@@ -296,7 +306,7 @@ func ExampleContext_Objects() {
 	dst := bytes.Buffer{}
 	log := New(&dst).With().
 		Str("foo", "bar").
-		Objects("users", u...).
+		Objects("users", downcastToLogObjectMarshalerSlice(u)).
 		Logger()
 
 	log.Log().Msg("hello world")
