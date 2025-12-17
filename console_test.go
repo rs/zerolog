@@ -100,7 +100,20 @@ func TestConsoleLogger(t *testing.T) {
 		}
 	})
 }
-
+func TestConsoleLoggerUnsorted(t *testing.T) {
+	t.Run("Numbers", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		log := zerolog.New(zerolog.ConsoleWriter{Out: buf, NoColor: true, DoNotSortFields: true})
+		log.Info().
+			Float64("float", 1.23).
+			Uint64("small", 123).
+			Uint64("big", 1152921504606846976).
+			Msg("msg")
+		if got, want := strings.TrimSpace(buf.String()), "<nil> INF msg float=1.23 small=123 big=1152921504606846976"; got != want {
+			t.Errorf("\ngot:\n%s\nwant:\n%s", got, want)
+		}
+	})
+}
 func TestConsoleWriter(t *testing.T) {
 	t.Run("Default field formatter", func(t *testing.T) {
 		buf := &bytes.Buffer{}
@@ -533,20 +546,37 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 	})
 
-	t.Run("Sets FieldsOrder", func(t *testing.T) {
+	t.Run("Sets FieldsOrder sorted extras", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, FieldsOrder: []string{"zebra", "aardvark"}}
 
-		evt := `{"level": "info", "message": "Zoo", "aardvark": "Able", "mussel": "Mountain", "zebra": "Zulu"}`
+		evt := `{"level": "info", "message": "Zoo", "aardvark": "Able", "mussel": "Mountain", "zebra": "Zulu", "lizard": "Larry"}`
 		_, err := w.Write([]byte(evt))
 		if err != nil {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> INF Zoo zebra=Zulu aardvark=Able mussel=Mountain\n"
+		expectedOutput := "<nil> INF Zoo zebra=Zulu aardvark=Able lizard=Larry mussel=Mountain\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
-			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+			t.Errorf("Unexpected output\ngot:  %q\nwant: %q\n", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("Sets FieldsOrder unsorted extras", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, FieldsOrder: []string{"zebra", "aardvark"}, DoNotSortFields: true}
+
+		evt := `{"level": "info", "message": "Zoo", "aardvark": "Able", "mussel": "Mountain", "zebra": "Zulu", "lizard": "Larry"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "<nil> INF Zoo zebra=Zulu aardvark=Able mussel=Mountain lizard=Larry\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output\ngot:  %q\nwant: %q\n", actualOutput, expectedOutput)
 		}
 	})
 
@@ -649,6 +679,6 @@ func BenchmarkConsoleWriter(b *testing.B) {
 	w := zerolog.ConsoleWriter{Out: io.Discard, NoColor: false}
 
 	for i := 0; i < b.N; i++ {
-		w.Write(msg)
+		_, _ = w.Write(msg)
 	}
 }

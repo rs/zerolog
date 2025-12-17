@@ -76,6 +76,9 @@ type ConsoleWriter struct {
 	// FieldsOrder defines the order of contextual fields in output.
 	FieldsOrder []string
 
+	// DoNotSortFields does not sort contextual fields alphabetically (default false).
+	DoNotSortFields bool
+
 	fieldIsOrdered map[string]int
 
 	// FieldsExclude defines contextual fields to not display in output.
@@ -101,9 +104,9 @@ type ConsoleWriter struct {
 // NewConsoleWriter creates and initializes a new ConsoleWriter.
 func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 	w := ConsoleWriter{
-		Out:          os.Stdout,
-		TimeFormat:   consoleDefaultTimeFormat,
-		PartsOrder:   consoleDefaultPartsOrder(),
+		Out:        os.Stdout,
+		TimeFormat: consoleDefaultTimeFormat,
+		PartsOrder: consoleDefaultPartsOrder(),
 	}
 
 	for _, opt := range options {
@@ -204,33 +207,9 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		fields = append(fields, field)
 	}
 
-	if len(w.FieldsOrder) > 0 {
-		w.orderFields(fields)
-	} else {
-		sort.Strings(fields)
-	}
+	w.orderFields(fields)
 
-	// Write space only if something has already been written to the buffer, and if there are fields.
-	if buf.Len() > 0 && len(fields) > 0 {
-		buf.WriteByte(' ')
-	}
-
-	// Move the "error" field to the front
-	ei := sort.Search(len(fields), func(i int) bool { return fields[i] >= ErrorFieldName })
-	if ei < len(fields) && fields[ei] == ErrorFieldName {
-		fields[ei] = ""
-		fields = append([]string{ErrorFieldName}, fields...)
-		var xfields = make([]string, 0, len(fields))
-		for _, field := range fields {
-			if field == "" { // Skip empty fields
-				continue
-			}
-			xfields = append(xfields, field)
-		}
-		fields = xfields
-	}
-
-	for i, field := range fields {
+	for _, field := range fields {
 		var fn Formatter
 		var fv Formatter
 
@@ -260,6 +239,10 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 			}
 		}
 
+		// Write space only if something has already been written to the buffer
+		if buf.Len() > 0 {
+			buf.WriteByte(' ')
+		}
 		buf.WriteString(fn(field))
 
 		switch fValue := evt[field].(type) {
@@ -278,10 +261,6 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 			} else {
 				fmt.Fprint(buf, fv(b))
 			}
-		}
-
-		if i < len(fields)-1 { // Skip space for last field
-			buf.WriteByte(' ')
 		}
 	}
 }
@@ -351,7 +330,7 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 
 // orderFields takes an array of field names and an array representing field order
 // and returns an array with any ordered fields at the beginning, in order,
-// and the remaining fields after in their original order.
+// and the remaining fields after in their original order or sorted alphabetically.
 func (w ConsoleWriter) orderFields(fields []string) {
 	if w.fieldIsOrdered == nil {
 		w.fieldIsOrdered = make(map[string]int)
@@ -359,9 +338,35 @@ func (w ConsoleWriter) orderFields(fields []string) {
 			w.fieldIsOrdered[fieldName] = i
 		}
 	}
-	sort.Slice(fields, func(i, j int) bool {
-		ii, iOrdered := w.fieldIsOrdered[fields[i]]
-		jj, jOrdered := w.fieldIsOrdered[fields[j]]
+
+	indexes := w.fieldIsOrdered
+	tiebreaker := func(i, j int) bool {
+		return fields[i] < fields[j]
+	}
+
+	if w.DoNotSortFields {
+		offset := len(w.fieldIsOrdered)
+		indexes = make(map[string]int, offset)
+		for fieldName, index := range w.fieldIsOrdered {
+			indexes[fieldName] = index
+		}
+
+		for i, field := range fields {
+			if _, ok := indexes[field]; !ok {
+				indexes[field] = offset + i
+			}
+		}
+
+		tiebreaker = func(i, j int) bool {
+			panic("unreachable")
+		}
+	}
+
+	indexes[ErrorFieldName] = -1 // Always put error field first
+
+	sort.SliceStable(fields, func(i, j int) bool {
+		ii, iOrdered := indexes[fields[i]]
+		jj, jOrdered := indexes[fields[j]]
 		if iOrdered && jOrdered {
 			return ii < jj
 		}
@@ -371,7 +376,7 @@ func (w ConsoleWriter) orderFields(fields []string) {
 		if jOrdered {
 			return false
 		}
-		return fields[i] < fields[j]
+		return tiebreaker(i, j)
 	})
 }
 
