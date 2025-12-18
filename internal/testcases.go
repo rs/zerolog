@@ -308,22 +308,24 @@ var EncodeStringsTests = []struct {
 }
 
 var EncodeStringerTests = []struct {
-	In  fmt.Stringer
-	Out string
+	In     fmt.Stringer
+	Out    string
+	Binary string
 }{
-	{nil, `null`},
-	{fmt.Stringer(nil), `null`},
-	{net.IPv4bcast, `"255.255.255.255"`},
+	{nil, `null`, "\xf6"},
+	{fmt.Stringer(nil), `null`, "\xf6"},
+	{net.IPv4bcast, `"255.255.255.255"`, "\x6f\x32\x35\x35\x2e\x32\x35\x35\x2e\x32\x35\x35\x2e\x32\x35\x35"},
 }
 
 var EncodeStringersTests = []struct {
-	In  []fmt.Stringer
-	Out string
+	In     []fmt.Stringer
+	Out    string
+	Binary string
 }{
-	{nil, `[]`},
-	{[]fmt.Stringer{}, `[]`},
-	{[]fmt.Stringer{net.IPv4bcast}, `["255.255.255.255"]`},
-	{[]fmt.Stringer{net.IPv4allsys, net.IPv4allrouter}, `["224.0.0.1","224.0.0.2"]`},
+	{nil, `[]`, "\x9f\xff"},
+	{[]fmt.Stringer{}, `[]`, "\x9f\xff"},
+	{[]fmt.Stringer{net.IPv4bcast}, `["255.255.255.255"]`, "\x9f\x6f255.255.255.255\xff"},
+	{[]fmt.Stringer{net.IPv4allsys, net.IPv4allrouter}, `["224.0.0.1","224.0.0.2"]`, "\x9f\x69224.0.0.1\x69224.0.0.2\xff"},
 }
 
 var TimeIntegerTestcases = []struct {

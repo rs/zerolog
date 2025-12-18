@@ -435,6 +435,20 @@ func ExampleContext_Object() {
 
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
+func ExampleContext_Objects() {
+	// User implements zerolog.LogObjectMarshaler
+	u := User{"John", 35, time.Time{}}
+	u2 := User{"Bono", 54, time.Time{}}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		Objects("users", []zerolog.LogObjectMarshaler{u, u2}).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bono","age":54,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+}
 
 func ExampleContext_EmbedObject() {
 

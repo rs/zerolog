@@ -3,6 +3,7 @@ package zerolog
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -162,7 +163,7 @@ func TestWithPlurals(t *testing.T) {
 		Strs("strings_nil", nil).
 		Stringers("stringers", []fmt.Stringer{net.IP{127, 0, 0, 1}, nil}).
 		Stringers("stringers_nil", nil).
-		Errs("errs", []error{errors.New("some error"), errors.New("some other error")}).
+		Errs("errs", []error{errors.New("some error"), errors.New("some other error"), nil, errorObjectMarshalerImpl{fmt.Errorf("oops")}}).
 		Bools("bool", []bool{true, false}).
 		Ints("int", []int{1, 2}).
 		Ints8("int8", []int8{2, 3}).
@@ -181,7 +182,7 @@ func TestWithPlurals(t *testing.T) {
 	log := ctx.Logger()
 	log.Log().Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()),
-		`{"strings":["foo","bar"],"strings_nil":[],"stringers":["127.0.0.1",null],"stringers_nil":null,"errs":["some error","some other error"],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
+		`{"strings":["foo","bar"],"strings_nil":[],"stringers":["127.0.0.1",null],"stringers_nil":null,"errs":["some error","some other error",null,{"error":"OOPS"}],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -228,12 +229,73 @@ func TestFieldsMap(t *testing.T) {
 		"float32": float32(11),
 		"float64": float64(12),
 		"ipv6":    net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
+		"ipnet":   net.IPNet{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}, Mask: net.CIDRMask(64, 128)},
+		"macaddr": net.HardwareAddr{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E},
 		"dur":     1 * time.Second,
 		"time":    time.Time{},
 		"obj":     fixtureObj{"a", "b", 1},
+		"objs":    []LogObjectMarshaler{fixtureObj{"a", "b", 1}, fixtureObj{"c", "d", 2}},
 		"any":     struct{ A string }{"test"},
+		"raw":     json.RawMessage(`{"some":"json"}`),
 	}).Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"any":{"A":"test"},"bool":true,"bytes":"bar","dur":1000,"error":"some error","float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"ipv6":"2001:db8:85a3::8a2e:370:7334","nil":null,"obj":{"Pub":"a","Tag":"b","priv":1},"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"any":{"A":"test"},"bool":true,"bytes":"bar","dur":1000,"error":"some error","float32":11,"float64":12,"int":1,"int16":3,"int32":4,"int64":5,"int8":2,"ipnet":"2001:db8:85a3::8a2e:370:7334/64","ipv6":"2001:db8:85a3::8a2e:370:7334","macaddr":"00:1a:2b:3c:4d:5e","nil":null,"obj":{"Pub":"a","Tag":"b","priv":1},"objs":[{"Pub":"a","Tag":"b","priv":1},{"Pub":"c","Tag":"d","priv":2}],"raw":{"some":"json"},"string":"foo","time":"0001-01-01T00:00:00Z","uint":6,"uint16":8,"uint32":9,"uint64":10,"uint8":7}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+func TestFieldsMap_Arrays(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields(map[string]interface{}{
+		"strings":  []string{"foo"},
+		"bools":    []bool{true},
+		"errors":   []error{errors.New("some error")},
+		"ints":     []int{1},
+		"ints8":    []int8{1},
+		"ints16":   []int16{3},
+		"ints32":   []int32{4},
+		"ints64":   []int64{5},
+		"uints":    []uint{6},
+		"uint8s":   []uint8{44},
+		"uints16":  []uint16{8},
+		"uints32":  []uint32{9},
+		"uints64":  []uint64{10},
+		"floats32": []float32{11},
+		"floats64": []float64{12},
+		"ipv6s":    []net.IP{{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}},
+		"ipnets":   []net.IPNet{{IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}, Mask: net.CIDRMask(64, 128)}},
+		"macaddrs": []net.HardwareAddr{{0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E}},
+		"durs":     []time.Duration{1 * time.Second},
+		"times":    []time.Time{{}},
+		"objs":     []fixtureObj{{"a", "b", 1}},
+	}).Msg("")
+	// special case: []uint8 is logged as base64 string so we use "," for 44
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"bools":[true],"durs":[1000],"errors":["some error"],"floats32":[11],"floats64":[12],"ints":[1],"ints16":[3],"ints32":[4],"ints64":[5],"ints8":[1],"ipnets":["2001:db8:85a3::8a2e:370:7334/64"],"ipv6s":["2001:db8:85a3::8a2e:370:7334"],"macaddrs":["ABorPE1e"],"objs":[{"Pub":"a","tag":"b"}],"strings":["foo"],"times":["0001-01-01T00:00:00Z"],"uint8s":",","uints":[6],"uints16":[8],"uints32":[9],"uints64":[10]}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+func TestFieldsErr(t *testing.T) {
+	var err error = nil
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields(map[string]interface{}{
+		"nil":      nil,
+		"nilerror": err,
+		"error":    errors.New("some error"),
+		"loggable": loggableError{errors.New("loggable")},
+		"marshal":  errorObjectMarshalerImpl{fmt.Errorf("oops")},
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"some error","loggable":{"message":"loggable loggableError"},"marshal":{"error":"OOPS"},"nil":null,"nilerror":null}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+func TestFieldsErrs(t *testing.T) {
+	var err error = nil
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Fields(map[string]interface{}{
+		"errors": []error{errors.New("some error"), nil, err, loggableError{errors.New("loggable")}, errorObjectMarshalerImpl{fmt.Errorf("oops")}},
+	}).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"errors":["some error",null,null,{"message":"loggable loggableError"},{"error":"OOPS"}]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -809,7 +871,7 @@ func (l loggableError) MarshalZerologObject(e *Event) {
 	if l.error == nil {
 		return
 	}
-	e.Str("message", l.error.Error()+": loggableError")
+	e.Str("message", l.error.Error()+" loggableError")
 }
 
 type nonLoggable struct {
@@ -817,62 +879,6 @@ type nonLoggable struct {
 	how   int
 	what  string
 }
-
-func TestErrorMarshalFunc_None(t *testing.T) {
-	// test default behaviour
-	testErrorMarshalFunc(t, nil, []string{
-		"default",
-		`{"message":"msg"}`,
-		`{"error":"err","message":"msg"}`,
-		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["foo","bar"],"message":"msg"}`,
-	})
-}
-func TestErrorMarshalFunc_AppendedString(t *testing.T) {
-	// test returning an appended string from ErrorMarshalFunc
-	testErrorMarshalFunc(t, func(err error) interface{} {
-		if err == nil {
-			return nil
-		}
-		return err.Error() + ": marshaled string"
-	}, []string{
-		"appended string",
-		`{"message":"msg"}`,
-		`{"error":"err: marshaled string","message":"msg"}`,
-		`{"error":"err: marshaled string","message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["foo: marshaled string","bar: marshaled string"],"message":"msg"}`,
-	})
-}
-func TestErrorMarshalFunc_NilError(t *testing.T) {
-	// test returning an nil error from ErrorMarshalFunc
-	testErrorMarshalFunc(t, func(err error) interface{} {
-		return error(nil)
-	}, []string{
-		"nil error",
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[null,null],"message":"msg"}`,
-	})
-}
-
-func TestErrorMarshalFunc_UntypedNil(t *testing.T) {
-	// test returning an untyped nil from ErrorMarshalFunc
-	testErrorMarshalFunc(t, func(err error) interface{} {
-		return nil
-	}, []string{
-		"untyped nil",
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[null,null],"message":"msg"}`,
-	})
-}
-
 type wrappedError struct {
 	error
 	msg string
@@ -885,6 +891,81 @@ func (w wrappedError) Error() string {
 	return w.error.Error() + ": " + w.msg
 }
 
+func TestErrorMarshalFunc_Default(t *testing.T) {
+	// test default behaviour
+	testErrorMarshalFunc(t, nil, "default",
+		"",
+		"null",
+
+		`"zot"`,
+		`"zot"`,
+
+		`{"message":"log loggableError"}`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"foo","bar"`,
+	)
+}
+func TestErrorMarshalFunc_AppendedString(t *testing.T) {
+	// test returning an appended string from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		if err == nil {
+			return nil
+		}
+		return err.Error() + ": marshaled"
+	}, "appended string",
+		"",
+		"null",
+
+		`"zot: marshaled"`,
+		`"zot: marshaled"`,
+
+		`"log: marshaled"`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"foo: marshaled","bar: marshaled"`,
+	)
+}
+func TestErrorMarshalFunc_NilError(t *testing.T) {
+	// test returning an nil error from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		return error(nil)
+	}, "nil error",
+		"",
+		"null",
+
+		"",
+		"null",
+
+		"",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"null,null",
+	)
+}
+
+func TestErrorMarshalFunc_UntypedNil(t *testing.T) {
+	// test returning an untyped nil from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		return nil
+	}, "untyped nil",
+		"",
+		"null",
+
+		"",
+		"null",
+
+		"",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"null,null",
+	)
+}
+
 func TestErrorMarshalFunc_WrappedError(t *testing.T) {
 	// test returning an wrapped error from ErrorMarshalFunc
 	testErrorMarshalFunc(t, func(err error) interface{} {
@@ -895,41 +976,56 @@ func TestErrorMarshalFunc_WrappedError(t *testing.T) {
 		} else {
 			return wrappedError{err, "addendum"}
 		}
-	}, []string{
-		"wrapped error",
-		`{"message":"msg"}`,
-		`{"error":"err: addendum","message":"msg"}`,
-		`{"error":"err: addendum","message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["foo: addendum","bar: addendum"],"message":"msg"}`,
-	})
+	}, "wrapped error",
+		"",
+		"null",
+
+		`"zot: addendum"`,
+		`"zot: addendum"`,
+
+		`"log: addendum"`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"foo: addendum","bar: addendum"`,
+	)
 }
 
 func TestErrorMarshalFunc_LoggableType(t *testing.T) {
 	// test returning a loggable type from ErrorMarshalFunc
 	testErrorMarshalFunc(t, func(err error) interface{} {
 		return loggableError{err}
-	}, []string{
-		"loggable type",
-		`{"error":{},"message":"msg"}`,
-		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
-		`{"error":{"message":"err: loggableError"},"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[{"message":"foo: loggableError"},{"message":"bar: loggableError"}],"message":"msg"}`,
-	})
+	}, "loggable type",
+		"{}",
+		"null",
+
+		`{"message":"zot loggableError"}`,
+		`{"message":"zot loggableError"}`,
+
+		`{"message":"log loggableError"}`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`{"message":"foo loggableError"},{"message":"bar loggableError"}`,
+	)
 }
 func TestErrorMarshalFunc_String(t *testing.T) {
 	// test returning a string type from ErrorMarshalFunc
 	testErrorMarshalFunc(t, func(err error) interface{} {
 		return "i'm an err" // return just a string
-	}, []string{
-		"string type",
-		`{"error":"i'm an err","message":"msg"}`,
-		`{"error":"i'm an err","message":"msg"}`,
-		`{"error":"i'm an err","message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":["i'm an err","i'm an err"],"message":"msg"}`,
-	})
+	}, "string type",
+		`"i'm an err"`,
+		"null",
+
+		`"i'm an err"`,
+		`"i'm an err"`,
+
+		`"i'm an err"`,
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		`"i'm an err","i'm an err"`,
+	)
 }
 
 func TestErrorMarshalFunc_NonLoggableType(t *testing.T) {
@@ -939,17 +1035,59 @@ func TestErrorMarshalFunc_NonLoggableType(t *testing.T) {
 			return nil
 		}
 		return nonLoggable{where: "here", how: 42, what: err.Error()}
-	}, []string{
-		"non-loggable type",
-		`{"message":"msg"}`,
-		`{"error":{},"message":"msg"}`,
-		`{"error":{},"message":"msg"}`,
-		`{"errs":[],"message":"msg"}`,
-		`{"errs":[{},{}],"message":"msg"}`,
-	})
+	}, "non-loggable type",
+		"",
+		"null",
+
+		"{}",
+		"{}",
+
+		"{}",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"{},{}",
+	)
 }
 
-func testErrorMarshalFunc(t *testing.T, errFunc func(err error) interface{}, wants []string) {
+func TestErrorMarshalFunc_NilMarshal(t *testing.T) {
+	// test returning a nil from ErrorMarshalFunc
+	testErrorMarshalFunc(t, func(err error) interface{} {
+		var nilerr error = nil
+		return nilerr
+	}, "nil-marshal",
+		"",
+		"null",
+
+		"",
+		"null",
+
+		"",
+		`{"message":"log loggableError"}`,
+
+		"[]",
+		"null,null",
+	)
+}
+
+func testErrorMarshalFunc(t *testing.T,
+	errFunc func(err error) interface{},
+	testcase string,
+
+	whenNil string,
+	whenNilField string,
+
+	hasValue string,
+	hasValueField string,
+
+	whenLoggable string,
+	whenLoggableField string,
+
+	errsNilValue string,
+	errsValue string,
+) {
+	const suffix = `"message":"msg"}`
+
 	if errFunc != nil {
 		originalErrorMarshalFunc := ErrorMarshalFunc
 		defer func() {
@@ -959,61 +1097,109 @@ func testErrorMarshalFunc(t *testing.T, errFunc func(err error) interface{}, wan
 		ErrorMarshalFunc = errFunc
 	}
 
-	testcase := wants[0]
 	var err error
+	wantNil := `{`
+	if whenNil != "" {
+		wantNil = wantNil + `"error":` + whenNil + `,`
+	}
+	wantNil = wantNil + suffix
 
+	wantNilField := `{"err":` + whenNilField + `,` + suffix
 	err = nil
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(nil)", wants[1], func(ctx Context) Context {
+	testContextErrorMarshalFunc(t, testcase+" / context.Err(nil)", wantNil, func(ctx Context) Context {
 		ctx = ctx.Err(err)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Err(nil)", wants[1], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Err(nil)", wantNil, func(e *Event) *Event {
 		e.Err(err)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Err(nil)", wantNilField, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"err": err})
+		return e
+	})
 
-	err = errors.New("err")
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(error)", wants[2], func(ctx Context) Context {
+	wantErr := `{`
+	if hasValue != "" {
+		wantErr = wantErr + `"error":` + hasValue + `,`
+	}
+	wantErr = wantErr + suffix
+	wantErrField := `{"err":` + hasValueField + `,` + suffix
+	err = errors.New("zot")
+	testContextErrorMarshalFunc(t, testcase+" / context.Err(error)", wantErr, func(ctx Context) Context {
 		ctx = ctx.Err(err)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Err(error)", wants[2], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Err(error)", wantErr, func(e *Event) *Event {
 		e.Err(err)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Err(error)", wantErrField, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"err": err})
+		return e
+	})
 
-	err = loggableError{errors.New("err")}
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Err(loggable)", wants[3], func(ctx Context) Context {
+	wantLoggable := `{`
+	if whenLoggable != "" {
+		wantLoggable = wantLoggable + `"error":` + whenLoggable + `,`
+	}
+	wantLoggable = wantLoggable + suffix
+	wantLoggableField := `{"err":` + whenLoggableField + `,` + suffix
+	err = loggableError{errors.New("log")}
+	testContextErrorMarshalFunc(t, testcase+" / context.Err(loggable)", wantLoggable, func(ctx Context) Context {
 		ctx = ctx.Err(err)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Err(loggable)", wants[3], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Err(loggable)", wantLoggable, func(e *Event) *Event {
 		e.Err(err)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Err(loggable)", wantLoggableField, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"err": err})
+		return e
+	})
 
+	wantErrsNil := `{"errs":` + errsNilValue + `,` + suffix
 	var errs []error = nil
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Errs(nil)", wants[4], func(ctx Context) Context {
+	testContextErrorMarshalFunc(t, testcase+" / context.Errs(nil)", wantErrsNil, func(ctx Context) Context {
 		ctx = ctx.Errs("errs", errs)
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Errs(nil)", wants[4], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Errs(nil)", wantErrsNil, func(e *Event) *Event {
 		e.Errs("errs", errs)
 		return e
 	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Errs(nil)", wantErrsNil, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"errs": errs})
+		return e
+	})
 
+	wantErrs := `{"errs":[` + errsValue + `],` + suffix
 	errs = []error{errors.New("foo"), errors.New("bar")}
-	testContextErrorMarshalFunc(t, testcase+" / ctx.Errs([])", wants[5], func(ctx Context) Context {
+	testContextErrorMarshalFunc(t, testcase+" / context.Errs([])", wantErrs, func(ctx Context) Context {
 		ctx = ctx.Errs("errs", []error{errors.New("foo"), errors.New("bar")})
 		return ctx
 	})
-	testEventErrorMarshalFunc(t, testcase+" / e.Errs([])", wants[5], func(e *Event) *Event {
+	testEventErrorMarshalFunc(t, testcase+" / event.Errs([])", wantErrs, func(e *Event) *Event {
 		e.Errs("errs", errs)
+		return e
+	})
+	testFieldsErrorMarshalFunc(t, testcase+" / field.Errs([])", wantErrs, func(e *Event) *Event {
+		e.Fields(map[string]interface{}{"errs": errs})
 		return e
 	})
 }
 
 func testEventErrorMarshalFunc(t *testing.T, testcase string, wants string, test func(e *Event) *Event) {
+	out := &bytes.Buffer{}
+	logger := New(out)
+	test(logger.Log()).Msg("msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()), wants+"\n"; got != want {
+		t.Errorf("%s output:\ngot:  %v\nwant: %v", testcase, got, want)
+	}
+}
+
+func testFieldsErrorMarshalFunc(t *testing.T, testcase string, wants string, test func(e *Event) *Event) {
 	out := &bytes.Buffer{}
 	logger := New(out)
 	test(logger.Log()).Msg("msg")

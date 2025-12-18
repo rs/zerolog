@@ -5,6 +5,8 @@ package zerolog
 import (
 	"bytes"
 	"errors"
+	"io"
+	"os"
 	"strings"
 	"testing"
 )
@@ -169,7 +171,7 @@ func TestEvent_WithNilEvent(t *testing.T) {
 			return e.RawCBOR("k", fixtures.RawCBOR)
 		},
 		"RawJSON": func() *Event {
-			return e.RawJSON("k", fixtures.RawJSON)
+			return e.RawJSON("k", fixtures.RawJSONs[0])
 		},
 		"Str": func() *Event {
 			return e.Str("k", fixtures.Strings[0])
@@ -220,6 +222,9 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		},
 		"Object": func() *Event {
 			return e.Object("k", fixtures.Objects[0])
+		},
+		"Objects": func() *Event {
+			return e.Objects("k", fixtures.Objects)
 		},
 		"EmbedObject": func() *Event {
 			return e.EmbedObject(fixtures.Objects[0])
@@ -299,5 +304,80 @@ func TestEvent_MsgFunc(t *testing.T) {
 	got := strings.TrimSpace(buf.String())
 	if got != want {
 		t.Errorf("Event.MsgFunc() = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_DoneHandler(t *testing.T) {
+	e := newEvent(nil, InfoLevel)
+
+	// Set up a done handler to capture calls
+	var called bool
+	var capturedMsg string
+	e.done = func(msg string) {
+		called = true
+		capturedMsg = msg
+	}
+
+	// Trigger msg via Msg
+	e.Msg("test message")
+
+	// Assert the handler was called with the correct message
+	if !called {
+		t.Error("Done handler was not called")
+	}
+	if capturedMsg != "test message" {
+		t.Errorf("Expected message 'test message', got '%s'", capturedMsg)
+	}
+}
+
+type badLevelWriter struct {
+	err error
+}
+
+func (w *badLevelWriter) WriteLevel(level Level, p []byte) (n int, err error) {
+	return 0, w.err
+}
+
+func (w *badLevelWriter) Write(p []byte) (n int, err error) {
+	return 0, w.err
+}
+
+func TestEvent_Msg_ErrorHandlerNil(t *testing.T) {
+	// Save original ErrorHandler and restore after test
+	originalErrorHandler := ErrorHandler
+	ErrorHandler = nil
+	defer func() { ErrorHandler = originalErrorHandler }()
+
+	// Create a LevelWriter that always returns an error
+	mockWriter := &badLevelWriter{err: errors.New("write error")}
+
+	e := newEvent(mockWriter, InfoLevel)
+	if e == nil {
+		t.Fatal("Event should not be nil")
+	}
+
+	// Capture stderr
+	oldStderr := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stderr = w
+
+	// Call Msg to trigger write error
+	e.Msg("test message")
+
+	// Restore stderr and read captured output
+	w.Close()
+	os.Stderr = oldStderr
+	captured, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Assert the error message was printed to stderr
+	expected := "zerolog: could not write event: write error\n"
+	if string(captured) != expected {
+		t.Errorf("Expected stderr output %q, got %q", expected, string(captured))
 	}
 }

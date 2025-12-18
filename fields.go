@@ -113,6 +113,15 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool) []byte {
 				}
 			}
 			dst = enc.AppendArrayEnd(dst)
+		case []LogObjectMarshaler:
+			dst = enc.AppendArrayStart(dst)
+			for i, obj := range val {
+				dst = appendObject(dst, obj)
+				if i < (len(val) - 1) {
+					dst = enc.AppendArrayDelim(dst)
+				}
+			}
+			dst = enc.AppendArrayEnd(dst)
 		case bool:
 			dst = enc.AppendBool(dst, val)
 		case int:

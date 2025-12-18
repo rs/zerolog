@@ -228,6 +228,22 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 	return e
 }
 
+// Objects adds the field key with obj as an array of objects that implement the LogObjectMarshaler interface.
+func (e *Event) Objects(key string, objs []LogObjectMarshaler) *Event {
+	if e == nil {
+		return e
+	}
+	e.buf = enc.AppendArrayStart(enc.AppendKey(e.buf, key))
+	for i, obj := range objs {
+		e.buf = appendObject(e.buf, obj)
+		if i < (len(objs) - 1) {
+			e.buf = enc.AppendArrayDelim(e.buf)
+		}
+	}
+	e.buf = enc.AppendArrayEnd(e.buf)
+	return e
+}
+
 // Func allows an anonymous func to run only if the event is enabled.
 func (e *Event) Func(f func(e *Event)) *Event {
 	if e != nil && e.Enabled() {
