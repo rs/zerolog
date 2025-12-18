@@ -230,3 +230,9 @@ func (a *Array) Dict(dict *Event) *Array {
 	a.buf = append(enc.AppendArrayDelim(a.buf), dict.buf...)
 	return a
 }
+
+// Type adds the val's type using reflection to the array.
+func (a *Array) Type(val interface{}) *Array {
+	a.buf = enc.AppendType(enc.AppendArrayDelim(a.buf), val)
+	return a
+}
