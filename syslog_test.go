@@ -1,5 +1,5 @@
-// +build !binary_log
-// +build !windows
+//go:build !binary_log && !windows
+// +build !binary_log,!windows
 
 package zerolog
 

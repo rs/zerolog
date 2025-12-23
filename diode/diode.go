@@ -39,10 +39,10 @@ type Writer struct {
 //
 // Use a diode.Writer when
 //
-//     wr := diode.NewWriter(w, 1000, 0, func(missed int) {
-//         log.Printf("Dropped %d messages", missed)
-//     })
-//     log := zerolog.New(wr)
+//	wr := diode.NewWriter(w, 1000, 0, func(missed int) {
+//	    log.Printf("Dropped %d messages", missed)
+//	})
+//	log := zerolog.New(wr)
 //
 // If pollInterval is greater than 0, a poller is used otherwise a waiter is
 // used.
