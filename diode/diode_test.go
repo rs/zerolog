@@ -67,7 +67,9 @@ func TestFatal(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_, _ = io.Copy(&stderrBuf, stderr)
+		if _, err := io.Copy(&stderrBuf, stderr); err != nil {
+			t.Errorf("failed to copy stderr: %v", err)
+		}
 	}()
 
 	err = cmd.Wait()
