@@ -77,7 +77,9 @@ func (c Context) Objects(key string, objs []LogObjectMarshaler) Context {
 func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
 	e := newEvent(LevelWriterAdapter{io.Discard}, 0)
 	e.EmbedObject(obj)
-	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
+	if len(e.buf) > 1 {
+		c.l.context = enc.AppendObjectData(c.l.context, e.buf)
+	}
 	putEvent(e)
 	return c
 }

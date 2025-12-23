@@ -108,3 +108,46 @@ func Test_InterfaceLogObjectMarshaler(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+type emptyObjectMarshaler struct {
+	name string
+}
+
+func (t *emptyObjectMarshaler) MarshalZerologObject(e *Event) {
+	if t.name != "" {
+		e.Str("name", t.name)
+	}
+}
+
+func TestContext_EmbedObject(t *testing.T) {
+	tests := []struct {
+		name string
+		obj  *emptyObjectMarshaler
+		want string
+	}{
+		{
+			name: "empty object",
+			obj:  &emptyObjectMarshaler{name: ""},
+			want: `{"level":"info","parent_field":"parent_value","message":"test"}` + "\n",
+		},
+		{
+			name: "non-empty object",
+			obj:  &emptyObjectMarshaler{name: "Alice"},
+			want: `{"level":"info","parent_field":"parent_value","name":"Alice","message":"test"}` + "\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			parentCtx := New(&buf).With().Str("parent_field", "parent_value")
+			logger := parentCtx.EmbedObject(tt.obj).Logger()
+			logger.Info().Msg("test")
+
+			got := cbor.DecodeIfBinaryToString(buf.Bytes())
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
