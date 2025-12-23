@@ -59,7 +59,8 @@ func (a *Array) write(dst []byte) []byte {
 // Object marshals an object that implement the LogObjectMarshaler
 // interface and appends it to the array.
 func (a *Array) Object(obj LogObjectMarshaler) *Array {
-	a.buf = appendObject(enc.AppendArrayDelim(a.buf), obj)
+	// TODO can we get context, stack, and hooks here?
+	a.buf = appendObject(enc.AppendArrayDelim(a.buf), obj, false, nil, nil)
 	return a
 }
 
@@ -90,12 +91,12 @@ func (a *Array) RawJSON(val []byte) *Array {
 // Err serializes and appends the err to the array.
 func (a *Array) Err(err error) *Array {
 	switch m := ErrorMarshalFunc(err).(type) {
+	case nil:
+		a.buf = enc.AppendNil(enc.AppendArrayDelim(a.buf))
 	case LogObjectMarshaler:
 		a = a.Object(m)
 	case error:
-		if m == nil || isNilValue(m) {
-			a.buf = enc.AppendNil(enc.AppendArrayDelim(a.buf))
-		} else {
+		if !isNilValue(m) {
 			a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
 		}
 	case string:
@@ -105,6 +106,27 @@ func (a *Array) Err(err error) *Array {
 	}
 
 	return a
+}
+
+// Errs serializes and appends errors to the array.
+func (arr *Array) Errs(errs []error) *Array {
+	for _, err := range errs {
+		switch m := ErrorMarshalFunc(err).(type) {
+		case nil:
+			arr = arr.Interface(nil)
+		case LogObjectMarshaler:
+			arr = arr.Object(m)
+		case error:
+			if !isNilValue(m) {
+				arr = arr.Str(m.Error())
+			}
+		case string:
+			arr = arr.Str(m)
+		default:
+			arr = arr.Interface(m)
+		}
+	}
+	return arr
 }
 
 // Bool appends the val as a bool to the array.
