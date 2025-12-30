@@ -163,7 +163,7 @@ func TestEvent_WithNilEvent(t *testing.T) {
 	fixtures := makeFieldFixtures()
 	types := map[string]func() *Event{
 		"Array": func() *Event {
-			arr := Arr()
+			arr := e.CreateArray()
 			return e.Array("k", arr)
 		},
 		"Bool": func() *Event {
@@ -278,7 +278,7 @@ func TestEvent_WithNilEvent(t *testing.T) {
 			return e.Times("k", fixtures.Times)
 		},
 		"Dict": func() *Event {
-			d := Dict()
+			d := e.CreateDict()
 			d.Str("greeting", "hello")
 			return e.Dict("k", d)
 		},

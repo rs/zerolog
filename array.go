@@ -1,6 +1,7 @@
 package zerolog
 
 import (
+	"context"
 	"net"
 	"sync"
 	"time"
@@ -17,7 +18,10 @@ var arrayPool = &sync.Pool{
 // Array is used to prepopulate an array of items
 // which can be re-used to add to log messages.
 type Array struct {
-	buf []byte
+	buf   []byte
+	stack bool            // enable error stack trace
+	ctx   context.Context // Optional Go context
+	ch    []Hook          // hooks
 }
 
 func putArray(a *Array) {
@@ -31,13 +35,22 @@ func putArray(a *Array) {
 	if cap(a.buf) > maxSize {
 		return
 	}
+	a.stack = false
+	a.ctx = nil
+	a.ch = nil
 	arrayPool.Put(a)
 }
 
 // Arr creates an array to be added to an Event or Context.
+// WARNING: This function is deprecated because it does not preserve
+// the stack, hooks, and context from the parent event.
+// Deprecated: Use Event.CreateArray or Context.CreateArray instead.
 func Arr() *Array {
 	a := arrayPool.Get().(*Array)
 	a.buf = a.buf[:0]
+	a.stack = false
+	a.ctx = nil
+	a.ch = nil
 	return a
 }
 
@@ -59,8 +72,7 @@ func (a *Array) write(dst []byte) []byte {
 // Object marshals an object that implement the LogObjectMarshaler
 // interface and appends it to the array.
 func (a *Array) Object(obj LogObjectMarshaler) *Array {
-	// TODO can we get context, stack, and hooks here?
-	a.buf = appendObject(enc.AppendArrayDelim(a.buf), obj, false, nil, nil)
+	a.buf = appendObject(enc.AppendArrayDelim(a.buf), obj, a.stack, a.ctx, a.ch)
 	return a
 }
 
@@ -109,24 +121,24 @@ func (a *Array) Err(err error) *Array {
 }
 
 // Errs serializes and appends errors to the array.
-func (arr *Array) Errs(errs []error) *Array {
+func (a *Array) Errs(errs []error) *Array {
 	for _, err := range errs {
 		switch m := ErrorMarshalFunc(err).(type) {
 		case nil:
-			arr = arr.Interface(nil)
+			a = a.Interface(nil)
 		case LogObjectMarshaler:
-			arr = arr.Object(m)
+			a = a.Object(m)
 		case error:
 			if !isNilValue(m) {
-				arr = arr.Str(m.Error())
+				a = a.Str(m.Error())
 			}
 		case string:
-			arr = arr.Str(m)
+			a = a.Str(m)
 		default:
-			arr = arr.Interface(m)
+			a = a.Interface(m)
 		}
 	}
-	return arr
+	return a
 }
 
 // Bool appends the val as a bool to the array.

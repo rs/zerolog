@@ -35,6 +35,10 @@ func (w wrappedError) Error() string {
 	return w.error.Error() + ": " + w.msg
 }
 
+type interfaceError struct {
+	val string
+}
+
 func TestArrayErrorMarshalFunc(t *testing.T) {
 	prefixed := func(s, prefix string) string {
 		if s == "null" {
@@ -90,7 +94,19 @@ func TestArrayErrorMarshalFunc(t *testing.T) {
 			want: []string{`null`, `"failure"`, `"whoops"`, `"oops"`},
 		},
 		{
-			name: "nil error",
+			name: "interface",
+			marshal: func(err error) interface{} {
+				var some interfaceError
+				if err != nil {
+					some.val = err.Error()
+				}
+				var interfaceErr interface{} = some
+				return interfaceErr
+			},
+			want: []string{`{}`, `{}`, `{}`, `{}`},
+		},
+		{
+			name: "nilError",
 			marshal: func(err error) interface{} {
 				var errNil error = nil
 				return errNil
@@ -130,7 +146,7 @@ func TestArrayErrorMarshalFunc(t *testing.T) {
 						wants := `[` + want + `]`
 						a := Arr().Err(err)
 						if got := decodeObjectToStr(a.write([]byte{})); got != wants {
-							t.Errorf("%s Array.Err(%v)\ngot:  %s\nwant: %s", tc.name, err, got, wants)
+							t.Errorf("%s %d Array.Err(%v)\ngot:  %s\nwant: %s", tc.name, i, err, got, wants)
 						}
 					})
 					t.Run("Ctx", func(t *testing.T) {
@@ -139,7 +155,7 @@ func TestArrayErrorMarshalFunc(t *testing.T) {
 						logger := New(out).With().Err(err).Logger()
 						logger.Log().Msg("msg")
 						if got := decodeIfBinaryToString(out.Bytes()); got != wants {
-							t.Errorf("%s Ctx.Err(%v)\ngot:  %v\nwant: %v", tc.name, err, got, wants)
+							t.Errorf("%s %d Ctx.Err(%v)\ngot:  %v\nwant: %v", tc.name, i, err, got, wants)
 						}
 					})
 					t.Run("Event", func(t *testing.T) {
@@ -148,16 +164,19 @@ func TestArrayErrorMarshalFunc(t *testing.T) {
 						logger := New(out)
 						logger.Log().Err(err).Msg("msg")
 						if got := decodeIfBinaryToString(out.Bytes()); got != wants {
-							t.Errorf("%s Event.Err(%v)\ngot:  %v\nwant: %v", tc.name, err, got, wants)
+							t.Errorf("%s %d Event.Err(%v)\ngot:  %v\nwant: %v", tc.name, i, err, got, wants)
 						}
 					})
 					t.Run("Fields", func(t *testing.T) {
+						if i == 0 && tc.want[i] == "{}" {
+							want = `null`
+						}
 						wants := `{"err":` + want + `,"message":"msg"}` + "\n"
 						out := &bytes.Buffer{}
 						logger := New(out)
 						logger.Log().Fields(map[string]interface{}{"err": err}).Msg("msg")
 						if got := decodeIfBinaryToString(out.Bytes()); got != wants {
-							t.Errorf("%s Event.Fields(%v)\ngot:  %v\nwant: %v", tc.name, err, got, wants)
+							t.Errorf("%s %d Event.Fields(%v)\ngot:  %v\nwant: %v", tc.name, i, err, got, wants)
 						}
 					})
 				}

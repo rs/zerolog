@@ -192,12 +192,13 @@ func ExampleLogger_Log() {
 func ExampleEvent_Dict() {
 	log := zerolog.New(os.Stdout)
 
-	log.Log().
-		Str("foo", "bar").
-		Dict("dict", zerolog.Dict().
-			Str("bar", "baz").
-			Int("n", 1),
-		).
+	e := log.Log().
+		Str("foo", "bar")
+
+	e.Dict("dict", e.CreateDict().
+		Str("bar", "baz").
+		Int("n", 1),
+	).
 		Msg("hello world")
 
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
@@ -242,16 +243,17 @@ func (uu Users) MarshalZerologArray(a *zerolog.Array) {
 func ExampleEvent_Array() {
 	log := zerolog.New(os.Stdout)
 
-	log.Log().
-		Str("foo", "bar").
-		Array("array", zerolog.Arr().
-			Str("baz").
-			Int(1).
-			Dict(zerolog.Dict().
-				Str("bar", "baz").
-				Int("n", 1),
-			),
-		).
+	e := log.Log().
+		Str("foo", "bar")
+
+	e.Array("array", e.CreateArray().
+		Str("baz").
+		Int(1).
+		Dict(e.CreateDict().
+			Str("bar", "baz").
+			Int("n", 1),
+		),
+	).
 		Msg("hello world")
 
 	// Output: {"foo":"bar","array":["baz",1,{"bar":"baz","n":1}],"message":"hello world"}
@@ -380,27 +382,29 @@ func ExampleEvent_Fields_slice() {
 }
 
 func ExampleContext_Dict() {
-	log := zerolog.New(os.Stdout).With().
-		Str("foo", "bar").
-		Dict("dict", zerolog.Dict().
-			Str("bar", "baz").
-			Int("n", 1),
-		).Logger()
+	ctx := zerolog.New(os.Stdout).With().
+		Str("foo", "bar")
 
-	log.Log().Msg("hello world")
+	logger := ctx.Dict("dict", ctx.CreateDict().
+		Str("bar", "baz").
+		Int("n", 1),
+	).Logger()
+
+	logger.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
 }
 
 func ExampleContext_Array() {
-	log := zerolog.New(os.Stdout).With().
-		Str("foo", "bar").
-		Array("array", zerolog.Arr().
-			Str("baz").
-			Int(1),
-		).Logger()
+	ctx := zerolog.New(os.Stdout).With().
+		Str("foo", "bar")
 
-	log.Log().Msg("hello world")
+	logger := ctx.Array("array", ctx.CreateArray().
+		Str("baz").
+		Int(1),
+	).Logger()
+
+	logger.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","array":["baz",1],"message":"hello world"}
 }

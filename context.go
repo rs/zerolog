@@ -34,8 +34,28 @@ func (c Context) Dict(key string, dict *Event) Context {
 	return c
 }
 
+// CreateDict creates an Event to be used with the Context.Dict method.
+// It preserves the stack, hooks, and context from the logger.
+// Call usual field methods like Str, Int etc to add fields to this
+// event and give it as argument the Context.Dict method.
+func (c Context) CreateDict() *Event {
+	return newEvent(nil, DebugLevel, c.l.stack, c.l.ctx, c.l.hooks)
+}
+
+// CreateArray creates an Array to be used with the Context.Array method.
+// It preserves the stack, hooks, and context from the logger.
+// Call usual field methods like Str, Int etc to add elements to this
+// array and give it as argument the Context.Array method.
+func (c Context) CreateArray() *Array {
+	a := Arr()
+	a.stack = c.l.stack
+	a.ctx = c.l.ctx
+	a.ch = c.l.hooks
+	return a
+}
+
 // Array adds the field key with an array to the event context.
-// Use zerolog.Arr() to create the array or pass a type that
+// Use c.CreateArray() to create the array or pass a type that
 // implement the LogArrayMarshaler interface.
 func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 	c.l.context = enc.AppendKey(c.l.context, key)
@@ -43,7 +63,7 @@ func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 		c.l.context = arr.write(c.l.context)
 		return c
 	}
-	a := Arr()
+	a := c.CreateArray()
 	arr.MarshalZerologArray(a)
 	c.l.context = a.write(c.l.context)
 	return c
@@ -155,7 +175,7 @@ func (c Context) AnErr(key string, err error) Context {
 // Errs adds the field key with errs as an array of serialized errors to the
 // logger context.
 func (c Context) Errs(key string, errs []error) Context {
-	arr := Arr().Errs(errs)
+	arr := c.CreateArray().Errs(errs)
 	return c.Array(key, arr)
 }
 

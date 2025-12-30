@@ -170,7 +170,7 @@ func (e *Event) Fields(fields interface{}) *Event {
 }
 
 // Dict adds the field key with a dict to the event context.
-// Use zerolog.Dict() to create the dictionary.
+// Use e.CreateDict() to create the dictionary.
 func (e *Event) Dict(key string, dict *Event) *Event {
 	if e == nil {
 		return e
@@ -181,16 +181,43 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	return e
 }
 
+// CreateDict creates an Event to be used with the *Event.Dict method.
+// It preserves the stack, hooks, and context from the parent event.
+// Call usual field methods like Str, Int etc to add fields to this
+// event and give it as argument the *Event.Dict method.
+func (e *Event) CreateDict() *Event {
+	if e == nil {
+		return newEvent(nil, DebugLevel, false, nil, nil)
+	}
+	return newEvent(nil, DebugLevel, e.stack, e.ctx, e.ch)
+}
+
 // Dict creates an Event to be used with the *Event.Dict method.
 // Call usual field methods like Str, Int etc to add fields to this
 // event and give it as argument the *Event.Dict method.
+// NOTE: This function is deprecated because it does not preserve
+// the stack, hooks, and context from the parent event.
+// Deprecated: Use Event.CreateDict instead.
 func Dict() *Event {
-	// TODO can we get context, stack, and hooks here?
 	return newEvent(nil, DebugLevel, false, nil, nil)
 }
 
+// CreateArray creates an Array to be used with the *Event.Array method.
+// It preserves the stack, hooks, and context from the parent event.
+// Call usual field methods like Str, Int etc to add elements to this
+// array and give it as argument the *Event.Array method.
+func (e *Event) CreateArray() *Array {
+	a := Arr()
+	if e != nil {
+		a.stack = e.stack
+		a.ctx = e.ctx
+		a.ch = e.ch
+	}
+	return a
+}
+
 // Array adds the field key with an array to the event context.
-// Use zerolog.Arr() to create the array or pass a type that
+// Use e.CreateArray() to create the array or pass a type that
 // implement the LogArrayMarshaler interface.
 func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 	if e == nil {
@@ -201,7 +228,7 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 	if aa, ok := arr.(*Array); ok {
 		a = aa
 	} else {
-		a = Arr()
+		a = e.CreateArray()
 		arr.MarshalZerologArray(a)
 	}
 	e.buf = a.write(e.buf)
@@ -379,7 +406,7 @@ func (e *Event) Errs(key string, errs []error) *Event {
 	if e == nil {
 		return e
 	}
-	arr := Arr().Errs(errs)
+	arr := e.CreateArray().Errs(errs)
 	return e.Array(key, arr)
 }
 
