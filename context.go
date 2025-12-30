@@ -3,7 +3,6 @@ package zerolog
 import (
 	"context"
 	"fmt"
-	"io"
 	"math"
 	"net"
 	"time"
@@ -23,7 +22,7 @@ func (c Context) Logger() Logger {
 // Only map[string]interface{} and []interface{} are accepted. []interface{} must
 // alternate string keys and arbitrary values, and extraneous ones are ignored.
 func (c Context) Fields(fields interface{}) Context {
-	c.l.context = appendFields(c.l.context, fields, c.l.stack)
+	c.l.context = appendFields(c.l.context, fields, c.l.stack, c.l.ctx, c.l.hooks)
 	return c
 }
 
@@ -35,8 +34,28 @@ func (c Context) Dict(key string, dict *Event) Context {
 	return c
 }
 
+// CreateDict creates an Event to be used with the Context.Dict method.
+// It preserves the stack, hooks, and context from the logger.
+// Call usual field methods like Str, Int etc to add fields to this
+// event and give it as argument the Context.Dict method.
+func (c Context) CreateDict() *Event {
+	return newEvent(nil, DebugLevel, c.l.stack, c.l.ctx, c.l.hooks)
+}
+
+// CreateArray creates an Array to be used with the Context.Array method.
+// It preserves the stack, hooks, and context from the logger.
+// Call usual field methods like Str, Int etc to add elements to this
+// array and give it as argument the Context.Array method.
+func (c Context) CreateArray() *Array {
+	a := Arr()
+	a.stack = c.l.stack
+	a.ctx = c.l.ctx
+	a.ch = c.l.hooks
+	return a
+}
+
 // Array adds the field key with an array to the event context.
-// Use zerolog.Arr() to create the array or pass a type that
+// Use c.CreateArray() to create the array or pass a type that
 // implement the LogArrayMarshaler interface.
 func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 	c.l.context = enc.AppendKey(c.l.context, key)
@@ -44,20 +63,15 @@ func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 		c.l.context = arr.write(c.l.context)
 		return c
 	}
-	var a *Array
-	if aa, ok := arr.(*Array); ok {
-		a = aa
-	} else {
-		a = Arr()
-		arr.MarshalZerologArray(a)
-	}
+	a := c.CreateArray()
+	arr.MarshalZerologArray(a)
 	c.l.context = a.write(c.l.context)
 	return c
 }
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (c Context) Object(key string, obj LogObjectMarshaler) Context {
-	e := newEvent(LevelWriterAdapter{io.Discard}, 0)
+	e := c.l.scratchEvent()
 	e.Object(key, obj)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
 	putEvent(e)
@@ -66,7 +80,7 @@ func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 
 // Object marshals an object that implement the LogObjectMarshaler interface.
 func (c Context) Objects(key string, objs []LogObjectMarshaler) Context {
-	e := newEvent(LevelWriterAdapter{io.Discard}, 0)
+	e := c.l.scratchEvent()
 	e.Objects(key, objs)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
 	putEvent(e)
@@ -75,7 +89,7 @@ func (c Context) Objects(key string, objs []LogObjectMarshaler) Context {
 
 // EmbedObject marshals and Embeds an object that implement the LogObjectMarshaler interface.
 func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
-	e := newEvent(LevelWriterAdapter{io.Discard}, 0)
+	e := c.l.scratchEvent()
 	e.EmbedObject(obj)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
 	putEvent(e)
@@ -139,6 +153,7 @@ func (c Context) RawJSON(key string, b []byte) Context {
 }
 
 // AnErr adds the field key with serialized err to the logger context.
+// If err is nil, no field is added.
 func (c Context) AnErr(key string, err error) Context {
 	switch m := ErrorMarshalFunc(err).(type) {
 	case nil:
@@ -146,11 +161,10 @@ func (c Context) AnErr(key string, err error) Context {
 	case LogObjectMarshaler:
 		return c.Object(key, m)
 	case error:
-		if m == nil || isNilValue(m) {
+		if isNilValue(m) {
 			return c
-		} else {
-			return c.Str(key, m.Error())
 		}
+		return c.Str(key, m.Error())
 	case string:
 		return c.Str(key, m)
 	default:
@@ -161,24 +175,7 @@ func (c Context) AnErr(key string, err error) Context {
 // Errs adds the field key with errs as an array of serialized errors to the
 // logger context.
 func (c Context) Errs(key string, errs []error) Context {
-	arr := Arr()
-	for _, err := range errs {
-		switch m := ErrorMarshalFunc(err).(type) {
-		case LogObjectMarshaler:
-			arr = arr.Object(m)
-		case error:
-			if m == nil || isNilValue(m) {
-				arr = arr.Interface(nil)
-			} else {
-				arr = arr.Str(m.Error())
-			}
-		case string:
-			arr = arr.Str(m)
-		default:
-			arr = arr.Interface(m)
-		}
-	}
-
+	arr := c.CreateArray().Errs(errs)
 	return c.Array(key, arr)
 }
 
@@ -187,12 +184,11 @@ func (c Context) Err(err error) Context {
 	if c.l.stack && ErrorStackMarshaler != nil {
 		switch m := ErrorStackMarshaler(err).(type) {
 		case nil:
+			// do nothing
 		case LogObjectMarshaler:
 			c = c.Object(ErrorStackFieldName, m)
 		case error:
-			if m != nil && !isNilValue(m) {
-				c = c.Str(ErrorStackFieldName, m.Error())
-			}
+			c = c.Str(ErrorStackFieldName, m.Error())
 		case string:
 			c = c.Str(ErrorStackFieldName, m)
 		default:

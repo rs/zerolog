@@ -487,20 +487,19 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 		}
 		return nil
 	}
-	e := newEvent(l.w, level)
+	e := newEvent(l.w, level, l.stack, l.ctx, l.hooks)
 	e.done = done
-	e.ch = l.hooks
-	e.ctx = l.ctx
 	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}
 	if len(l.context) > 1 {
 		e.buf = enc.AppendObjectData(e.buf, l.context)
 	}
-	if l.stack {
-		e.Stack()
-	}
 	return e
+}
+
+func (l *Logger) scratchEvent() *Event {
+	return newEvent(LevelWriterAdapter{io.Discard}, DebugLevel, l.stack, l.ctx, l.hooks)
 }
 
 // should returns true if the log event should be logged.

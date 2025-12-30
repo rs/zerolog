@@ -206,12 +206,13 @@ func ExampleEvent_Dict() {
 	dst := bytes.Buffer{}
 	log := New(&dst)
 
-	log.Log().
-		Str("foo", "bar").
-		Dict("dict", Dict().
-			Str("bar", "baz").
-			Int("n", 1),
-		).
+	e := log.Log().
+		Str("foo", "bar")
+
+	e.Dict("dict", e.CreateDict().
+		Str("bar", "baz").
+		Int("n", 1),
+	).
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -243,12 +244,13 @@ func ExampleEvent_Array() {
 	dst := bytes.Buffer{}
 	log := New(&dst)
 
-	log.Log().
-		Str("foo", "bar").
-		Array("array", Arr().
-			Str("baz").
-			Int(1),
-		).
+	e := log.Log().
+		Str("foo", "bar")
+
+	e.Array("array", e.CreateArray().
+		Str("baz").
+		Int(1),
+	).
 		Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
@@ -414,14 +416,15 @@ func ExampleEvent_Fields_slice() {
 
 func ExampleContext_Dict() {
 	dst := bytes.Buffer{}
-	log := New(&dst).With().
-		Str("foo", "bar").
-		Dict("dict", Dict().
-			Str("bar", "baz").
-			Int("n", 1),
-		).Logger()
+	ctx := New(&dst).With().
+		Str("foo", "bar")
 
-	log.Log().Msg("hello world")
+	logger := ctx.Dict("dict", ctx.CreateDict().
+		Str("bar", "baz").
+		Int("n", 1),
+	).Logger()
+
+	logger.Log().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
@@ -429,14 +432,15 @@ func ExampleContext_Dict() {
 
 func ExampleContext_Array() {
 	dst := bytes.Buffer{}
-	log := New(&dst).With().
-		Str("foo", "bar").
-		Array("array", Arr().
-			Str("baz").
-			Int(1),
-		).Logger()
+	ctx := New(&dst).With().
+		Str("foo", "bar")
 
-	log.Log().Msg("hello world")
+	logger := ctx.Array("array", ctx.CreateArray().
+		Str("baz").
+		Int(1),
+	).Logger()
+
+	logger.Log().Msg("hello world")
 
 	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
 	// Output: {"foo":"bar","array":["baz",1],"message":"hello world"}
