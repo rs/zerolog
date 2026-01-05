@@ -57,14 +57,15 @@ type LogArrayMarshaler interface {
 	MarshalZerologArray(a *Array)
 }
 
-func newEvent(w LevelWriter, level Level) *Event {
+func newEvent(w LevelWriter, level Level, stack bool, ctx context.Context, hooks []Hook) *Event {
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:0]
-	e.ch = nil
+	e.stack = stack
+	e.ctx = ctx
+	e.ch = hooks
 	e.buf = enc.AppendBeginMarker(e.buf)
 	e.w = w
 	e.level = level
-	e.stack = false
 	e.skipFrame = 0
 	return e
 }
@@ -164,12 +165,12 @@ func (e *Event) Fields(fields interface{}) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = appendFields(e.buf, fields, e.stack)
+	e.buf = appendFields(e.buf, fields, e.stack, e.ctx, e.ch)
 	return e
 }
 
 // Dict adds the field key with a dict to the event context.
-// Use zerolog.Dict() to create the dictionary.
+// Use e.CreateDict() to create the dictionary.
 func (e *Event) Dict(key string, dict *Event) *Event {
 	if e == nil {
 		return e
@@ -180,15 +181,43 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	return e
 }
 
+// CreateDict creates an Event to be used with the *Event.Dict method.
+// It preserves the stack, hooks, and context from the parent event.
+// Call usual field methods like Str, Int etc to add fields to this
+// event and give it as argument the *Event.Dict method.
+func (e *Event) CreateDict() *Event {
+	if e == nil {
+		return newEvent(nil, DebugLevel, false, nil, nil)
+	}
+	return newEvent(nil, DebugLevel, e.stack, e.ctx, e.ch)
+}
+
 // Dict creates an Event to be used with the *Event.Dict method.
 // Call usual field methods like Str, Int etc to add fields to this
 // event and give it as argument the *Event.Dict method.
+// NOTE: This function is deprecated because it does not preserve
+// the stack, hooks, and context from the parent event.
+// Deprecated: Use Event.CreateDict instead.
 func Dict() *Event {
-	return newEvent(nil, 0)
+	return newEvent(nil, DebugLevel, false, nil, nil)
+}
+
+// CreateArray creates an Array to be used with the *Event.Array method.
+// It preserves the stack, hooks, and context from the parent event.
+// Call usual field methods like Str, Int etc to add elements to this
+// array and give it as argument the *Event.Array method.
+func (e *Event) CreateArray() *Array {
+	a := Arr()
+	if e != nil {
+		a.stack = e.stack
+		a.ctx = e.ctx
+		a.ch = e.ch
+	}
+	return a
 }
 
 // Array adds the field key with an array to the event context.
-// Use zerolog.Arr() to create the array or pass a type that
+// Use e.CreateArray() to create the array or pass a type that
 // implement the LogArrayMarshaler interface.
 func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 	if e == nil {
@@ -199,7 +228,7 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 	if aa, ok := arr.(*Array); ok {
 		a = aa
 	} else {
-		a = Arr()
+		a = e.CreateArray()
 		arr.MarshalZerologArray(a)
 	}
 	e.buf = a.write(e.buf)
@@ -235,7 +264,7 @@ func (e *Event) Objects(key string, objs []LogObjectMarshaler) *Event {
 	}
 	e.buf = enc.AppendArrayStart(enc.AppendKey(e.buf, key))
 	for i, obj := range objs {
-		e.buf = appendObject(e.buf, obj)
+		e.buf = appendObject(e.buf, obj, e.stack, e.ctx, e.ch)
 		if i < (len(objs) - 1) {
 			e.buf = enc.AppendArrayDelim(e.buf)
 		}
@@ -360,11 +389,10 @@ func (e *Event) AnErr(key string, err error) *Event {
 	case LogObjectMarshaler:
 		return e.Object(key, m)
 	case error:
-		if m == nil || isNilValue(m) {
+		if isNilValue(m) {
 			return e
-		} else {
-			return e.Str(key, m.Error())
 		}
+		return e.Str(key, m.Error())
 	case string:
 		return e.Str(key, m)
 	default:
@@ -378,20 +406,7 @@ func (e *Event) Errs(key string, errs []error) *Event {
 	if e == nil {
 		return e
 	}
-	arr := Arr()
-	for _, err := range errs {
-		switch m := ErrorMarshalFunc(err).(type) {
-		case LogObjectMarshaler:
-			arr = arr.Object(m)
-		case error:
-			arr = arr.Err(m)
-		case string:
-			arr = arr.Str(m)
-		default:
-			arr = arr.Interface(m)
-		}
-	}
-
+	arr := e.CreateArray().Errs(errs)
 	return e.Array(key, arr)
 }
 
@@ -407,21 +422,22 @@ func (e *Event) Err(err error) *Event {
 	if e == nil {
 		return e
 	}
+
 	if e.stack && ErrorStackMarshaler != nil {
 		switch m := ErrorStackMarshaler(err).(type) {
 		case nil:
+			// do nothing
 		case LogObjectMarshaler:
-			e.Object(ErrorStackFieldName, m)
+			e = e.Object(ErrorStackFieldName, m)
 		case error:
-			if m != nil && !isNilValue(m) {
-				e.Str(ErrorStackFieldName, m.Error())
-			}
+			e = e.Str(ErrorStackFieldName, m.Error())
 		case string:
-			e.Str(ErrorStackFieldName, m)
+			e = e.Str(ErrorStackFieldName, m)
 		default:
-			e.Interface(ErrorStackFieldName, m)
+			e = e.Interface(ErrorStackFieldName, m)
 		}
 	}
+
 	return e.AnErr(ErrorFieldName, err)
 }
 

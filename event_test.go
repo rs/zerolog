@@ -1,9 +1,11 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -14,7 +16,7 @@ import (
 type nilError struct{}
 
 func (nilError) Error() string {
-	return ""
+	return "nope"
 }
 
 func TestEvent_AnErr(t *testing.T) {
@@ -30,9 +32,13 @@ func TestEvent_AnErr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
-			e.AnErr("err", tt.err)
-			_ = e.write()
+			e := newEvent(LevelWriterAdapter{&buf}, DebugLevel, false, nil, nil)
+			e = e.AnErr("err", tt.err)
+			err := e.write()
+			if err != nil {
+				t.Errorf("Event.AnErr() error: %v", err)
+			}
+
 			if got, want := strings.TrimSpace(buf.String()), tt.want; got != want {
 				t.Errorf("Event.AnErr() = %v, want %v", got, want)
 			}
@@ -50,30 +56,104 @@ func TestEvent_writeWithNil(t *testing.T) {
 	}
 }
 
-func TestEvent_ObjectWithNil(t *testing.T) {
-	var buf bytes.Buffer
-	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
-	_ = e.Object("obj", nil)
-	_ = e.write()
-
-	want := `{"obj":null}`
-	got := strings.TrimSpace(buf.String())
-	if got != want {
-		t.Errorf("Event.Object() = %q, want %q", got, want)
-	}
+type loggableObject struct {
+	member string
 }
 
-func TestEvent_EmbedObjectWithNil(t *testing.T) {
-	var buf bytes.Buffer
-	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
-	_ = e.EmbedObject(nil)
-	_ = e.write()
+func (o loggableObject) MarshalZerologObject(e *Event) {
+	e.Str("member", o.member)
+}
 
-	want := "{}"
-	got := strings.TrimSpace(buf.String())
-	if got != want {
-		t.Errorf("Event.EmbedObject() = %q, want %q", got, want)
-	}
+func TestEvent_Object(t *testing.T) {
+	t.Run("ObjectWithNil", func(t *testing.T) {
+		var buf bytes.Buffer
+		e := newEvent(LevelWriterAdapter{&buf}, DebugLevel, false, nil, nil)
+		e = e.Object("obj", nil)
+		err := e.write()
+		if err != nil {
+			t.Errorf("Event.Object() error: %v", err)
+		}
+
+		want := `{"obj":null}`
+		got := strings.TrimSpace(buf.String())
+		if got != want {
+			t.Errorf("Event.Object()\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run("EmbedObjectWithNil", func(t *testing.T) {
+		var buf bytes.Buffer
+		e := newEvent(LevelWriterAdapter{&buf}, DebugLevel, false, nil, nil)
+		e = e.EmbedObject(nil)
+		err := e.write()
+		if err != nil {
+			t.Errorf("Event.EmbedObject() error: %v", err)
+		}
+
+		want := "{}"
+		got := strings.TrimSpace(buf.String())
+		if got != want {
+			t.Errorf("Event.EmbedObject()\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	type contextKeyType struct{}
+	var contextKey = contextKeyType{}
+
+	called := false
+	ctxHook := HookFunc(func(e *Event, level Level, message string) {
+		called = true
+		ctx := e.GetCtx()
+		if ctx == nil {
+			t.Errorf("expected context to be set in Event")
+		}
+		val := ctx.Value(contextKey)
+		if val == nil {
+			t.Errorf("expected context value, got %v", val)
+		}
+		e.Str("ctxValue", val.(string))
+		e.Bool("stackValue", e.stack)
+	})
+
+	t.Run("ObjectWithFullContext", func(t *testing.T) {
+		called = false
+		ctx := context.WithValue(context.Background(), contextKey, "ctx-object")
+
+		var buf bytes.Buffer
+		e := newEvent(LevelWriterAdapter{&buf}, DebugLevel, true, ctx, []Hook{ctxHook})
+		e = e.Object("obj", loggableObject{member: "object-value"})
+		e.Msg("hello")
+
+		if !called {
+			t.Errorf("hook was not called")
+		}
+
+		want := `{"obj":{"member":"object-value"},"ctxValue":"ctx-object","stackValue":true,"message":"hello"}`
+		got := strings.TrimSpace(buf.String())
+		if got != want {
+			t.Errorf("Event.EmbedObject()\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run("EmbedObjectWithFullContext", func(t *testing.T) {
+		called = false
+		ctx := context.WithValue(context.Background(), contextKey, "ctx-embed")
+
+		var buf bytes.Buffer
+		e := newEvent(LevelWriterAdapter{&buf}, DebugLevel, false, ctx, []Hook{ctxHook})
+		e = e.EmbedObject(loggableObject{member: "embedded-value"})
+		e.Msg("hello")
+
+		if !called {
+			t.Errorf("hook was not called")
+		}
+
+		want := `{"member":"embedded-value","ctxValue":"ctx-embed","stackValue":false,"message":"hello"}`
+		got := strings.TrimSpace(buf.String())
+		if got != want {
+			t.Errorf("Event.EmbedObject()\ngot:  %s\nwant: %s", got, want)
+		}
+	})
 }
 
 func TestEvent_WithNilEvent(t *testing.T) {
@@ -83,7 +163,7 @@ func TestEvent_WithNilEvent(t *testing.T) {
 	fixtures := makeFieldFixtures()
 	types := map[string]func() *Event{
 		"Array": func() *Event {
-			arr := Arr()
+			arr := e.CreateArray()
 			return e.Array("k", arr)
 		},
 		"Bool": func() *Event {
@@ -198,7 +278,7 @@ func TestEvent_WithNilEvent(t *testing.T) {
 			return e.Times("k", fixtures.Times)
 		},
 		"Dict": func() *Event {
-			d := Dict()
+			d := e.CreateDict()
 			d.Str("greeting", "hello")
 			return e.Dict("k", d)
 		},
@@ -289,7 +369,7 @@ func TestEvent_WithNilEvent(t *testing.T) {
 
 func TestEvent_MsgFunc(t *testing.T) {
 	var buf bytes.Buffer
-	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel)
+	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel, false, nil, nil)
 
 	called := false
 	e.MsgFunc(func() string {
@@ -308,7 +388,7 @@ func TestEvent_MsgFunc(t *testing.T) {
 }
 
 func TestEvent_DoneHandler(t *testing.T) {
-	e := newEvent(nil, InfoLevel)
+	e := newEvent(nil, InfoLevel, false, nil, nil)
 
 	// Set up a done handler to capture calls
 	var called bool
@@ -351,7 +431,7 @@ func TestEvent_Msg_ErrorHandlerNil(t *testing.T) {
 	// Create a LevelWriter that always returns an error
 	mockWriter := &badLevelWriter{err: errors.New("write error")}
 
-	e := newEvent(mockWriter, InfoLevel)
+	e := newEvent(mockWriter, InfoLevel, false, nil, nil)
 	if e == nil {
 		t.Fatal("Event should not be nil")
 	}

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
 	"time"
 
@@ -60,14 +61,24 @@ func TestFatal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	slurp, err := io.ReadAll(stderr)
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	var stderrBuf bytes.Buffer
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if _, err := io.Copy(&stderrBuf, stderr); err != nil {
+			t.Errorf("failed to copy stderr: %v", err)
+		}
+	}()
+
 	err = cmd.Wait()
 	if err == nil {
 		t.Error("Expected log.Fatal to exit with non-zero status")
 	}
+
+	wg.Wait() // Wait for the goroutine to finish copying
+	slurp := stderrBuf.Bytes()
 
 	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
 	got := cbor.DecodeIfBinaryToString(slurp)
@@ -112,14 +123,22 @@ func TestFatalWithFilteredLevelWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	slurp, err := io.ReadAll(stdout)
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	var stdoutBuf bytes.Buffer
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, _ = io.Copy(&stdoutBuf, stdout)
+	}()
+
 	err = cmd.Wait()
 	if err == nil {
 		t.Error("Expected log.Fatal to exit with non-zero status")
 	}
+
+	wg.Wait() // Wait for the goroutine to finish copying
+	slurp := stdoutBuf.Bytes()
 
 	got := cbor.DecodeIfBinaryToString(slurp)
 	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
