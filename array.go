@@ -193,7 +193,7 @@ func (a *Array) Time(t time.Time) *Array {
 
 // Dur appends d to the array.
 func (a *Array) Dur(d time.Duration) *Array {
-	a.buf = enc.AppendDuration(enc.AppendArrayDelim(a.buf), d, DurationFieldUnit, DurationFieldInteger, FloatingPointPrecision)
+	a.buf = enc.AppendDuration(enc.AppendArrayDelim(a.buf), d, DurationFieldUnit, DurationFieldFormat, DurationFieldInteger, FloatingPointPrecision)
 	return a
 }
 

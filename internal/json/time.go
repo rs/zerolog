@@ -7,10 +7,13 @@ import (
 
 const (
 	// Import from zerolog/global.go
-	timeFormatUnix      = ""
-	timeFormatUnixMs    = "UNIXMS"
-	timeFormatUnixMicro = "UNIXMICRO"
-	timeFormatUnixNano  = "UNIXNANO"
+	timeFormatUnix       = ""
+	timeFormatUnixMs     = "UNIXMS"
+	timeFormatUnixMicro  = "UNIXMICRO"
+	timeFormatUnixNano   = "UNIXNANO"
+	durationFormatFloat  = "float"
+	durationFormatInt    = "int"
+	durationFormatString = "string"
 )
 
 // AppendTime formats the input time with the given format
@@ -88,24 +91,32 @@ func appendUnixNanoTimes(dst []byte, vals []time.Time, div int64) []byte {
 
 // AppendDuration formats the input duration with the given unit & format
 // and appends the encoded string to the input byte slice.
-func (e Encoder) AppendDuration(dst []byte, d time.Duration, unit time.Duration, useInt bool, precision int) []byte {
+func (e Encoder) AppendDuration(dst []byte, d time.Duration, unit time.Duration, format string, useInt bool, precision int) []byte {
 	if useInt {
 		return strconv.AppendInt(dst, int64(d/unit), 10)
+	}
+	switch format {
+	case durationFormatFloat:
+		return e.AppendFloat64(dst, float64(d)/float64(unit), precision)
+	case durationFormatInt:
+		return e.AppendInt64(dst, int64(d/unit))
+	case durationFormatString:
+		return e.AppendString(dst, d.String())
 	}
 	return e.AppendFloat64(dst, float64(d)/float64(unit), precision)
 }
 
 // AppendDurations formats the input durations with the given unit & format
 // and appends the encoded string list to the input byte slice.
-func (e Encoder) AppendDurations(dst []byte, vals []time.Duration, unit time.Duration, useInt bool, precision int) []byte {
+func (e Encoder) AppendDurations(dst []byte, vals []time.Duration, unit time.Duration, format string, useInt bool, precision int) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = e.AppendDuration(dst, vals[0], unit, useInt, precision)
+	dst = e.AppendDuration(dst, vals[0], unit, format, useInt, precision)
 	if len(vals) > 1 {
 		for _, d := range vals[1:] {
-			dst = e.AppendDuration(append(dst, ','), d, unit, useInt, precision)
+			dst = e.AppendDuration(append(dst, ','), d, unit, format, useInt, precision)
 		}
 	}
 	dst = append(dst, ']')

@@ -4,6 +4,17 @@ import (
 	"time"
 )
 
+const (
+	// Import from zerolog/global.go
+	timeFormatUnix       = ""
+	timeFormatUnixMs     = "UNIXMS"
+	timeFormatUnixMicro  = "UNIXMICRO"
+	timeFormatUnixNano   = "UNIXNANO"
+	durationFormatFloat  = "float"
+	durationFormatInt    = "int"
+	durationFormatString = "string"
+)
+
 func appendIntegerTimestamp(dst []byte, t time.Time) []byte {
 	major := majorTypeTags
 	minor := additionalTypeTimestamp
@@ -63,9 +74,17 @@ func (e Encoder) AppendTimes(dst []byte, vals []time.Time, unused string) []byte
 // AppendDuration encodes and adds a duration to the dst byte array.
 // useInt field indicates whether to store the duration as seconds (integer) or
 // as seconds+nanoseconds (float).
-func (e Encoder) AppendDuration(dst []byte, d time.Duration, unit time.Duration, useInt bool, unused int) []byte {
+func (e Encoder) AppendDuration(dst []byte, d time.Duration, unit time.Duration, format string, useInt bool, unused int) []byte {
 	if useInt {
 		return e.AppendInt64(dst, int64(d/unit))
+	}
+	switch format {
+	case durationFormatFloat:
+		return e.AppendFloat64(dst, float64(d)/float64(unit), unused)
+	case durationFormatInt:
+		return e.AppendInt64(dst, int64(d/unit))
+	case durationFormatString:
+		return e.AppendString(dst, d.String())
 	}
 	return e.AppendFloat64(dst, float64(d)/float64(unit), unused)
 }
@@ -73,7 +92,7 @@ func (e Encoder) AppendDuration(dst []byte, d time.Duration, unit time.Duration,
 // AppendDurations encodes and adds an array of durations to the dst byte array.
 // useInt field indicates whether to store the duration as seconds (integer) or
 // as seconds+nanoseconds (float).
-func (e Encoder) AppendDurations(dst []byte, vals []time.Duration, unit time.Duration, useInt bool, unused int) []byte {
+func (e Encoder) AppendDurations(dst []byte, vals []time.Duration, unit time.Duration, format string, useInt bool, unused int) []byte {
 	major := majorTypeArray
 	l := len(vals)
 	if l == 0 {
@@ -86,7 +105,7 @@ func (e Encoder) AppendDurations(dst []byte, vals []time.Duration, unit time.Dur
 		dst = appendCborTypePrefix(dst, major, uint64(l))
 	}
 	for _, d := range vals {
-		dst = e.AppendDuration(dst, d, unit, useInt, unused)
+		dst = e.AppendDuration(dst, d, unit, format, useInt, unused)
 	}
 	return dst
 }
