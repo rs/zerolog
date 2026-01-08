@@ -671,7 +671,7 @@ Some settings can be changed and will be applied to all loggers:
 - `zerolog.ErrorFieldName`: Can be set to customize `Err` field name.
 - `zerolog.TimeFieldFormat`: Can be set to customize `Time` field value formatting. If set with `zerolog.TimeFormatUnix`, `zerolog.TimeFormatUnixMs` or `zerolog.TimeFormatUnixMicro`, times are formatted as UNIX timestamp.
 - `zerolog.DurationFieldUnit`: Can be set to customize the unit for time.Duration type fields added by `Dur` (default: `time.Millisecond`).
-- `zerolog.DurationFieldFormat`: Can be set to `DurationFormatFloat`, `DurationFormatInt`, or `DurationFormatString` (default: `DurationFormatFloat`), appends the `Duration` as a `Float64`, `Int64` or by calling `String()` (respectively)
+- `zerolog.DurationFieldFormat`: Can be set to `DurationFormatFloat`, `DurationFormatInt`, or `DurationFormatString` (default: `DurationFormatFloat`) to append the `Duration` as a `Float64`, `Int64`, or by calling `String()` (respectively).
 - `zerolog.DurationFieldInteger`: If set to `true`, `Dur` fields are formatted as integers instead of floats (default: `false`). Deprecated: Use `zerolog.DurationFieldFormat = DurationFormatInt` instead.
 - `zerolog.ErrorHandler`: Called whenever zerolog fails to write an event on its output. If not set, an error is printed on the stderr. This handler must be thread safe and non-blocking.
 - `zerolog.FloatingPointPrecision`: If set to a value other than -1, controls the number of digits when formatting float numbers in JSON. See [strconv.FormatFloat](https://pkg.go.dev/strconv#FormatFloat)
@@ -814,3 +814,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
     })
 }
 ```
+
+The `Event` object returned from the `Logger` level-specific message functions (e.g. `Log()`, `Trace()`, `Debug()`, etc.)
+is allocated in `sync.Pool` memory that will be returned to the pool as soon as the `Msg()`, `Msgf()`, `Send()`,
+or `MsgFunc()` writes the message and **must not** be accessed afterwards.
+
+**Do not** hold a reference to the `*Event` while in callback functions or your own code. This is especially important in
+`Hook.Run()` and `HookFunc` functions or `MarshalZerologObject(e *Event)` callbacks. Similarly, `Array` objects returned
+from `Context.CreateArray()` or `Event.CreateArray()` are from a `sync.Pool` so don't hold references to them from within
+any `MarshalZerologArray(a *Array)` callback (e.g. `LogArrayMarshaler` implementations).
