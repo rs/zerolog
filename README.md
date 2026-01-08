@@ -820,6 +820,11 @@ is allocated in `sync.Pool` memory that will be returned to the pool as soon as 
 or `MsgFunc()` writes the message and **must not** be accessed afterwards.
 
 **Do not** hold a reference to the `*Event` while in callback functions or your own code. This is especially important in
-`Hook.Run()` and `HookFunc` functions or `MarshalZerologObject(e *Event)` callbacks. Similarly, `Array` objects returned
-from `Context.CreateArray()` or `Event.CreateArray()` are from a `sync.Pool` so don't hold references to them from within
-any `MarshalZerologArray(a *Array)` callback (e.g. `LogArrayMarshaler` implementations).
+`Hook.Run()` and `HookFunc` functions or `MarshalZerologObject(e *Event)` callback (e.g. `LogObjectMarshaler` implementations).
+
+Any `Array` objects returned from `Context.CreateArray()` or `Event.CreateArray()` are from a `sync.Pool` so **do not** hold
+references to them from within any `MarshalZerologArray(a *Array)` callback (e.g. `LogArrayMarshaler` implementations) or your
+own code as they will be cleared and returned to the pool after being buffered by a call to `Context.Array()` or `Event.Array()`.
+
+Any _dictionary_ `Event` returned from `Context.CreateDict()` or `Event.CreateDict()` **must not** be referenced after being
+buffered by a call to `Context.Dict()` or `Event.Dict()` as they will be cleared and returned to the pool.
