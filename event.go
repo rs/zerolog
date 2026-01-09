@@ -32,6 +32,15 @@ type Event struct {
 }
 
 func putEvent(e *Event) {
+	// prevent any subsequent use of the Event contextual state and truncate the buffer
+	e.w = nil
+	e.done = nil
+	e.stack = false
+	e.ch = nil
+	e.skipFrame = 0
+	e.ctx = nil
+	e.buf = e.buf[:0]
+
 	// Proper usage of a sync.Pool requires each entry to have approximately
 	// the same memory cost. To obtain this property when the stored type
 	// contains a variably-sized buffer, we add a hard limit on the maximum buffer
@@ -463,8 +472,8 @@ func (e *Event) Ctx(ctx context.Context) *Event {
 }
 
 // GetCtx retrieves the Go context.Context which is optionally stored in the
-// Event.  This allows Hooks and functions passed to Func() to retrieve values
-// which are stored in the context.Context.  This can be useful in tracing,
+// Event. This allows Hooks and functions passed to Func() to retrieve values
+// which are stored in the context.Context. This can be useful in tracing,
 // where span information is commonly propagated in the context.Context.
 func (e *Event) GetCtx() context.Context {
 	if e == nil || e.ctx == nil {
