@@ -25,6 +25,12 @@ type Array struct {
 }
 
 func putArray(a *Array) {
+	// prevent any subsequent use of the Array contextual state and truncate the buffer
+	a.stack = false
+	a.ctx = nil
+	a.ch = nil
+	a.buf = a.buf[:0]
+
 	// Proper usage of a sync.Pool requires each entry to have approximately
 	// the same memory cost. To obtain this property when the stored type
 	// contains a variably-sized buffer, we add a hard limit on the maximum buffer
@@ -35,9 +41,6 @@ func putArray(a *Array) {
 	if cap(a.buf) > maxSize {
 		return
 	}
-	a.stack = false
-	a.ctx = nil
-	a.ch = nil
 	arrayPool.Put(a)
 }
 
