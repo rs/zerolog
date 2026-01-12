@@ -827,4 +827,4 @@ references to them from within any `MarshalZerologArray(a *Array)` callback (e.g
 own code as they will be cleared and returned to the pool after being buffered by a call to `Context.Array()` or `Event.Array()`.
 
 Any _dictionary_ `Event` returned from `Context.CreateDict()` or `Event.CreateDict()` **must not** be referenced after being
-buffered by a call to `Context.Dict()` or `Event.Dict()` as they will be cleared and returned to the pool.
+buffered by a call to `Array.Dict()`, `Context.Dict()`, or `Event.Dict()` as they will be cleared and returned to the pool.
