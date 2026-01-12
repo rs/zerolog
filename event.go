@@ -180,11 +180,10 @@ func (e *Event) Fields(fields interface{}) *Event {
 // Dict adds the field key with a dict to the event context.
 // Use e.CreateDict() to create the dictionary.
 func (e *Event) Dict(key string, dict *Event) *Event {
-	if e == nil {
-		return e
+	if e != nil {
+		dict.buf = enc.AppendEndMarker(dict.buf)
+		e.buf = append(enc.AppendKey(e.buf, key), dict.buf...)
 	}
-	dict.buf = enc.AppendEndMarker(dict.buf)
-	e.buf = append(enc.AppendKey(e.buf, key), dict.buf...)
 	putEvent(dict)
 	return e
 }
