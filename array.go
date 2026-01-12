@@ -38,10 +38,9 @@ func putArray(a *Array) {
 	//
 	// See https://golang.org/issue/23199
 	const maxSize = 1 << 16 // 64KiB
-	if cap(a.buf) > maxSize {
-		return
+	if cap(a.buf) <= maxSize {
+		arrayPool.Put(a)
 	}
-	arrayPool.Put(a)
 }
 
 // Arr creates an array to be added to an Event or Context.
@@ -60,6 +59,7 @@ func Arr() *Array {
 // MarshalZerologArray method here is no-op - since data is
 // already in the needed format.
 func (*Array) MarshalZerologArray(*Array) {
+	// untestable: there's no code to be covered
 }
 
 func (a *Array) write(dst []byte) []byte {

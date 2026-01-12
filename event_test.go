@@ -387,6 +387,23 @@ func TestEvent_MsgFunc(t *testing.T) {
 	}
 }
 
+func TestEvent_CallerRuntimeFail(t *testing.T) {
+	var buf bytes.Buffer
+	e := newEvent(LevelWriterAdapter{&buf}, DebugLevel, false, nil, nil)
+
+	// Set a very large skipFrame to make runtime.Caller fail
+	e.CallerSkipFrame(1000)
+	e.Caller()
+
+	e.Msg("test")
+
+	got := strings.TrimSpace(buf.String())
+	want := `{"message":"test"}` // No caller field because runtime.Caller failed
+	if got != want {
+		t.Errorf("Event.Caller() with failed runtime.Caller = %q, want %q", got, want)
+	}
+}
+
 func TestEvent_DoneHandler(t *testing.T) {
 	e := newEvent(nil, InfoLevel, false, nil, nil)
 
@@ -459,5 +476,243 @@ func TestEvent_Msg_ErrorHandlerNil(t *testing.T) {
 	expected := "zerolog: could not write event: write error\n"
 	if string(captured) != expected {
 		t.Errorf("Expected stderr output %q, got %q", expected, string(captured))
+	}
+}
+
+type mockLogObjectMarshaler struct {
+	data string
+}
+
+func (m mockLogObjectMarshaler) MarshalZerologObject(e *Event) {
+	e.Str("stack_func", m.data)
+}
+
+func TestEvent_ErrWithStackMarshaler(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler
+	ErrorStackMarshaler = func(err error) interface{} {
+		return "stack-trace"
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Err(err).Msg("test message")
+
+	got := buf.String()
+	want := `{"stack":"stack-trace","error":"test error","message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Err() with stack marshaler = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_FieldsWithErrorAndStackMarshaler(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler
+	ErrorStackMarshaler = func(err error) interface{} {
+		return "stack-trace"
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Fields([]interface{}{"error", err}).Msg("test message")
+
+	got := buf.String()
+	want := `{"error":"test error","stack":"stack-trace","message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Fields() with error and stack marshaler = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_FieldsWithErrorAndStackMarshalerObject(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler that returns LogObjectMarshaler
+	ErrorStackMarshaler = func(err error) interface{} {
+		return mockLogObjectMarshaler{data: "stack-data"}
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Fields([]interface{}{"error", err}).Msg("test message")
+
+	got := buf.String()
+	want := `{"error":"test error","stack":{"stack_func":"stack-data"},"message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Fields() with error and stack marshaler object = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_FieldsWithErrorAndStackMarshalerError(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler that returns an error
+	ErrorStackMarshaler = func(err error) interface{} {
+		return errors.New("stack error")
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Fields([]interface{}{"error", err}).Msg("test message")
+
+	got := buf.String()
+	want := `{"error":"test error","stack":"stack error","message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Fields() with error and stack marshaler error = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_FieldsWithErrorAndStackMarshalerInterface(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler that returns an int
+	ErrorStackMarshaler = func(err error) interface{} {
+		return 42
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Fields([]interface{}{"error", err}).Msg("test message")
+
+	got := buf.String()
+	want := `{"error":"test error","stack":42,"message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Fields() with error and stack marshaler interface = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_FieldsWithErrorAndStackMarshalerNil(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set marshaler to return nil
+	ErrorStackMarshaler = func(err error) interface{} {
+		return nil
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Fields([]interface{}{"error", err}).Msg("test message")
+
+	got := buf.String()
+	want := `{"error":"test error","message":"test message"}` + "\n" // No stack field because marshaler returned nil
+	if got != want {
+		t.Errorf("Event.Fields() with error and nil stack marshaler = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_ErrWithStackMarshalerObject(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler that returns LogObjectMarshaler
+	ErrorStackMarshaler = func(err error) interface{} {
+		return mockLogObjectMarshaler{data: "stack-data"}
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Err(err).Msg("test message")
+
+	got := buf.String()
+	want := `{"stack":{"stack_func":"stack-data"},"error":"test error","message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Err() with stack marshaler object = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_ErrWithStackMarshalerError(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler that returns an error
+	ErrorStackMarshaler = func(err error) interface{} {
+		return errors.New("stack error")
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Err(err).Msg("test message")
+
+	got := buf.String()
+	want := `{"stack":"stack error","error":"test error","message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Err() with stack marshaler error = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_ErrWithStackMarshalerInterface(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set a mock marshaler that returns an int
+	ErrorStackMarshaler = func(err error) interface{} {
+		return 42
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Err(err).Msg("test message")
+
+	got := buf.String()
+	want := `{"stack":42,"error":"test error","message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Event.Err() with stack marshaler interface = %q, want %q", got, want)
+	}
+}
+
+func TestEvent_ErrWithStackMarshalerNil(t *testing.T) {
+	// Save original
+	original := ErrorStackMarshaler
+	defer func() { ErrorStackMarshaler = original }()
+
+	// Set marshaler to return nil
+	ErrorStackMarshaler = func(err error) interface{} {
+		return nil
+	}
+
+	var buf bytes.Buffer
+	log := New(&buf)
+
+	err := errors.New("test error")
+	log.Log().Stack().Err(err).Msg("test message")
+
+	got := buf.String()
+	want := `{"message":"test message"}` + "\n" // No fields because stack marshaler returned nil
+	if got != want {
+		t.Errorf("Event.Err() with nil stack marshaler = %q, want %q", got, want)
 	}
 }

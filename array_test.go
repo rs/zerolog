@@ -59,3 +59,8 @@ func TestArray(t *testing.T) {
 		t.Errorf("Array.write()\ngot:  %s\nwant: %s", got, want)
 	}
 }
+
+func TestArray_MarshalZerologArray(t *testing.T) {
+	a := Arr()
+	a.MarshalZerologArray(nil) // no-op method, should not panic
+}

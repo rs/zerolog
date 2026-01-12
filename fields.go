@@ -5,13 +5,18 @@ import (
 	"encoding/json"
 	"io"
 	"net"
+	"reflect"
 	"sort"
 	"time"
-	"unsafe"
 )
 
-func isNilValue(i interface{}) bool {
-	return (*[2]uintptr)(unsafe.Pointer(&i))[1] == 0
+func isNilValue(e error) bool {
+	switch reflect.TypeOf(e).Kind() {
+	case reflect.Ptr:
+		return reflect.ValueOf(e).IsNil()
+	default:
+		return false
+	}
 }
 
 func appendFields(dst []byte, fields interface{}, stack bool, ctx context.Context, hooks []Hook) []byte {
@@ -77,7 +82,7 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool, ctx context.C
 			if stack && ErrorStackMarshaler != nil {
 				switch m := ErrorStackMarshaler(val).(type) {
 				case nil:
-					// do nothing
+					return dst // do nothing with nil errors
 				case LogObjectMarshaler:
 					dst = enc.AppendKey(dst, ErrorStackFieldName)
 					dst = appendObject(dst, m, stack, ctx, hooks)

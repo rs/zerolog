@@ -217,6 +217,8 @@ var IPPrefixTestCases = []struct {
 	{net.IPNet{IP: net.IP{0, 0, 0, 0}, Mask: net.CIDRMask(0, 32)}, "\"0.0.0.0/0\"", "\xd9\x01\x05\xa1\x44\x00\x00\x00\x00\x00"},
 	{net.IPNet{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}, "\"192.168.0.100/24\"",
 		"\xd9\x01\x05\xa1\x44\xc0\xa8\x00\x64\x18\x18"},
+	{net.IPNet{IP: net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, Mask: net.CIDRMask(128, 128)}, "\"::1/128\"",
+		"\xd9\x01\x05\xa1\x50\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x18\x80"},
 }
 
 var IPPrefixArrayTestCases = []struct {

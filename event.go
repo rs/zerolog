@@ -48,10 +48,9 @@ func putEvent(e *Event) {
 	//
 	// See https://golang.org/issue/23199
 	const maxSize = 1 << 16 // 64KiB
-	if cap(e.buf) > maxSize {
-		return
+	if cap(e.buf) <= maxSize {
+		eventPool.Put(e)
 	}
-	eventPool.Put(e)
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -435,7 +434,7 @@ func (e *Event) Err(err error) *Event {
 	if e.stack && ErrorStackMarshaler != nil {
 		switch m := ErrorStackMarshaler(err).(type) {
 		case nil:
-			// do nothing
+			return e
 		case LogObjectMarshaler:
 			e = e.Object(ErrorStackFieldName, m)
 		case error:
@@ -835,11 +834,9 @@ func (e *Event) caller(skip int) *Event {
 	if e == nil {
 		return e
 	}
-	pc, file, line, ok := runtime.Caller(skip + e.skipFrame)
-	if !ok {
-		return e
+	if pc, file, line, ok := runtime.Caller(skip + e.skipFrame); ok {
+		e.buf = enc.AppendString(enc.AppendKey(e.buf, CallerFieldName), CallerMarshalFunc(pc, file, line))
 	}
-	e.buf = enc.AppendString(enc.AppendKey(e.buf, CallerFieldName), CallerMarshalFunc(pc, file, line))
 	return e
 }
 
