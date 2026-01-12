@@ -265,6 +265,7 @@ func (a *Array) MACAddr(ha net.HardwareAddr) *Array {
 func (a *Array) Dict(dict *Event) *Array {
 	dict.buf = enc.AppendEndMarker(dict.buf)
 	a.buf = append(enc.AppendArrayDelim(a.buf), dict.buf...)
+	putEvent(dict)
 	return a
 }
 
