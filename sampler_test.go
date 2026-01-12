@@ -135,3 +135,48 @@ func TestBurst(t *testing.T) {
 		}
 	}
 }
+
+func TestLevelSampler(t *testing.T) {
+	// Create mock samplers that return true for specific levels
+	traceSampler := &BasicSampler{N: 1} // Always sample
+	debugSampler := &BasicSampler{N: 0} // Never sample
+	infoSampler := &BasicSampler{N: 1}  // Always sample
+	warnSampler := &BasicSampler{N: 0}  // Never sample
+	errorSampler := &BasicSampler{N: 1} // Always sample
+
+	sampler := LevelSampler{
+		TraceSampler: traceSampler,
+		DebugSampler: debugSampler,
+		InfoSampler:  infoSampler,
+		WarnSampler:  warnSampler,
+		ErrorSampler: errorSampler,
+	}
+
+	// Test each level
+	if !sampler.Sample(TraceLevel) {
+		t.Error("TraceLevel should be sampled")
+	}
+	if sampler.Sample(DebugLevel) {
+		t.Error("DebugLevel should not be sampled")
+	}
+	if !sampler.Sample(InfoLevel) {
+		t.Error("InfoLevel should be sampled")
+	}
+	if sampler.Sample(WarnLevel) {
+		t.Error("WarnLevel should not be sampled")
+	}
+	if !sampler.Sample(ErrorLevel) {
+		t.Error("ErrorLevel should be sampled")
+	}
+
+	// Test levels not covered by the LevelSampler sampler (FatalLevel, PanicLevel, NoLevel) - should return true
+	if !sampler.Sample(FatalLevel) {
+		t.Error("FatalLevel should return true when no sampler is set")
+	}
+	if !sampler.Sample(PanicLevel) {
+		t.Error("PanicLevel should return true when no sampler is set")
+	}
+	if !sampler.Sample(NoLevel) {
+		t.Error("NoLevel should return true when no sampler is set")
+	}
+}

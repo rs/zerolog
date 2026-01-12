@@ -41,6 +41,7 @@ var encodeStringTests = []struct {
 			"<------------------------------------  This is a 100 character string ----------------------------->" +
 			"<------------------------------------  This is a 100 character string ----------------------------->"},
 	{"emoji \u2764\ufe0f!", "\x6demoji ❤️!", "emoji \u2764\ufe0f!"},
+	{"invalid utf8 \xff", "\x6einvalid utf8 \xff", "invalid utf8 \\ufffd"},
 }
 
 var encodeByteTests = []struct {
@@ -96,7 +97,7 @@ func TestAppendStrings(t *testing.T) {
 		array = append(array, tt.plain)
 	}
 	want := make([]byte, 0)
-	want = append(want, 0x94) // start array length 24
+	want = append(want, 0x95) // start array
 	for _, tt := range encodeStringTests {
 		want = append(want, []byte(tt.binary)...)
 	}
@@ -210,6 +211,72 @@ func BenchmarkAppendString(b *testing.B) {
 			buf := make([]byte, 0, 120)
 			for i := 0; i < b.N; i++ {
 				_ = enc.AppendString(buf, str)
+			}
+		})
+	}
+}
+
+func TestAppendEmbeddedJSON(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []byte
+		want  string
+	}{
+		{
+			name:  "empty JSON",
+			input: []byte{},
+			want:  "\xd9\x01\x06@", // tag 0xd9 + empty byte string
+		},
+		{
+			name:  "small JSON",
+			input: []byte(`{"key":"value"}`),
+			want:  "\xd9\x01\x06O{\"key\":\"value\"}", // tag 0xd9 + byte string with content
+		},
+		{
+			name:  "large JSON (>23 bytes)",
+			input: []byte(`{"key":"this is a very long value that exceeds the 23 byte limit for direct encoding"}`),
+			want:  "\xd9\x01\x06XV{\"key\":\"this is a very long value that exceeds the 23 byte limit for direct encoding\"}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AppendEmbeddedJSON([]byte{}, tt.input)
+			if string(got) != tt.want {
+				t.Errorf("AppendEmbeddedJSON() = %q, want %q", string(got), tt.want)
+			}
+		})
+	}
+}
+
+func TestAppendEmbeddedCBOR(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []byte
+		want  string
+	}{
+		{
+			name:  "empty CBOR",
+			input: []byte{},
+			want:  "\xd8?@", // tag 0xd8 + empty byte string
+		},
+		{
+			name:  "small CBOR",
+			input: []byte{0x01, 0x02, 0x03},
+			want:  "\xd8?C\x01\x02\x03", // tag 0xd8 + byte string with 3 bytes
+		},
+		{
+			name:  "large CBOR (>23 bytes)",
+			input: make([]byte, 30),                        // 30 bytes of zeros
+			want:  "\xd8?X\x1e" + string(make([]byte, 30)), // tag 0xd8 + byte string with length prefix
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AppendEmbeddedCBOR([]byte{}, tt.input)
+			if string(got) != tt.want {
+				t.Errorf("AppendEmbeddedCBOR() = %q, want %q", string(got), tt.want)
 			}
 		})
 	}

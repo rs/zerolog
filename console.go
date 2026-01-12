@@ -101,9 +101,9 @@ type ConsoleWriter struct {
 // NewConsoleWriter creates and initializes a new ConsoleWriter.
 func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 	w := ConsoleWriter{
-		Out:          os.Stdout,
-		TimeFormat:   consoleDefaultTimeFormat,
-		PartsOrder:   consoleDefaultPartsOrder(),
+		Out:        os.Stdout,
+		TimeFormat: consoleDefaultTimeFormat,
+		PartsOrder: consoleDefaultPartsOrder(),
 	}
 
 	for _, opt := range options {

@@ -156,6 +156,20 @@ func TestWith(t *testing.T) {
 	}
 }
 
+func TestStackedWiths(t *testing.T) {
+	out := &bytes.Buffer{}
+	ctx := New(out).With().
+		Bool("bool", true)
+	ctx = ctx.Logger().With().
+		Int("int", 1)
+	log := ctx.Logger()
+	log.Log().Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()),
+		`{"bool":true,"int":1}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestWithPlurals(t *testing.T) {
 	out := &bytes.Buffer{}
 	ctx := New(out).With().
@@ -273,6 +287,25 @@ func TestFieldsMap_Arrays(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+func TestWithErr(t *testing.T) {
+	var err error = nil
+	out := &bytes.Buffer{}
+	ctx := New(out).With().
+		Fields(map[string]interface{}{
+			"nil":          nil,
+			"nilerror":     err,
+			"error":        errors.New("some error"),
+			"loggable":     loggableError{errors.New("loggable")},
+			"non-loggable": nonLoggableError{fmt.Errorf("oops"), 401},
+		})
+	log := ctx.Logger()
+	log.Log().Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"error":"some error","loggable":{"l":"LOGGABLE"},"nil":null,"nilerror":null,"non-loggable":"oops"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestFieldsErr(t *testing.T) {
 	var err error = nil
 	out := &bytes.Buffer{}
@@ -717,6 +750,28 @@ func TestSampling(t *testing.T) {
 	}
 }
 
+func TestDisableSampling(t *testing.T) {
+	// Save original state
+	original := samplingDisabled()
+	defer DisableSampling(original)
+
+	out := &bytes.Buffer{}
+	log := New(out).Sample(&BasicSampler{N: 2})
+
+	// Enable sampling disable
+	DisableSampling(true)
+
+	log.Log().Int("i", 1).Msg("")
+	log.Log().Int("i", 2).Msg("")
+	log.Log().Int("i", 3).Msg("")
+	log.Log().Int("i", 4).Msg("")
+
+	// All messages should be logged since sampling is disabled
+	if got, want := decodeIfBinaryToString(out.Bytes()), "{\"i\":1}\n{\"i\":2}\n{\"i\":3}\n{\"i\":4}\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestDiscard(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
@@ -752,6 +807,10 @@ func (lw *levelWriter) WriteLevel(lvl Level, p []byte) (int, error) {
 	return len(p), nil
 }
 
+func (lw *levelWriter) Close() error {
+	return nil
+}
+
 func TestLevelWriter(t *testing.T) {
 	lw := &levelWriter{
 		ops: []struct {
@@ -775,10 +834,15 @@ func TestLevelWriter(t *testing.T) {
 	log.WithLevel(InfoLevel).Msg("7")
 	log.WithLevel(WarnLevel).Msg("8")
 	log.WithLevel(ErrorLevel).Msg("9")
+	log.WithLevel(FatalLevel).Msg("10")
+	log.WithLevel(PanicLevel).Msg("11")
 	log.WithLevel(NoLevel).Msg("nolevel-2")
-	log.WithLevel(-1).Msg("-1") // Same as TraceLevel
-	log.WithLevel(-2).Msg("-2") // Will log
-	log.WithLevel(-3).Msg("-3") // Will not log
+	log.WithLevel(-1).Msg("-1")                  // Same as TraceLevel
+	log.WithLevel(-2).Msg("-2")                  // Will log
+	log.WithLevel(-3).Msg("-3")                  // Will not log
+	log.WithLevel(Disabled).Msg("Disabled")      // Will not log
+	log.Err(nil).Msg("e-1")                      // Will log at InfoLevel
+	log.Err(errors.New("some error")).Msg("e-2") // Will log at ErrorLevel
 
 	want := []struct {
 		l Level
@@ -795,12 +859,165 @@ func TestLevelWriter(t *testing.T) {
 		{InfoLevel, `{"level":"info","message":"7"}` + "\n"},
 		{WarnLevel, `{"level":"warn","message":"8"}` + "\n"},
 		{ErrorLevel, `{"level":"error","message":"9"}` + "\n"},
+		{FatalLevel, `{"level":"fatal","message":"10"}` + "\n"},
+		{PanicLevel, `{"level":"panic","message":"11"}` + "\n"},
 		{NoLevel, `{"message":"nolevel-2"}` + "\n"},
 		{Level(-1), `{"level":"trace","message":"-1"}` + "\n"},
 		{Level(-2), `{"level":"-2","message":"-2"}` + "\n"},
+		{InfoLevel, `{"level":"info","message":"e-1"}` + "\n"},
+		{ErrorLevel, `{"level":"error","error":"some error","message":"e-2"}` + "\n"},
 	}
 	if got := lw.ops; !reflect.DeepEqual(got, want) {
 		t.Errorf("invalid ops:\ngot:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestDisabledLevel(t *testing.T) {
+	lw := &levelWriter{
+		ops: []struct {
+			l Level
+			p string
+		}{},
+	}
+
+	// Allow extra-verbose logs.
+	SetGlobalLevel(TraceLevel - 1)
+	log := New(lw).Level(Disabled)
+	log.Error().Msg("0")                    // will not log
+	log.Log().Msg("nolevel-1")              // will not log
+	log.WithLevel(ErrorLevel).Msg("3")      // will not log
+	log.WithLevel(NoLevel).Msg("nolevel-2") // will not log
+	log.WithLevel(Disabled).Msg("Disabled") // will not log
+
+	want := []struct {
+		l Level
+		p string
+	}{}
+	if got := lw.ops; !reflect.DeepEqual(got, want) {
+		t.Errorf("invalid ops:\ngot:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestPanicLevel(t *testing.T) {
+	lw := &levelWriter{
+		ops: []struct {
+			l Level
+			p string
+		}{},
+	}
+
+	// Allow extra-verbose logs.
+	SetGlobalLevel(TraceLevel - 1)
+	log := New(lw).Level(TraceLevel - 1)
+
+	// Catch the panic from log.Panic().Msg("1")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic from log.Panic()")
+		}
+	}()
+	log.Panic().Msg("1")
+	log.WithLevel(PanicLevel).Msg("2")
+
+	want := []struct {
+		l Level
+		p string
+	}{
+		{PanicLevel, `{"level":"panic","message":"1"}` + "\n"},
+		{PanicLevel, `{"level":"panic","message":"2"}` + "\n"},
+	}
+	if got := lw.ops; !reflect.DeepEqual(got, want) {
+		t.Errorf("invalid ops:\ngot:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestFatalLevel(t *testing.T) {
+	lw := &levelWriter{
+		ops: []struct {
+			l Level
+			p string
+		}{},
+	}
+
+	// Allow extra-verbose logs.
+	SetGlobalLevel(TraceLevel - 1)
+	log := New(lw).Level(TraceLevel - 1)
+
+	// Set FatalExitFunc to panic so we can catch it
+	oldFatalExitFunc := FatalExitFunc
+	FatalExitFunc = func() { panic("fatal exit") }
+	defer func() { FatalExitFunc = oldFatalExitFunc }()
+
+	// Catch the panic from log.Fatal().Msg("1")
+	defer func() {
+		if r := recover(); r == nil || r != "fatal exit" {
+			t.Errorf("expected panic 'fatal exit' from log.Fatal(), got %v", r)
+		}
+	}()
+	log.Fatal().Msg("1")
+	log.WithLevel(FatalLevel).Msg("2")
+
+	want := []struct {
+		l Level
+		p string
+	}{
+		{FatalLevel, `{"level":"fatal","message":"1"}` + "\n"},
+		{FatalLevel, `{"level":"fatal","message":"2"}` + "\n"},
+	}
+	if got := lw.ops; !reflect.DeepEqual(got, want) {
+		t.Errorf("invalid ops:\ngot:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestFatalDisabled(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out).Level(PanicLevel) // Disable FatalLevel
+
+	// Set FatalExitFunc to set a flag
+	var fatalCalled bool
+	oldFatalExitFunc := FatalExitFunc
+	FatalExitFunc = func() { fatalCalled = true }
+	defer func() { FatalExitFunc = oldFatalExitFunc }()
+
+	// Call Fatal, which should be disabled, call done, and return nil
+	e := log.Fatal()
+	if e != nil {
+		t.Error("Expected nil event when Fatal is disabled")
+	}
+	if !fatalCalled {
+		t.Error("Expected FatalExitFunc to be called when Fatal is disabled")
+	}
+	if out.Len() > 0 {
+		t.Errorf("Expected no output when Fatal is disabled, got: %s", out.String())
+	}
+}
+
+func TestPanicDisabled(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out).Level(Disabled) // Disable all levels
+
+	// Call Panic, which should be disabled, call done, and panic with ""
+	defer func() {
+		if r := recover(); r == nil || r != "" {
+			t.Errorf("Expected panic with empty string when Panic is disabled, got %v", r)
+		}
+	}()
+	e := log.Panic()
+	if e != nil {
+		t.Error("Expected nil event when Panic is disabled")
+	}
+	if out.Len() > 0 {
+		t.Errorf("Expected no output when Panic is disabled, got: %s", out.String())
+	}
+}
+
+func TestLoggerShouldWithNilWriter(t *testing.T) {
+	// Create a logger with nil writer to test the should method's nil check
+	log := Logger{w: nil, level: TraceLevel}
+
+	e := log.Info()
+	if e != nil {
+		t.Error("Expected nil event when writer is nil")
 	}
 }
 
@@ -860,6 +1077,17 @@ func TestOutputWithTimestamp(t *testing.T) {
 	log.Log().Msg("hello world")
 
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"foo":"bar","time":"2001-02-03T04:05:06Z","message":"hello world"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestOutputWithContext(t *testing.T) {
+	ignoredOut := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+	log := New(ignoredOut).With().Str("foo", "bar").Logger().Output(out)
+	log.Log().Msg("hello world")
+
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"foo":"bar","message":"hello world"}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -964,6 +1192,22 @@ func TestUpdateEmptyContext(t *testing.T) {
 	log.Info().Msg("no panic")
 
 	want := `{"level":"info","foo":"bar","message":"no panic"}` + "\n"
+
+	if got := decodeIfBinaryToString(buf.Bytes()); got != want {
+		t.Errorf("invalid log output:\ngot:  %q\nwant: %q", got, want)
+	}
+}
+
+func TestUpdateContextOnDisabledLogger(t *testing.T) {
+	var buf bytes.Buffer
+	log := disabledLogger
+
+	log.UpdateContext(func(c Context) Context {
+		return c.Str("foo", "bar")
+	})
+	log.Info().Msg("no panic")
+
+	want := ""
 
 	if got := decodeIfBinaryToString(buf.Bytes()); got != want {
 		t.Errorf("invalid log output:\ngot:  %q\nwant: %q", got, want)
@@ -1094,6 +1338,14 @@ func TestUnmarshalTextLevel(t *testing.T) {
 				t.Errorf("UnmarshalText() got = %v, want %v", l, tt.want)
 			}
 		})
+	}
+}
+
+func TestUnmarshalTextLevelNil(t *testing.T) {
+	var l *Level
+	err := l.UnmarshalText([]byte("info"))
+	if err == nil || err.Error() != "can't unmarshal a nil *Level" {
+		t.Errorf("UnmarshalText() on nil *Level error = %v, want 'can't unmarshal a nil *Level'", err)
 	}
 }
 

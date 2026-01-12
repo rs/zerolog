@@ -134,6 +134,10 @@ var (
 	// be thread safe and non-blocking.
 	ErrorHandler func(err error)
 
+	// FatalExitFunc is called by log.Fatal() instead of os.Exit(1). If not set,
+	// os.Exit(1) is called.
+	FatalExitFunc func()
+
 	// DefaultContextLogger is returned from Ctx() if there is no logger associated
 	// with the context.
 	DefaultContextLogger *Logger

@@ -50,6 +50,10 @@ func TestHook(t *testing.T) {
 		want string
 		test func(log Logger)
 	}{
+		{"Message", `{"message":"test message"}` + "\n", func(log Logger) {
+			log = log.Hook()
+			log.Log().Msg("test message")
+		}},
 		{"Message", `{"level_name":"nolevel","message":"test message"}` + "\n", func(log Logger) {
 			log = log.Hook(levelNameHook)
 			log.Log().Msg("test message")
@@ -169,6 +173,99 @@ func TestHook(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLevelHook(t *testing.T) {
+	var called []string
+
+	traceHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "trace")
+	})
+	debugHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "debug")
+	})
+	infoHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "info")
+	})
+	warnHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "warn")
+	})
+	errorHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "error")
+	})
+	fatalHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "fatal")
+	})
+	panicHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "panic")
+	})
+	noLevelHook := HookFunc(func(e *Event, level Level, msg string) {
+		called = append(called, "nolevel")
+	})
+
+	hook := LevelHook{
+		TraceHook:   traceHook,
+		DebugHook:   debugHook,
+		InfoHook:    infoHook,
+		WarnHook:    warnHook,
+		ErrorHook:   errorHook,
+		FatalHook:   fatalHook,
+		PanicHook:   panicHook,
+		NoLevelHook: noLevelHook,
+	}
+
+	e := &Event{}
+
+	// Test each level
+	hook.Run(e, TraceLevel, "")
+	if len(called) != 1 || called[0] != "trace" {
+		t.Errorf("TraceLevel hook not called correctly: %v", called)
+	}
+
+	called = nil
+	hook.Run(e, DebugLevel, "")
+	if len(called) != 1 || called[0] != "debug" {
+		t.Errorf("DebugLevel hook not called correctly: %v", called)
+	}
+
+	called = nil
+	hook.Run(e, InfoLevel, "")
+	if len(called) != 1 || called[0] != "info" {
+		t.Errorf("InfoLevel hook not called correctly: %v", called)
+	}
+
+	called = nil
+	hook.Run(e, WarnLevel, "")
+	if len(called) != 1 || called[0] != "warn" {
+		t.Errorf("WarnLevel hook not called correctly: %v", called)
+	}
+
+	called = nil
+	hook.Run(e, ErrorLevel, "")
+	if len(called) != 1 || called[0] != "error" {
+		t.Errorf("ErrorLevel hook not called correctly: %v", called)
+	}
+
+	called = nil
+	hook.Run(e, FatalLevel, "")
+	if len(called) != 1 || called[0] != "fatal" {
+		t.Errorf("FatalLevel hook not called correctly: %v", called)
+	}
+
+	called = nil
+	hook.Run(e, PanicLevel, "")
+	if len(called) != 1 || called[0] != "panic" {
+		t.Errorf("PanicLevel hook not called correctly: %v", called)
+	}
+
+	called = nil
+	hook.Run(e, NoLevel, "")
+	if len(called) != 1 || called[0] != "nolevel" {
+		t.Errorf("NoLevel hook not called correctly: %v", called)
+	}
+
+	// Test NewLevelHook
+	_ = NewLevelHook()
 }
 
 func BenchmarkHooks(b *testing.B) {
