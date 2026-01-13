@@ -1,7 +1,9 @@
 package zerolog
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -882,4 +884,22 @@ func (e *Event) MACAddr(key string, ha net.HardwareAddr) *Event {
 	}
 	e.buf = enc.AppendMACAddr(enc.AppendKey(e.buf, key), ha)
 	return e
+}
+
+// GetMetadata returns the JSON decoded metadata of the event. Please note that the metadata might not be mapped to their original field type as JSON decoder maps numbers to float64, etc.
+func (e *Event) GetMetadata() (map[string]interface{}, error) {
+	if e == nil {
+		return nil, nil
+	}
+
+	eventFields := make(map[string]interface{})
+	buffer := bytes.TrimSpace(e.buf)
+	// If `Msg()` was not called the buffer will be missing the closing curly brace
+	if !bytes.HasSuffix(buffer, []byte("}")) {
+		buffer = append(buffer, '}')
+	}
+	if err := json.Unmarshal(buffer, &eventFields); err != nil {
+		return nil, err
+	}
+	return eventFields, nil
 }
