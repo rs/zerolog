@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package journald_test
+package journald
 
 import (
 	"bytes"
@@ -12,11 +12,10 @@ import (
 
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/journald"
 )
 
 func ExampleNewJournalDWriter() {
-	log := zerolog.New(journald.NewJournalDWriter())
+	log := zerolog.New(NewJournalDWriter())
 	log.Info().Str("foo", "bar").Uint64("small", 123).Float64("float", 3.14).Uint64("big", 1152921504606846976).Msg("Journal Test")
 	// Output:
 }
@@ -65,17 +64,17 @@ func TestSanitizeKey(t *testing.T) {
 		{"test_key123", "TEST_KEY123"},
 		{"invalid@key!", "INVALID_KEY_"},
 		{"a1B2_c3D4", "A1B2_C3D4"},
-		{"", ""},
-		{"_", "_"},
-		{"123", "123"},
+		{"_", "X_"},
+		{"", "X"},
+		{"123", "X123"},
 		{"a-b.c_d", "A_B_C_D"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := journald.SanitizeKey(tt.input)
+			result := sanitizeKey(tt.input)
 			if result != tt.expected {
-				t.Errorf("SanitizeKey(%q) = %q; want %q", tt.input, result, tt.expected)
+				t.Errorf("sanitizeKey(%q) = %q; want %q", tt.input, result, tt.expected)
 			}
 		})
 	}
@@ -83,7 +82,7 @@ func TestSanitizeKey(t *testing.T) {
 
 func TestWriteReturnsNoOfWrittenBytes(t *testing.T) {
 	input := []byte(`{"level":"info","time":1570912626,"message":"Starting..."}`)
-	wr := journald.NewJournalDWriter()
+	wr := NewJournalDWriter()
 	want := len(input)
 	got, err := wr.Write(input)
 
@@ -100,7 +99,7 @@ func TestMultiWrite(t *testing.T) {
 	var (
 		w1 = new(bytes.Buffer)
 		w2 = new(bytes.Buffer)
-		w3 = journald.NewJournalDWriter()
+		w3 = NewJournalDWriter()
 	)
 
 	zerolog.ErrorHandler = func(err error) {
@@ -119,11 +118,11 @@ func TestMultiWrite(t *testing.T) {
 
 func TestWriteWithVariousTypes(t *testing.T) {
 	mock := &mockSend{}
-	oldSend := journald.SendFunc
-	journald.SendFunc = mock.send
-	defer func() { journald.SendFunc = oldSend }()
+	oldSend := SendFunc
+	SendFunc = mock.send
+	defer func() { SendFunc = oldSend }()
 
-	wr := journald.NewJournalDWriter()
+	wr := NewJournalDWriter()
 	log := zerolog.New(wr)
 
 	// This should cover the default case in the switch for value types
@@ -149,7 +148,7 @@ func TestWriteWithVariousTypes(t *testing.T) {
 }
 
 func TestWriteWithAllLevels(t *testing.T) {
-	wr := journald.NewJournalDWriter()
+	wr := NewJournalDWriter()
 
 	// Save original FatalExitFunc
 	oldFatalExitFunc := zerolog.FatalExitFunc
@@ -183,11 +182,11 @@ func TestWriteWithAllLevels(t *testing.T) {
 
 func TestWriteOutputs(t *testing.T) {
 	mock := &mockSend{}
-	oldSend := journald.SendFunc
-	journald.SendFunc = mock.send
-	defer func() { journald.SendFunc = oldSend }()
+	oldSend := SendFunc
+	SendFunc = mock.send
+	defer func() { SendFunc = oldSend }()
 
-	wr := journald.NewJournalDWriter()
+	wr := NewJournalDWriter()
 	log := zerolog.New(wr)
 
 	// Log a message with various fields
@@ -231,9 +230,9 @@ func TestWriteOutputs(t *testing.T) {
 
 func TestWriteWithMarshalError(t *testing.T) {
 	mock := &mockSend{}
-	oldSend := journald.SendFunc
-	journald.SendFunc = mock.send
-	defer func() { journald.SendFunc = oldSend }()
+	oldSend := SendFunc
+	SendFunc = mock.send
+	defer func() { SendFunc = oldSend }()
 
 	// Save original marshal func
 	originalMarshal := zerolog.InterfaceMarshalFunc
@@ -244,7 +243,7 @@ func TestWriteWithMarshalError(t *testing.T) {
 		return nil, fmt.Errorf("fake error")
 	}
 
-	wr := journald.NewJournalDWriter()
+	wr := NewJournalDWriter()
 	log := zerolog.New(wr)
 
 	// This should trigger the error handling in the default case

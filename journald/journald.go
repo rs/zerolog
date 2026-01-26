@@ -34,6 +34,8 @@ const defaultJournalDPrio = journal.PriNotice
 
 // SendFunc is the function used to send logs to journald.
 // It can be replaced in tests for mocking. If nil, journal.Send is used directly.
+// This variable should only be modified in tests and must not be changed while the
+// writer is in use. Tests that modify this variable should not use t.Parallel().
 var SendFunc func(string, journal.Priority, map[string]string) error
 
 // NewJournalDWriter returns a zerolog log destination
@@ -75,9 +77,9 @@ func levelToJPrio(zLevel string) journal.Priority {
 }
 
 // sanitizeKey converts a key to uppercase and replaces invalid characters with '_'
-// JournalD requires keys to be A-Z, 0-9, or _
-func SanitizeKey(key string) string {
-	return strings.Map(func(r rune) rune {
+// JournalD requires keys start with A-Z and contain only  A-Z, 0-9, or _
+func sanitizeKey(key string) string {
+	sanitized := strings.Map(func(r rune) rune {
 		if r >= 'a' && r <= 'z' {
 			return r - 'a' + 'A'
 		} else if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
@@ -86,6 +88,10 @@ func SanitizeKey(key string) string {
 			return '_'
 		}
 	}, key)
+	if len(sanitized) == 0 || sanitized[0] >= '0' && sanitized[0] <= '9' || sanitized[0] == '_' {
+		sanitized = "X" + sanitized
+	}
+	return sanitized
 }
 
 func (w journalWriter) Write(p []byte) (n int, err error) {
@@ -106,7 +112,7 @@ func (w journalWriter) Write(p []byte) (n int, err error) {
 
 	msg := ""
 	for key, value := range event {
-		jKey := SanitizeKey(key)
+		jKey := sanitizeKey(key)
 		switch key {
 		case zerolog.LevelFieldName, zerolog.TimestampFieldName:
 			continue
