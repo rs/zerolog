@@ -1357,3 +1357,71 @@ func TestHTMLNoEscaping(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+func TestStruct(t *testing.T) {
+	type NestedObject struct {
+		NestedStr  string `log:"nested_str"`
+		NestedBool bool   `log:"nested_bool"`
+	}
+
+	type Object struct {
+		Str      string `log:"str"`
+		StrNoTag string
+		Err      error            `log:"err"`
+		Bool     bool             `log:"bool"`
+		Int      int              `log:"int"`
+		Int8     int8             `log:"int8"`
+		Int16    int16            `log:"int16"`
+		Int32    int32            `log:"int32"`
+		Int64    int64            `log:"int64"`
+		Uint     uint             `log:"uint"`
+		Uint8    uint8            `log:"uint8"`
+		Uint16   uint16           `log:"uint16"`
+		Uint32   uint32           `log:"uint32"`
+		Uint64   uint64           `log:"uint64"`
+		Float32  float32          `log:"float32"`
+		Float64  float64          `log:"float64"`
+		Time     time.Time        `log:"time"`
+		IPv4     net.IP           `log:"ipv4"`
+		IPv6     net.IP           `log:"ipv6"`
+		Mac      net.HardwareAddr `log:"macaddress"`
+		Nested   NestedObject     `log:"nested"`
+	}
+
+	nested := NestedObject{
+		NestedStr:  "string",
+		NestedBool: false,
+	}
+
+	obj := Object{
+		Str:     "string",
+		Err:     errors.New("error"),
+		Bool:    true,
+		Int:     -1000000000000000000,
+		Int8:    -10,
+		Int16:   -10000,
+		Int32:   -1000000000,
+		Int64:   -1000000000000000000,
+		Uint:    1000000000000000000,
+		Uint8:   10,
+		Uint16:  10000,
+		Uint32:  1000000000,
+		Uint64:  1000000000000000000,
+		Float32: 1000000000000000000,
+		Float64: 1000000000000000000,
+		Time:    time.Date(2020, time.January, 1, 1, 1, 1, 1, &time.Location{}),
+		IPv4:    net.IP{192, 168, 0, 100},
+		IPv6:    net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
+		Mac:     net.HardwareAddr{0x00, 0x14, 0x22, 0x01, 0x23, 0x45},
+		Nested:  nested,
+	}
+
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Struct(obj).Msg("")
+
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"str":"string","err":"error","bool":true,"int":-1000000000000000000,"int8":-10,"int16":-10000,"int32":-1000000000,"int64":-1000000000000000000,"uint":1000000000000000000,"uint8":10,"uint16":10000,"uint32":1000000000,"uint64":1000000000000000000,"float32":1000000000000000000,"float64":1000000000000000000,"time":"2020-01-01T01:01:01Z","ipv4":"192.168.0.100","ipv6":"2001:db8:85a3::8a2e:370:7334","macaddress":"00:14:22:01:23:45","nested":{"nested_str":"string","nested_bool":false}}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+
+}
