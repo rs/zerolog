@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/rs/xid"
@@ -431,5 +432,45 @@ func TestGetHost(t *testing.T) {
 				t.Errorf("Invalid log output, got: %s, want: %s", result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestAccessHandlerWithData(t *testing.T) {
+	bodyValue := "hello, world!"
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(bodyValue))
+
+	handler := AccessHandlerWithData(func(data AccessHandlerData) {
+		expectedBytes := int64(len(bodyValue))
+		if data.BytesRead != expectedBytes {
+			t.Errorf("unexpected bytes read, got: %d, want: %d", data.BytesRead, expectedBytes)
+		}
+		if data.BytesWritten != int(expectedBytes) {
+			t.Errorf("unexpected bytes read, got: %d, want: %d", data.BytesWritten, expectedBytes)
+		}
+		if data.Status != http.StatusOK {
+			t.Errorf("unexpected status, got: %d, want: %d", data.Status, http.StatusOK)
+		}
+		if data.Request != req {
+			t.Error("unexpected request object")
+		}
+	})
+
+	rr := httptest.NewRecorder()
+
+	handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(w, r.Body)
+	})).ServeHTTP(rr, req)
+
+	if rr.Result().StatusCode != http.StatusOK {
+		t.Errorf("unexpected status, got: %d, want: %d", rr.Result().StatusCode, http.StatusOK)
+	}
+
+	b, err := io.ReadAll(rr.Result().Body)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err.Error())
+	}
+
+	if bodyValue != string(b) {
+		t.Errorf("unexpected response body, got: %s, want: %s", string(b), bodyValue)
 	}
 }
