@@ -35,7 +35,7 @@ func (Encoder) AppendString(dst []byte, s string) []byte {
 // AppendStringers encodes and adds an array of Stringer values
 // to the dst byte array.
 func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
-	if len(vals) == 0 {
+	if vals == nil || len(vals) == 0 {
 		return e.AppendArrayEnd(e.AppendArrayStart(dst))
 	}
 	dst = e.AppendArrayStart(dst)

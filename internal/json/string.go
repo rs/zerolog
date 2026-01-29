@@ -66,7 +66,7 @@ func (Encoder) AppendString(dst []byte, s string) []byte {
 // AppendStringers encodes the provided Stringer list to json and
 // appends the encoded Stringer list to the input byte slice.
 func (e Encoder) AppendStringers(dst []byte, vals []fmt.Stringer) []byte {
-	if len(vals) == 0 {
+	if vals == nil || len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')

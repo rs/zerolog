@@ -172,12 +172,22 @@ func TestStackedWiths(t *testing.T) {
 
 func TestWithPlurals(t *testing.T) {
 	out := &bytes.Buffer{}
-	ctx := New(out).With().
-		Strs("strings", []string{"foo", "bar"}).
-		Strs("strings_nil", nil).
-		Stringers("stringers", []fmt.Stringer{net.IP{127, 0, 0, 1}, nil}).
+	ctx := New(out).
+		With().
+		Objects("objs", []LogObjectMarshaler{fixtureObj{"a", "z", 1}}).
+		Objects("objs_nil", nil).
+		ObjectsV("objs_v", fixtureObj{"A", "Z", 2}).
+		ObjectsV("objs_v_empty").
+		Strs("strs", []string{"foo", "bar"}).
+		Strs("strs_nil", nil).
+		StrsV("strs_v", "baz", "fizz").
+		StrsV("strs_v_empty").
+		Stringers("stringers", []fmt.Stringer{net.IP{127, 0, 0, 1}, time.Time{}.AddDate(0, 1, 2), 1 * time.Second, nil}).
 		Stringers("stringers_nil", nil).
+		StringersV("stringers_v", net.IP{127, 0, 0, 1}, time.Time{}.AddDate(0, 1, 2), 1*time.Second, nil).
+		StringersV("stringers_v_empty").
 		Errs("errs", []error{errors.New("some error"), errors.New("some other error"), nil, loggableError{fmt.Errorf("oops")}, nonLoggableError{fmt.Errorf("whoops"), 401}}).
+		Errs("errs_nil", nil).
 		Bools("bool", []bool{true, false}).
 		Ints("int", []int{1, 2}).
 		Ints8("int8", []int8{2, 3}).
@@ -196,7 +206,7 @@ func TestWithPlurals(t *testing.T) {
 	log := ctx.Logger()
 	log.Log().Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()),
-		`{"strings":["foo","bar"],"strings_nil":[],"stringers":["127.0.0.1",null],"stringers_nil":null,"errs":["some error","some other error",null,{"l":"OOPS"},"whoops"],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
+		`{"objs":[{"Pub":"a","Tag":"z","priv":1}],"objs_nil":[],"objs_v":[{"Pub":"A","Tag":"Z","priv":2}],"objs_v_empty":[],"strs":["foo","bar"],"strs_nil":[],"strs_v":["baz","fizz"],"strs_v_empty":[],"stringers":["127.0.0.1","0001-02-03 00:00:00 +0000 UTC","1s",null],"stringers_nil":[],"stringers_v":["127.0.0.1","0001-02-03 00:00:00 +0000 UTC","1s",null],"stringers_v_empty":[],"errs":["some error","some other error",null,{"l":"OOPS"},"whoops"],"errs_nil":[],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -473,9 +483,9 @@ func TestFields(t *testing.T) {
 	caller := fmt.Sprintf("%s:%d", file, line+3)
 	log.Log().
 		Caller().
+		Object("obj", fixtureObj{"a", "z", 1}).
 		Str("string", "foo").
 		Stringer("stringer", net.IP{127, 0, 0, 1}).
-		Stringer("stringer_nil", nil).
 		Bytes("bytes", []byte("bar")).
 		Hex("hex", []byte{0x12, 0xef}).
 		RawJSON("json", []byte(`{"some":"json"}`)).
@@ -510,7 +520,41 @@ func TestFields(t *testing.T) {
 		Any("logobject", fixtureObj{"a", "z", 1}).
 		Stack().
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","string":"foo","stringer":"127.0.0.1","stringer_nil":null,"bytes":"bar","hex":"12ef","json":{"some":"json"},"cbor":"data:application/cbor;base64,gwGCAgOCBAU=","func":"func_output","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"ipv4":"192.168.0.100","ipv6":"2001:db8:85a3::8a2e:370:7334","mac":"00:14:22:01:23:45","pfxv4":"192.168.0.100/24","pfxv6":"2001:db8:85a3::8a2e:370:7334/64","float32":11.1234,"float64":12.321321321,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000,"type":"string","any":{"A":"test"},"logobject":{"Pub":"a","Tag":"z","priv":1}}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","obj":{"Pub":"a","Tag":"z","priv":1},"string":"foo","stringer":"127.0.0.1","bytes":"bar","hex":"12ef","json":{"some":"json"},"cbor":"data:application/cbor;base64,gwGCAgOCBAU=","func":"func_output","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"ipv4":"192.168.0.100","ipv6":"2001:db8:85a3::8a2e:370:7334","mac":"00:14:22:01:23:45","pfxv4":"192.168.0.100/24","pfxv6":"2001:db8:85a3::8a2e:370:7334/64","float32":11.1234,"float64":12.321321321,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000,"type":"string","any":{"A":"test"},"logobject":{"Pub":"a","Tag":"z","priv":1}}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestFieldsArrayNil(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().
+		Objects("objs", nil).
+		ObjectsV("objs_v").
+		Strs("strs", nil).
+		StrsV("strs_v").
+		Stringers("stringers", nil).
+		StringersV("stringers_v").
+		Errs("err", nil).
+		Bools("bool", nil).
+		Ints("int", nil).
+		Ints8("int8", nil).
+		Ints16("int16", nil).
+		Ints32("int32", nil).
+		Ints64("int64", nil).
+		Uints("uint", nil).
+		Uints8("uint8", nil).
+		Uints16("uint16", nil).
+		Uints32("uint32", nil).
+		Uints64("uint64", nil).
+		Floats32("float32", nil).
+		Floats64("float64", nil).
+		Durs("dur", nil).
+		Times("time", nil).
+		IPAddrs("ip", nil).
+		IPPrefixes("pfx", nil).
+		Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"objs":[],"objs_v":[],"strs":[],"strs_v":[],"stringers":[],"stringers_v":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[],"ip":[],"pfx":[]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -519,8 +563,12 @@ func TestFieldsArrayEmpty(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
 	log.Log().
-		Strs("string", []string{}).
-		Stringers("stringer", []fmt.Stringer{}).
+		Objects("objs", []LogObjectMarshaler{}).
+		ObjectsV("objs_v").
+		Strs("strs", []string{}).
+		StrsV("strs_v").
+		Stringers("stringers", []fmt.Stringer{}).
+		StringersV("stringers_v").
 		Errs("err", []error{}).
 		Bools("bool", []bool{}).
 		Ints("int", []int{}).
@@ -540,7 +588,7 @@ func TestFieldsArrayEmpty(t *testing.T) {
 		IPAddrs("ip", []net.IP{}).
 		IPPrefixes("pfx", []net.IPNet{}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":[],"stringer":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[],"ip":[],"pfx":[]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"objs":[],"objs_v":[],"strs":[],"strs_v":[],"stringers":[],"stringers_v":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[],"ip":[],"pfx":[]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -549,8 +597,12 @@ func TestFieldsArraySingleElement(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
 	log.Log().
-		Strs("string", []string{"foo"}).
+		Objects("obj", []LogObjectMarshaler{fixtureObj{"a", "z", 1}}).
+		ObjectsV("obj_v", fixtureObj{"A", "Z", 2}).
+		Strs("str", []string{"foo"}).
+		StrsV("str_v", "baz").
 		Stringers("stringer", []fmt.Stringer{net.IP{127, 0, 0, 1}}).
+		StringersV("stringer_v", net.IPv6loopback).
 		Errs("err", []error{errors.New("some error")}).
 		Bools("bool", []bool{true}).
 		Ints("int", []int{1}).
@@ -570,7 +622,7 @@ func TestFieldsArraySingleElement(t *testing.T) {
 		IPAddrs("ip", []net.IP{{192, 168, 0, 100}}).
 		IPPrefixes("pfx", []net.IPNet{{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo"],"stringer":["127.0.0.1"],"err":["some error"],"bool":[true],"int":[1],"int8":[2],"int16":[3],"int32":[4],"int64":[5],"uint":[6],"uint8":[7],"uint16":[8],"uint32":[9],"uint64":[10],"float32":[11],"float64":[12],"dur":[1000],"time":["0001-01-01T00:00:00Z"],"ip":["192.168.0.100"],"pfx":["192.168.0.100/24"]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"obj":[{"Pub":"a","Tag":"z","priv":1}],"obj_v":[{"Pub":"A","Tag":"Z","priv":2}],"str":["foo"],"str_v":["baz"],"stringer":["127.0.0.1"],"stringer_v":["::1"],"err":["some error"],"bool":[true],"int":[1],"int8":[2],"int16":[3],"int32":[4],"int64":[5],"uint":[6],"uint8":[7],"uint16":[8],"uint32":[9],"uint64":[10],"float32":[11],"float64":[12],"dur":[1000],"time":["0001-01-01T00:00:00Z"],"ip":["192.168.0.100"],"pfx":["192.168.0.100/24"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -579,8 +631,12 @@ func TestFieldsArrayMultipleElement(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
 	log.Log().
-		Strs("string", []string{"foo", "bar"}).
-		Stringers("stringer", []fmt.Stringer{nil, net.IP{127, 0, 0, 1}}).
+		Objects("objs", []LogObjectMarshaler{fixtureObj{"a", "z", 1}, fixtureObj{"b", "y", 2}}).
+		ObjectsV("objs_v", fixtureObj{"A", "Z", 3}, fixtureObj{"B", "Y", 4}).
+		Strs("strs", []string{"foo", "bar"}).
+		StrsV("strs_v", "baz", "fizz").
+		Stringers("stringers", []fmt.Stringer{nil, net.IP{127, 0, 0, 1}}).
+		StringersV("stringers_v", net.IPv4bcast, net.IPv6loopback).
 		Errs("err", []error{errors.New("some error"), nil}).
 		Bools("bool", []bool{true, false}).
 		Ints("int", []int{1, 0}).
@@ -600,7 +656,7 @@ func TestFieldsArrayMultipleElement(t *testing.T) {
 		IPAddrs("ip", []net.IP{{192, 168, 0, 100}, {0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}}).
 		IPPrefixes("pfx", []net.IPNet{{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)}, {IP: net.IP{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}, Mask: net.CIDRMask(64, 128)}}).
 		Msg("")
-	if got, want := decodeIfBinaryToString(out.Bytes()), `{"string":["foo","bar"],"stringer":[null,"127.0.0.1"],"err":["some error",null],"bool":[true,false],"int":[1,0],"int8":[2,0],"int16":[3,0],"int32":[4,0],"int64":[5,0],"uint":[6,0],"uint8":[7,0],"uint16":[8,0],"uint32":[9,0],"uint64":[10,0],"float32":[11,0],"float64":[12,0],"dur":[1000,0],"time":["0001-01-01T00:00:00Z","0001-01-01T00:00:00Z"],"ip":["192.168.0.100","2001:db8:85a3::8a2e:370:7334"],"pfx":["192.168.0.100/24","2001:db8:85a3::8a2e:370:7334/64"]}`+"\n"; got != want {
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"objs":[{"Pub":"a","Tag":"z","priv":1},{"Pub":"b","Tag":"y","priv":2}],"objs_v":[{"Pub":"A","Tag":"Z","priv":3},{"Pub":"B","Tag":"Y","priv":4}],"strs":["foo","bar"],"strs_v":["baz","fizz"],"stringers":[null,"127.0.0.1"],"stringers_v":["255.255.255.255","::1"],"err":["some error",null],"bool":[true,false],"int":[1,0],"int8":[2,0],"int16":[3,0],"int32":[4,0],"int64":[5,0],"uint":[6,0],"uint8":[7,0],"uint16":[8,0],"uint32":[9,0],"uint64":[10,0],"float32":[11,0],"float64":[12,0],"dur":[1000,0],"time":["0001-01-01T00:00:00Z","0001-01-01T00:00:00Z"],"ip":["192.168.0.100","2001:db8:85a3::8a2e:370:7334"],"pfx":["192.168.0.100/24","2001:db8:85a3::8a2e:370:7334/64"]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -610,8 +666,14 @@ func TestFieldsDisabled(t *testing.T) {
 	log := New(out).Level(InfoLevel)
 	now := time.Now()
 	log.Debug().
+		Objects("obj", []LogObjectMarshaler{fixtureObj{"a", "z", 1}}).
+		ObjectsV("obj_v", fixtureObj{"A", "Z", 2}).
 		Str("string", "foo").
+		Strs("strs", []string{"foo"}).
+		StrsV("strs_v", "baz").
 		Stringer("stringer", net.IP{127, 0, 0, 1}).
+		Stringers("stringers", []fmt.Stringer{net.IP{127, 0, 0, 1}}).
+		StringersV("stringers_v", net.IPv6loopback).
 		Bytes("bytes", []byte("bar")).
 		Hex("hex", []byte{0x12, 0xef}).
 		AnErr("some_err", nil).
@@ -1096,9 +1158,12 @@ func TestCallerMarshalFunc(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
 
+	var pc uintptr
+	var file string
+	var line int
 	// test default behaviour this is really brittle due to the line numbers
 	// actually mattering for validation
-	pc, file, line, _ := runtime.Caller(0)
+	pc, file, line, _ = runtime.Caller(0)
 	caller := fmt.Sprintf("%s:%d", file, line+2)
 	log.Log().Caller().Msg("msg")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","message":"msg"}`+"\n"; got != want {
