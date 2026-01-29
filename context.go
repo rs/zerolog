@@ -144,12 +144,7 @@ func (c Context) Stringer(key string, val fmt.Stringer) Context {
 //
 // This is the array version that accepts a slice of fmt.Stringer values.
 func (c Context) Stringers(key string, vals []fmt.Stringer) Context {
-	if vals != nil {
-		c.l.context = enc.AppendStringers(enc.AppendKey(c.l.context, key), vals)
-		return c
-	}
-
-	c.l.context = enc.AppendInterface(enc.AppendKey(c.l.context, key), nil)
+	c.l.context = enc.AppendStringers(enc.AppendKey(c.l.context, key), vals)
 	return c
 }
 

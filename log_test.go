@@ -206,7 +206,7 @@ func TestWithPlurals(t *testing.T) {
 	log := ctx.Logger()
 	log.Log().Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()),
-		`{"objs":[{"Pub":"a","Tag":"z","priv":1}],"objs_nil":[],"objs_v":[{"Pub":"A","Tag":"Z","priv":2}],"objs_v_empty":[],"strs":["foo","bar"],"strs_nil":[],"strs_v":["baz","fizz"],"strs_v_empty":[],"stringers":["127.0.0.1","0001-02-03 00:00:00 +0000 UTC","1s",null],"stringers_nil":null,"stringers_v":["127.0.0.1","0001-02-03 00:00:00 +0000 UTC","1s",null],"stringers_v_empty":null,"errs":["some error","some other error",null,{"l":"OOPS"},"whoops"],"errs_nil":[],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
+		`{"objs":[{"Pub":"a","Tag":"z","priv":1}],"objs_nil":[],"objs_v":[{"Pub":"A","Tag":"Z","priv":2}],"objs_v_empty":[],"strs":["foo","bar"],"strs_nil":[],"strs_v":["baz","fizz"],"strs_v_empty":[],"stringers":["127.0.0.1","0001-02-03 00:00:00 +0000 UTC","1s",null],"stringers_nil":[],"stringers_v":["127.0.0.1","0001-02-03 00:00:00 +0000 UTC","1s",null],"stringers_v_empty":[],"errs":["some error","some other error",null,{"l":"OOPS"},"whoops"],"errs_nil":[],"bool":[true,false],"int":[1,2],"int8":[2,3],"int16":[3,4],"int32":[4,5],"int64":[5,6],"uint":[6,7],"uint8":[7,8],"uint16":[8,9],"uint32":[9,10],"uint64":[10,11],"float32":[1.1,2.2],"float64":[2.2,3.3],"time":["0001-02-03T00:00:00Z","0005-06-07T00:00:00Z"],"dur":[1000,2000]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
@@ -521,6 +521,40 @@ func TestFields(t *testing.T) {
 		Stack().
 		Msg("")
 	if got, want := decodeIfBinaryToString(out.Bytes()), `{"caller":"`+caller+`","obj":{"Pub":"a","Tag":"z","priv":1},"string":"foo","stringer":"127.0.0.1","bytes":"bar","hex":"12ef","json":{"some":"json"},"cbor":"data:application/cbor;base64,gwGCAgOCBAU=","func":"func_output","error":"some error","bool":true,"int":1,"int8":2,"int16":3,"int32":4,"int64":5,"uint":6,"uint8":7,"uint16":8,"uint32":9,"uint64":10,"ipv4":"192.168.0.100","ipv6":"2001:db8:85a3::8a2e:370:7334","mac":"00:14:22:01:23:45","pfxv4":"192.168.0.100/24","pfxv6":"2001:db8:85a3::8a2e:370:7334/64","float32":11.1234,"float64":12.321321321,"dur":1000,"time":"0001-01-01T00:00:00Z","diff":10000,"type":"string","any":{"A":"test"},"logobject":{"Pub":"a","Tag":"z","priv":1}}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestFieldsArrayNil(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().
+		Objects("objs", nil).
+		ObjectsV("objs_v").
+		Strs("strs", nil).
+		StrsV("strs_v").
+		Stringers("stringers", nil).
+		StringersV("stringers_v").
+		Errs("err", nil).
+		Bools("bool", nil).
+		Ints("int", nil).
+		Ints8("int8", nil).
+		Ints16("int16", nil).
+		Ints32("int32", nil).
+		Ints64("int64", nil).
+		Uints("uint", nil).
+		Uints8("uint8", nil).
+		Uints16("uint16", nil).
+		Uints32("uint32", nil).
+		Uints64("uint64", nil).
+		Floats32("float32", nil).
+		Floats64("float64", nil).
+		Durs("dur", nil).
+		Times("time", nil).
+		IPAddrs("ip", nil).
+		IPPrefixes("pfx", nil).
+		Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"objs":[],"objs_v":[],"strs":[],"strs_v":[],"stringers":[],"stringers_v":[],"err":[],"bool":[],"int":[],"int8":[],"int16":[],"int32":[],"int64":[],"uint":[],"uint8":[],"uint16":[],"uint32":[],"uint64":[],"float32":[],"float64":[],"dur":[],"time":[],"ip":[],"pfx":[]}`+"\n"; got != want {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
