@@ -8,6 +8,9 @@ import (
 )
 
 func AsLogObjectMarshalers[T LogObjectMarshaler](objs []T) []LogObjectMarshaler {
+	if objs == nil {
+		return nil
+	}
 	s := make([]LogObjectMarshaler, len(objs))
 	for i, v := range objs {
 		s[i] = v
@@ -16,6 +19,9 @@ func AsLogObjectMarshalers[T LogObjectMarshaler](objs []T) []LogObjectMarshaler 
 }
 
 func AsStringers[T fmt.Stringer](objs []T) []fmt.Stringer {
+	if objs == nil {
+		return nil
+	}
 	s := make([]fmt.Stringer, len(objs))
 	for i, v := range objs {
 		s[i] = v

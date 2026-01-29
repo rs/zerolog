@@ -498,7 +498,6 @@ func ExampleContext_ObjectsV() {
 }
 
 func ExampleContext_EmbedObject() {
-
 	price := Price{val: 6449, prec: 2, unit: "$"}
 
 	log := zerolog.New(os.Stdout).With().
@@ -507,7 +506,6 @@ func ExampleContext_EmbedObject() {
 		Logger()
 
 	log.Log().Msg("hello world")
-
 	// Output: {"foo":"bar","price":"$64.49","message":"hello world"}
 }
 
@@ -662,6 +660,7 @@ func ExampleContext_Times() {
 func ExampleEvent_Stringers() {
 	log := zerolog.New(os.Stdout)
 
+	// net.IP values implement fmt.Stringer and can be used with StringersV
 	a := net.IP{127, 0, 0, 1}
 	b := net.IP{127, 0, 0, 2}
 	ips := []net.IP{a, b}
@@ -673,7 +672,7 @@ func ExampleEvent_Stringers() {
 }
 
 func ExampleContext_StringersV() {
-	// User implements zerolog.LogObjectMarshaler
+	// net.IP values implement fmt.Stringer and can be used with StringersV
 	a := net.IPv4bcast
 	b := net.IPv4allrouter
 

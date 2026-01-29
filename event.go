@@ -338,7 +338,9 @@ func (e *Event) StrsV(key string, vals ...string) *Event {
 	return e.Strs(key, vals)
 }
 
-// Stringer adds the field key and a val to the *Event context by calling val.String().
+// Stringer adds the field key and a val to the *Event context.
+// If val is not nil, it is added by calling val.String().
+// If val is nil, it is encoded as null without calling String().
 func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 	if e == nil {
 		return e
@@ -347,8 +349,9 @@ func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 	return e
 }
 
-// Stringers adds the field key with vals to the *Event context where each
-// individual val is added by calling val.String().
+// Stringers adds the field key with vals to the *Event context.
+// If any val is not nil, it is added by calling val.String().
+// If val is nil, it is encoded as null without calling String().
 //
 // This is the array version that accepts a slice of fmt.Stringer values.
 func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
@@ -359,8 +362,9 @@ func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
 	return e
 }
 
-// StringersV adds the field key with vals to the *Event context where each
-// individual val is added by calling val.String().
+// StringersV adds the field key with vals to the *Event context.
+// If any val is not nil, it is added by calling val.String().
+// If val is nil, it is encoded as null without calling String().
 //
 // This is a variadic version that accepts a list of individual
 // fmt.Stringer values.

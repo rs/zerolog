@@ -88,7 +88,6 @@ func (c Context) Objects(key string, objs []LogObjectMarshaler) Context {
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
 	putEvent(e)
 	return c
-
 }
 
 // ObjectsV adds the field key with objs to the logger context as an array of
