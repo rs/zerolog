@@ -78,13 +78,25 @@ func (c Context) Object(key string, obj LogObjectMarshaler) Context {
 	return c
 }
 
-// Object marshals an object that implement the LogObjectMarshaler interface.
+// Objects adds the field key with objs to the logger context as an array of
+// objects that implement the LogObjectMarshaler interface.
+//
+// This is the array version that accepts a slice of LogObjectMarshaler objects.
 func (c Context) Objects(key string, objs []LogObjectMarshaler) Context {
 	e := c.l.scratchEvent()
 	e.Objects(key, objs)
 	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
 	putEvent(e)
 	return c
+
+}
+
+// ObjectsV adds the field key with objs to the logger context as an array of
+// objects that implement the LogObjectMarshaler interface.
+//
+// This is a variadic version that accepts a list of individual LogObjectMarshaler objects.
+func (c Context) ObjectsV(key string, objs ...LogObjectMarshaler) Context {
+	return c.Objects(key, objs)
 }
 
 // EmbedObject marshals and Embeds an object that implement the LogObjectMarshaler interface.
@@ -103,9 +115,18 @@ func (c Context) Str(key, val string) Context {
 }
 
 // Strs adds the field key with val as a string to the logger context.
+//
+// This is the array version that accepts a slice of string values.
 func (c Context) Strs(key string, vals []string) Context {
 	c.l.context = enc.AppendStrings(enc.AppendKey(c.l.context, key), vals)
 	return c
+}
+
+// StrsV adds the field key with vals as a []string to the logger context.
+//
+// This is a variadic version that accepts a list of individual strings.
+func (c Context) StrsV(key string, vals ...string) Context {
+	return c.Strs(key, vals)
 }
 
 // Stringer adds the field key with val.String() (or null if val is nil) to the logger context.
@@ -119,8 +140,10 @@ func (c Context) Stringer(key string, val fmt.Stringer) Context {
 	return c
 }
 
-// Stringers adds the field key with vals as an array of strings by calling .String() on each entry
-// to the logger context.
+// Stringers adds the field key with vals to the logger context where each
+// individual val is added by calling val.String().
+//
+// This is the array version that accepts a slice of fmt.Stringer values.
 func (c Context) Stringers(key string, vals []fmt.Stringer) Context {
 	if vals != nil {
 		c.l.context = enc.AppendStringers(enc.AppendKey(c.l.context, key), vals)
@@ -129,6 +152,15 @@ func (c Context) Stringers(key string, vals []fmt.Stringer) Context {
 
 	c.l.context = enc.AppendInterface(enc.AppendKey(c.l.context, key), nil)
 	return c
+}
+
+// StringersV adds the field key with vals  to the logger context where each
+// individual val is added by calling val.String().
+//
+// This is a variadic version that accepts a list of individual
+// fmt.Stringer values.
+func (c Context) StringersV(key string, vals ...fmt.Stringer) Context {
+	return c.Stringers(key, vals)
 }
 
 // Bytes adds the field key with val as a []byte to the logger context.

@@ -290,6 +290,34 @@ func ExampleEvent_Object() {
 	// Output: {"foo":"bar","user":{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},"message":"hello world"}
 }
 
+func ExampleEvent_Objects() {
+	log := zerolog.New(os.Stdout)
+
+	// User implements zerolog.LogObjectMarshaler
+	u := User{"John", 35, time.Time{}}
+	u2 := User{"Bono", 54, time.Time{}}
+	users := []User{u, u2}
+
+	log.Log().
+		Objects("users", zerolog.AsLogObjectMarshalers(users)).
+		Msg("hello world")
+	// Output: {"users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bono","age":54,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+}
+
+func ExampleEvent_ObjectsV() {
+	log := zerolog.New(os.Stdout)
+
+	// User implements zerolog.LogObjectMarshaler
+	u := User{"John", 35, time.Time{}}
+	u2 := User{"Bono", 54, time.Time{}}
+
+	log.Log().
+		ObjectsV("users", u, u2).
+		Msg("hello world")
+
+	// Output:  {"users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bono","age":54,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+}
+
 func ExampleEvent_EmbedObject() {
 	log := zerolog.New(os.Stdout)
 
@@ -447,6 +475,21 @@ func ExampleContext_Objects() {
 	log := zerolog.New(os.Stdout).With().
 		Str("foo", "bar").
 		Objects("users", []zerolog.LogObjectMarshaler{u, u2}).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"foo":"bar","users":[{"name":"John","age":35,"created":"0001-01-01T00:00:00Z"},{"name":"Bono","age":54,"created":"0001-01-01T00:00:00Z"}],"message":"hello world"}
+}
+
+func ExampleContext_ObjectsV() {
+	// User implements zerolog.LogObjectMarshaler
+	u := User{"John", 35, time.Time{}}
+	u2 := User{"Bono", 54, time.Time{}}
+
+	log := zerolog.New(os.Stdout).With().
+		Str("foo", "bar").
+		ObjectsV("users", u, u2). // shows variadic version with distinct element arguments
 		Logger()
 
 	log.Log().Msg("hello world")
@@ -614,4 +657,31 @@ func ExampleContext_Times() {
 	log.Log().Msg("hello world")
 
 	// Output: {"foo":"bar","times":["0001-01-01T00:00:00Z","0001-01-01T00:00:10Z"],"message":"hello world"}
+}
+
+func ExampleEvent_Stringers() {
+	log := zerolog.New(os.Stdout)
+
+	a := net.IP{127, 0, 0, 1}
+	b := net.IP{127, 0, 0, 2}
+	ips := []net.IP{a, b}
+
+	log.Log().
+		Stringers("ips", zerolog.AsStringers(ips)).
+		Msg("hello world")
+	// Output: {"ips":["127.0.0.1","127.0.0.2"],"message":"hello world"}
+}
+
+func ExampleContext_StringersV() {
+	// User implements zerolog.LogObjectMarshaler
+	a := net.IPv4bcast
+	b := net.IPv4allrouter
+
+	log := zerolog.New(os.Stdout).With().
+		StringersV("ips", a, b).
+		Logger()
+
+	log.Log().Msg("hello world")
+
+	// Output: {"ips":["255.255.255.255","224.0.0.2"],"message":"hello world"}
 }

@@ -259,8 +259,14 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		"Strs": func() *Event {
 			return e.Strs("k", fixtures.Strings)
 		},
+		"StrsV": func() *Event {
+			return e.StrsV("k", fixtures.Strings...)
+		},
 		"Stringers": func() *Event {
 			return e.Stringers("k", fixtures.Stringers)
+		},
+		"StringersV": func() *Event {
+			return e.StringersV("k", fixtures.Stringers...)
 		},
 		"Err": func() *Event {
 			return e.Err(fixtures.Errs[0])
@@ -305,6 +311,9 @@ func TestEvent_WithNilEvent(t *testing.T) {
 		},
 		"Objects": func() *Event {
 			return e.Objects("k", fixtures.Objects)
+		},
+		"ObjectsV": func() *Event {
+			return e.ObjectsV("k", fixtures.Objects...)
 		},
 		"EmbedObject": func() *Event {
 			return e.EmbedObject(fixtures.Objects[0])
