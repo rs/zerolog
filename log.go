@@ -294,7 +294,7 @@ func (l Logger) With() Context {
 // Caution: This method is not concurrency safe.
 // Use the With method to create a child logger before modifying the context from concurrent goroutines.
 func (l *Logger) UpdateContext(update func(c Context) Context) {
-	if l == disabledLogger {
+	if l.w == nil || l.level == Disabled {
 		return
 	}
 	if cap(l.context) == 0 {
