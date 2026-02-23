@@ -1214,6 +1214,39 @@ func TestUpdateContextOnDisabledLogger(t *testing.T) {
 	}
 }
 
+func TestUpdateContextOnNopLogger(t *testing.T) {
+	// Nop() creates a new disabled logger that is a different pointer than
+	// the package-level disabledLogger. UpdateContext should still treat it
+	// as disabled and skip the update function. See issue #643.
+	log := Nop()
+
+	called := false
+	log.UpdateContext(func(c Context) Context {
+		called = true
+		return c.Str("foo", "bar")
+	})
+
+	if called {
+		t.Error("UpdateContext should not call update func on a Nop logger")
+	}
+}
+
+func TestUpdateContextOnZeroValueLogger(t *testing.T) {
+	// A zero-value Logger has a nil writer and should be treated as
+	// disabled by UpdateContext. See issue #643.
+	var log Logger
+
+	called := false
+	log.UpdateContext(func(c Context) Context {
+		called = true
+		return c.Str("foo", "bar")
+	})
+
+	if called {
+		t.Error("UpdateContext should not call update func on a zero-value logger")
+	}
+}
+
 func TestLevel_String(t *testing.T) {
 	tests := []struct {
 		name string

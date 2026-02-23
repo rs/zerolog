@@ -294,7 +294,7 @@ func (l Logger) With() Context {
 // Caution: This method is not concurrency safe.
 // Use the With method to create a child logger before modifying the context from concurrent goroutines.
 func (l *Logger) UpdateContext(update func(c Context) Context) {
-	if l == disabledLogger {
+	if l.disabled() {
 		return
 	}
 	if cap(l.context) == 0 {
@@ -508,9 +508,14 @@ func (l *Logger) scratchEvent() *Event {
 	return newEvent(LevelWriterAdapter{io.Discard}, DebugLevel, l.stack, l.ctx, l.hooks)
 }
 
+// disabled returns true if the logger is a disabled or nop logger.
+func (l *Logger) disabled() bool {
+	return l.w == nil || l.level == Disabled
+}
+
 // should returns true if the log event should be logged.
 func (l *Logger) should(lvl Level) bool {
-	if l.w == nil {
+	if l.disabled() {
 		return false
 	}
 	if lvl < l.level || lvl < GlobalLevel() {
