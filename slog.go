@@ -3,6 +3,7 @@ package zerolog
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -135,6 +136,12 @@ func zerologToSlogLevel(level Level) slog.Level {
 	}
 }
 
+// joinPrefix concatenates a prefix and key with a dot separator,
+// trimming any leading or trailing dots from the result.
+func joinPrefix(prefix, key string) string {
+	return strings.Trim(prefix+"."+key, ".")
+}
+
 // appendSlogAttr appends a single slog.Attr to the zerolog event, handling
 // type-specific encoding to avoid reflection where possible.
 func appendSlogAttr(event *Event, attr slog.Attr, prefix string) *Event {
@@ -142,17 +149,30 @@ func appendSlogAttr(event *Event, attr slog.Attr, prefix string) *Event {
 		return event
 	}
 
-	// Resolve the attribute to handle LogValuer types
+	// Resolve the attribute to handle LogValuer types.
+	// This handles slog.KindLogValuer implicitly by unwrapping
+	// any values that implement slog.LogValuer to their resolved form.
 	attr.Value = attr.Value.Resolve()
 
-	key := attr.Key
-	if key == "" && attr.Value.Kind() != slog.KindGroup {
+	// For group kinds, handle grouping before key concatenation
+	if attr.Value.Kind() == slog.KindGroup {
+		attrs := attr.Value.Group()
+		if len(attrs) == 0 {
+			return event
+		}
+		groupPrefix := joinPrefix(prefix, attr.Key)
+		for _, ga := range attrs {
+			event = appendSlogAttr(event, ga, groupPrefix)
+		}
 		return event
 	}
-	if prefix != "" && key != "" {
-		key = prefix + "." + key
+
+	// Skip empty keys for non-group attributes
+	if attr.Key == "" {
+		return event
 	}
 
+	key := joinPrefix(prefix, attr.Key)
 	val := attr.Value
 
 	switch val.Kind() {
@@ -170,18 +190,6 @@ func appendSlogAttr(event *Event, attr slog.Attr, prefix string) *Event {
 		event = event.Dur(key, val.Duration())
 	case slog.KindTime:
 		event = event.Time(key, val.Time())
-	case slog.KindGroup:
-		attrs := val.Group()
-		if len(attrs) == 0 {
-			return event
-		}
-		groupPrefix := prefix
-		if key != "" {
-			groupPrefix = key
-		}
-		for _, ga := range attrs {
-			event = appendSlogAttr(event, ga, groupPrefix)
-		}
 	case slog.KindAny:
 		v := val.Any()
 		switch cv := v.(type) {
