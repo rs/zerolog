@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/internal/cbor"
 )
 
 func newSlogLogger(buf *bytes.Buffer) *slog.Logger {
@@ -16,11 +17,22 @@ func newSlogLogger(buf *bytes.Buffer) *slog.Logger {
 	return slog.New(zerolog.NewSlogHandler(zl))
 }
 
+// decodeOutput converts the buffer contents to a JSON string,
+// handling CBOR-encoded output when built with the binary_log tag.
+func decodeOutput(buf *bytes.Buffer) string {
+	p := buf.Bytes()
+	if len(p) == 0 || p[0] < 0x7F {
+		return buf.String()
+	}
+	return cbor.DecodeObjectToStr(p) + "\n"
+}
+
 func decodeJSON(t *testing.T, buf *bytes.Buffer) map[string]interface{} {
 	t.Helper()
 	var m map[string]interface{}
-	if err := json.Unmarshal(buf.Bytes(), &m); err != nil {
-		t.Fatalf("failed to decode JSON %q: %v", buf.String(), err)
+	s := decodeOutput(buf)
+	if err := json.Unmarshal([]byte(s), &m); err != nil {
+		t.Fatalf("failed to decode JSON %q: %v", s, err)
 	}
 	return m
 }
