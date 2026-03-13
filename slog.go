@@ -3,7 +3,6 @@ package zerolog
 import (
 	"context"
 	"log/slog"
-	"strings"
 	"time"
 )
 
@@ -24,17 +23,31 @@ func NewSlogHandler(logger Logger) *SlogHandler {
 }
 
 // Enabled reports whether the handler handles records at the given level.
+// It mirrors Logger.should's level and writer checks (without sampling).
 func (h *SlogHandler) Enabled(_ context.Context, level slog.Level) bool {
-	return h.logger.GetLevel() <= slogToZerologLevel(level)
+	if h.logger.w == nil {
+		return false
+	}
+	zl := slogToZerologLevel(level)
+	if zl < GlobalLevel() {
+		return false
+	}
+	return zl >= h.logger.level
 }
 
 // Handle handles the Record. It converts the slog.Record into a zerolog event
 // and writes it using the underlying zerolog.Logger.
-func (h *SlogHandler) Handle(_ context.Context, record slog.Record) error {
+func (h *SlogHandler) Handle(ctx context.Context, record slog.Record) error {
 	zlevel := slogToZerologLevel(record.Level)
 	event := h.logger.WithLevel(zlevel)
 	if event == nil {
 		return nil
+	}
+
+	// Propagate slog context to the zerolog event so that hooks
+	// relying on Event.GetCtx() (e.g. tracing) can access it.
+	if ctx != nil {
+		event = event.Ctx(ctx)
 	}
 
 	// Add pre-attached attrs from WithAttrs
@@ -48,13 +61,26 @@ func (h *SlogHandler) Handle(_ context.Context, record slog.Record) error {
 		return true
 	})
 
-	// Add timestamp
-	if !record.Time.IsZero() {
+	// Add timestamp from the slog record, but only if the logger doesn't
+	// already have a timestampHook (added via .With().Timestamp()) to
+	// avoid duplicate timestamp keys in the output.
+	if !record.Time.IsZero() && !h.hasTimestampHook() {
 		event.Time(TimestampFieldName, record.Time)
 	}
 
 	event.Msg(record.Message)
 	return nil
+}
+
+// hasTimestampHook reports whether the logger has a timestampHook installed,
+// which would cause duplicate timestamp fields if we also emit record.Time.
+func (h *SlogHandler) hasTimestampHook() bool {
+	for _, hook := range h.logger.hooks {
+		if _, ok := hook.(timestampHook); ok {
+			return true
+		}
+	}
+	return false
 }
 
 // WithAttrs returns a new Handler with the given attributes pre-attached.
@@ -136,10 +162,16 @@ func zerologToSlogLevel(level Level) slog.Level {
 	}
 }
 
-// joinPrefix concatenates a prefix and key with a dot separator,
-// trimming any leading or trailing dots from the result.
+// joinPrefix concatenates a prefix and key with a dot separator.
+// It avoids allocations when either prefix or key is empty.
 func joinPrefix(prefix, key string) string {
-	return strings.Trim(prefix+"."+key, ".")
+	if prefix == "" {
+		return key
+	}
+	if key == "" {
+		return prefix
+	}
+	return prefix + "." + key
 }
 
 // appendSlogAttr appends a single slog.Attr to the zerolog event, handling

@@ -1,6 +1,7 @@
 package zerolog_test
 
 import (
+	"context"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -459,5 +460,100 @@ func TestSlogHandler_WithContext(t *testing.T) {
 	}
 	if m["message"] != "request" {
 		t.Errorf("expected message 'request', got %v", m["message"])
+	}
+}
+
+func TestSlogHandler_EnabledRespectsGlobalLevel(t *testing.T) {
+	var buf bytes.Buffer
+	zl := zerolog.New(&buf).Level(zerolog.DebugLevel)
+	handler := zerolog.NewSlogHandler(zl)
+
+	// Logger level is debug, so info should be enabled
+	if !handler.Enabled(nil, slog.LevelInfo) {
+		t.Fatal("expected info to be enabled before setting global level")
+	}
+
+	// Set global level to error
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	defer zerolog.SetGlobalLevel(zerolog.TraceLevel)
+
+	// Now info should be disabled even though logger level allows it
+	if handler.Enabled(nil, slog.LevelInfo) {
+		t.Error("expected info to be disabled when GlobalLevel is error")
+	}
+	// Error should still be enabled
+	if !handler.Enabled(nil, slog.LevelError) {
+		t.Error("expected error to be enabled when GlobalLevel is error")
+	}
+}
+
+func TestSlogHandler_EnabledNilWriter(t *testing.T) {
+	zl := zerolog.Nop()
+	handler := zerolog.NewSlogHandler(zl)
+
+	if handler.Enabled(nil, slog.LevelError) {
+		t.Error("expected disabled for nop logger")
+	}
+}
+
+func TestSlogHandler_HandlePropagatesContext(t *testing.T) {
+	var buf bytes.Buffer
+	type ctxKey struct{}
+	ctx := context.WithValue(context.Background(), ctxKey{}, "test-value")
+
+	var gotCtx context.Context
+	hook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
+		gotCtx = e.GetCtx()
+	})
+
+	zl := zerolog.New(&buf).Hook(hook)
+	handler := zerolog.NewSlogHandler(zl)
+
+	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test", 0)
+	_ = handler.Handle(ctx, record)
+
+	if gotCtx == nil {
+		t.Fatal("expected context to be propagated to event")
+	}
+	if gotCtx.Value(ctxKey{}) != "test-value" {
+		t.Error("expected context value to be preserved")
+	}
+}
+
+func TestSlogHandler_NoDuplicateTimestamp(t *testing.T) {
+	var buf bytes.Buffer
+	// Create logger with Timestamp() hook - this adds "time" automatically
+	zl := zerolog.New(&buf).With().Timestamp().Logger()
+	handler := zerolog.NewSlogHandler(zl)
+
+	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test", 0)
+	_ = handler.Handle(context.Background(), record)
+
+	output := decodeOutput(&buf)
+	// Count occurrences of the timestamp field name - should appear exactly once
+	count := 0
+	for i := 0; i < len(output); i++ {
+		if i+4 <= len(output) && output[i:i+4] == "time" {
+			count++
+		}
+	}
+	if count > 1 {
+		t.Errorf("expected at most 1 timestamp field, got %d in output: %s", count, output)
+	}
+}
+
+func TestSlogHandler_TimestampWithoutHook(t *testing.T) {
+	var buf bytes.Buffer
+	// Logger without Timestamp() hook - Handle should add the timestamp
+	zl := zerolog.New(&buf)
+	handler := zerolog.NewSlogHandler(zl)
+
+	ts := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
+	record := slog.NewRecord(ts, slog.LevelInfo, "test", 0)
+	_ = handler.Handle(context.Background(), record)
+
+	m := decodeJSON(t, &buf)
+	if m[zerolog.TimestampFieldName] == nil {
+		t.Error("expected timestamp field when logger has no timestamp hook")
 	}
 }
