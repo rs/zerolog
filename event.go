@@ -264,7 +264,10 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 	return e
 }
 
-// Objects adds the field key with obj as an array of objects that implement the LogObjectMarshaler interface.
+// Objects adds the field key with objs as an array of objects that
+// implement the LogObjectMarshaler interface to the event.
+//
+// This is the array version that accepts a slice of LogObjectMarshaler objects.
 func (e *Event) Objects(key string, objs []LogObjectMarshaler) *Event {
 	if e == nil {
 		return e
@@ -278,6 +281,14 @@ func (e *Event) Objects(key string, objs []LogObjectMarshaler) *Event {
 	}
 	e.buf = enc.AppendArrayEnd(e.buf)
 	return e
+}
+
+// ObjectsV adds the field key with objs as an array of objects that
+// implement the LogObjectMarshaler interface to the event.
+//
+// This is a variadic version that accepts a list of individual LogObjectMarshaler objects.
+func (e *Event) ObjectsV(key string, objs ...LogObjectMarshaler) *Event {
+	return e.Objects(key, objs)
 }
 
 // Func allows an anonymous func to run only if the event is enabled.
@@ -310,6 +321,8 @@ func (e *Event) Str(key, val string) *Event {
 }
 
 // Strs adds the field key with vals as a []string to the *Event context.
+//
+// This is the array version that accepts a slice of string values.
 func (e *Event) Strs(key string, vals []string) *Event {
 	if e == nil {
 		return e
@@ -318,8 +331,16 @@ func (e *Event) Strs(key string, vals []string) *Event {
 	return e
 }
 
-// Stringer adds the field key with val.String() (or null if val is nil)
-// to the *Event context.
+// StrsV adds the field key with vals as a []string to the *Event context.
+//
+// This is a variadic version that accepts a list of individual strings.
+func (e *Event) StrsV(key string, vals ...string) *Event {
+	return e.Strs(key, vals)
+}
+
+// Stringer adds the field key and a val to the *Event context.
+// If val is not nil, it is added by calling val.String().
+// If val is nil, it is encoded as null without calling String().
 func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 	if e == nil {
 		return e
@@ -328,15 +349,27 @@ func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
 	return e
 }
 
-// Stringers adds the field key with vals where each individual val
-// is used as val.String() (or null if val is empty) to the *Event
-// context.
+// Stringers adds the field key with vals to the *Event context.
+// If a val is not nil, it is added by calling val.String().
+// If a val is nil, it is encoded as null without calling String().
+//
+// This is the array version that accepts a slice of fmt.Stringer values.
 func (e *Event) Stringers(key string, vals []fmt.Stringer) *Event {
 	if e == nil {
 		return e
 	}
 	e.buf = enc.AppendStringers(enc.AppendKey(e.buf, key), vals)
 	return e
+}
+
+// StringersV adds the field key with vals to the *Event context.
+// If a val is not nil, it is added by calling val.String().
+// If a val is nil, it is encoded as null without calling String().
+//
+// This is a variadic version that accepts a list of individual
+// fmt.Stringer values.
+func (e *Event) StringersV(key string, vals ...fmt.Stringer) *Event {
+	return e.Stringers(key, vals)
 }
 
 // Bytes adds the field key with val as a string to the *Event context.
