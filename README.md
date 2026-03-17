@@ -29,6 +29,7 @@ Find out [who uses zerolog](https://github.com/rs/zerolog/wiki/Who-uses-zerolog)
 - [JSON and CBOR encoding formats](#binary-encoding)
 - [Pretty logging for development](#pretty-logging)
 - [Error Logging (with optional Stacktrace)](#error-logging)
+- [`log/slog` integration](#integration-with-logslog)
 
 ## Installation
 
@@ -714,6 +715,33 @@ go build -tags binary_log .
 
 To decode binary encoded log files you can use any CBOR decoder. One has been tested to work
 with zerolog library is [CSD](https://github.com/toravir/csd/).
+
+## Integration with `log/slog`
+
+zerolog provides a `slog.Handler` implementation that routes `log/slog` records through a zerolog logger. This lets you use the standard library's `slog` API while keeping zerolog's performance and encoding:
+
+```go
+package main
+
+import (
+    "log/slog"
+
+    "github.com/rs/zerolog"
+    "github.com/rs/zerolog/log"
+)
+
+func main() {
+    zl := log.Logger
+    handler := zerolog.NewSlogHandler(zl)
+    logger := slog.New(handler)
+
+    logger.Info("user logged in", "user", "alice", "role", "admin")
+}
+
+// Output: {"level":"info","user":"alice","role":"admin","time":"...","message":"user logged in"}
+```
+
+The handler supports all `slog` features including `WithAttrs`, `WithGroup`, nested groups, and `LogValuer` resolution. slog levels are mapped to zerolog levels (e.g. `slog.LevelDebug` to `zerolog.DebugLevel`).
 
 ## Related Projects
 
