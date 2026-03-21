@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"runtime"
 	"sync"
 	"time"
@@ -297,6 +298,47 @@ func (e *Event) EmbedObject(obj LogObjectMarshaler) *Event {
 		return e
 	}
 	obj.MarshalZerologObject(e)
+	return e
+}
+
+// Struct traverses a struct object reading the log tag to log its value as its equivalent data type
+func (e *Event) Struct(obj interface{}) *Event {
+	if e == nil {
+		return e
+	}
+	objValue := reflect.ValueOf(obj)
+	objType := reflect.TypeOf(obj)
+	for i := 0; i < objType.NumField(); i++ {
+		field := objType.Field(i)
+
+		if key, ok := field.Tag.Lookup("log"); ok {
+			fieldVal := objValue.Field(i)
+
+			switch fieldVal.Kind() {
+			case reflect.Struct:
+				if field.Type == reflect.TypeOf(time.Time{}) {
+					e.Time(key, fieldVal.Interface().(time.Time))
+				} else {
+					ne := newEvent(e.w, e.level).Struct(fieldVal.Interface())
+					e.RawJSON(key, enc.AppendEndMarker(ne.buf))
+				}
+			case reflect.Slice:
+				if field.Type == reflect.TypeOf(net.HardwareAddr{}) {
+					e.MACAddr(key, fieldVal.Interface().(net.HardwareAddr))
+				} else if field.Type == reflect.TypeOf(net.IP{}) {
+					e.IPAddr(key, fieldVal.Interface().(net.IP))
+				}
+			case reflect.Interface:
+				if err, ok := fieldVal.Interface().(error); ok {
+					e.AnErr(key, err)
+				} else {
+					e.Interface(key, fieldVal.Interface())
+				}
+			default:
+				e.Interface(key, fieldVal.Interface())
+			}
+		}
+	}
 	return e
 }
 
