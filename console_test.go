@@ -567,6 +567,28 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 	})
 
+	t.Run("PartsExclude suppresses fields from writeFields", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out:          buf,
+			NoColor:      true,
+			PartsExclude: []string{"pkg"},
+		}
+
+		evt := `{"level": "info", "message": "Hello", "pkg": "main"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		// "pkg" in PartsExclude should be excluded from both writePart and writeFields
+		expectedOutput := "<nil> INF Hello\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("Sets FormatExtra", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{

@@ -201,6 +201,18 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		case LevelFieldName, TimestampFieldName, MessageFieldName, CallerFieldName:
 			continue
 		}
+
+		var isPartsExcluded bool
+		for _, excluded := range w.PartsExclude {
+			if field == excluded {
+				isPartsExcluded = true
+				break
+			}
+		}
+		if isPartsExcluded {
+			continue
+		}
+
 		fields = append(fields, field)
 	}
 
