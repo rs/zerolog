@@ -51,6 +51,9 @@ type Formatter func(interface{}) string
 // being able to differentiate formatting based on field name.
 type FormatterByFieldName func(interface{}, string) string
 
+// FormatterFromEvent generates a Formatter from an event.
+type FormatterFromEvent func(map[string]interface{}) Formatter
+
 // ConsoleWriter parses the JSON input and writes it in an
 // (optionally) colorized, human-friendly format to Out.
 type ConsoleWriter struct {
@@ -81,14 +84,15 @@ type ConsoleWriter struct {
 	// FieldsExclude defines contextual fields to not display in output.
 	FieldsExclude []string
 
-	FormatTimestamp     Formatter
-	FormatLevel         Formatter
-	FormatCaller        Formatter
-	FormatMessage       Formatter
-	FormatFieldName     Formatter
-	FormatFieldValue    Formatter
-	FormatErrFieldName  Formatter
-	FormatErrFieldValue Formatter
+	FormatTimestamp        Formatter
+	FormatLevel            Formatter
+	FormatCaller           Formatter
+	FormatMessage          Formatter
+	FormatMessageFromEvent FormatterFromEvent
+	FormatFieldName        Formatter
+	FormatFieldValue       Formatter
+	FormatErrFieldName     Formatter
+	FormatErrFieldValue    Formatter
 	// If this is configured it is used for "part" values and
 	// has precedence on FormatFieldValue
 	FormatPartValueByName FormatterByFieldName
@@ -313,10 +317,12 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 			f = w.FormatTimestamp
 		}
 	case MessageFieldName:
-		if w.FormatMessage == nil {
-			f = consoleDefaultFormatMessage(w.NoColor, evt[LevelFieldName])
-		} else {
+		if w.FormatMessageFromEvent != nil {
+			f = w.FormatMessageFromEvent(evt)
+		} else if w.FormatMessage != nil {
 			f = w.FormatMessage
+		} else {
+			f = consoleDefaultFormatMessage(w.NoColor, evt[LevelFieldName])
 		}
 	case CallerFieldName:
 		if w.FormatCaller == nil {
