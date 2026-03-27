@@ -142,11 +142,17 @@ func BenchmarkLogFieldType(b *testing.B) {
 		"Strs": func(e *Event) *Event {
 			return e.Strs("k", fixtures.Strings)
 		},
+		"StrsV": func(e *Event) *Event {
+			return e.StrsV("k", fixtures.Strings...)
+		},
 		"Stringer": func(e *Event) *Event {
 			return e.Stringer("k", fixtures.Stringers[0])
 		},
 		"Stringers": func(e *Event) *Event {
 			return e.Stringers("k", fixtures.Stringers)
+		},
+		"StringersV": func(e *Event) *Event {
+			return e.StringersV("k", fixtures.Stringers...)
 		},
 		"Err": func(e *Event) *Event {
 			return e.Err(fixtures.Errs[0])
@@ -186,6 +192,9 @@ func BenchmarkLogFieldType(b *testing.B) {
 		},
 		"Objects": func(e *Event) *Event {
 			return e.Objects("k", fixtures.Objects)
+		},
+		"ObjectsV": func(e *Event) *Event {
+			return e.ObjectsV("k", fixtures.Objects...)
 		},
 		"Timestamp": func(e *Event) *Event {
 			return e.Timestamp()
@@ -270,11 +279,17 @@ func BenchmarkContextFieldType(b *testing.B) {
 		"Strs": func(c Context) Context {
 			return c.Strs("k", fixtures.Strings)
 		},
+		"StrsV": func(c Context) Context {
+			return c.StrsV("k", fixtures.Strings...)
+		},
 		"Stringer": func(c Context) Context {
 			return c.Stringer("k", fixtures.Stringers[0])
 		},
 		"Stringers": func(c Context) Context {
 			return c.Stringers("k", fixtures.Stringers)
+		},
+		"StringersV": func(c Context) Context {
+			return c.StringersV("k", fixtures.Stringers...)
 		},
 		"Err": func(c Context) Context {
 			return c.Err(fixtures.Errs[0])
@@ -314,6 +329,9 @@ func BenchmarkContextFieldType(b *testing.B) {
 		},
 		"Objects": func(c Context) Context {
 			return c.Objects("k", fixtures.Objects)
+		},
+		"ObjectsV": func(c Context) Context {
+			return c.ObjectsV("k", fixtures.Objects...)
 		},
 		"Timestamp": func(c Context) Context {
 			return c.Timestamp()
