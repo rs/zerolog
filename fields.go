@@ -82,7 +82,7 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool, ctx context.C
 			if stack && ErrorStackMarshaler != nil {
 				switch m := ErrorStackMarshaler(val).(type) {
 				case nil:
-					return dst // do nothing with nil errors
+					// No stack trace available; continue processing remaining fields.
 				case LogObjectMarshaler:
 					dst = enc.AppendKey(dst, ErrorStackFieldName)
 					dst = appendObject(dst, m, stack, ctx, hooks)
