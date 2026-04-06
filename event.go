@@ -466,7 +466,7 @@ func (e *Event) Err(err error) *Event {
 	if e.stack && ErrorStackMarshaler != nil {
 		switch m := ErrorStackMarshaler(err).(type) {
 		case nil:
-			return e
+			// No stack trace available; continue to record the error field.
 		case LogObjectMarshaler:
 			e = e.Object(ErrorStackFieldName, m)
 		case error:

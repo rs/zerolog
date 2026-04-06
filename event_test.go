@@ -720,7 +720,7 @@ func TestEvent_ErrWithStackMarshalerNil(t *testing.T) {
 	log.Log().Stack().Err(err).Msg("test message")
 
 	got := buf.String()
-	want := `{"message":"test message"}` + "\n" // No fields because stack marshaler returned nil
+	want := `{"error":"test error","message":"test message"}` + "\n"
 	if got != want {
 		t.Errorf("Event.Err() with nil stack marshaler = %q, want %q", got, want)
 	}
