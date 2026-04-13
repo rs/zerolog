@@ -720,7 +720,13 @@ func TestEvent_ErrWithStackMarshalerNil(t *testing.T) {
 	log.Log().Stack().Err(err).Msg("test message")
 
 	got := buf.String()
-	want := `{"message":"test message"}` + "\n" // No fields because stack marshaler returned nil
+	// When ErrorStackMarshaler returns nil (no stack trace available for this
+	// error), Err() must still log the error value via AnErr.  Without a stack
+	// field, the output is the same as if Stack() had not been called.
+	// Regression test for https://github.com/rs/zerolog/issues/762:
+	// commit f6fbd33 introduced a `case nil: return e` branch that silently
+	// swallowed the error instead of falling through to AnErr.
+	want := `{"error":"test error","message":"test message"}` + "\n"
 	if got != want {
 		t.Errorf("Event.Err() with nil stack marshaler = %q, want %q", got, want)
 	}
