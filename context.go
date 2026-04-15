@@ -210,7 +210,8 @@ func (c Context) Err(err error) Context {
 	if c.l.stack && ErrorStackMarshaler != nil {
 		switch m := ErrorStackMarshaler(err).(type) {
 		case nil:
-			return c // do nothing with nil errors
+			// Stack marshaler returned nil; skip the stack field
+			// but still record the error below.
 		case LogObjectMarshaler:
 			c = c.Object(ErrorStackFieldName, m)
 		case error:
