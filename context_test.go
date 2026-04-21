@@ -70,7 +70,10 @@ func TestContext_ErrWithNilStackMarshaler(t *testing.T) {
 	log.Info().Msg("test message")
 
 	got := decodeIfBinaryToString(buf.Bytes())
-	want := `{"level":"info","message":"test message"}` + "\n" // No stack or error field because stack marshaler returned nil
+	// When ErrorStackMarshaler returns nil (no stack trace available for this
+	// error), Err() must still log the error value via AnErr. Without a stack
+	// field, the output is the same as if Stack() had not been called.
+	want := `{"level":"info","error":"test error","message":"test message"}` + "\n"
 	if got != want {
 		t.Errorf("Context.Err() with nil stack marshaler = %q, want %q", got, want)
 	}
