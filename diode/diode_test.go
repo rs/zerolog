@@ -16,15 +16,37 @@ import (
 	"github.com/rs/zerolog/internal/cbor"
 )
 
+type signalBuffer struct {
+	bytes.Buffer
+	wrote chan struct{}
+}
+
+func (b *signalBuffer) Write(p []byte) (n int, err error) {
+	n, err = b.Buffer.Write(p)
+	if err == nil {
+		select {
+		case b.wrote <- struct{}{}:
+		default:
+		}
+	}
+	return n, err
+}
+
 func TestNewWriter(t *testing.T) {
-	buf := bytes.Buffer{}
+	buf := signalBuffer{wrote: make(chan struct{}, 1)}
 	w := diode.NewWriter(&buf, 1000, 0, func(missed int) {
 		fmt.Printf("Dropped %d messages\n", missed)
 	})
 	log := zerolog.New(w)
 	log.Print("test")
 
-	w.Close()
+	select {
+	case <-buf.wrote:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for diode writer to flush")
+	}
+
+	_ = w.Close()
 	want := "{\"level\":\"debug\",\"message\":\"test\"}\n"
 	got := cbor.DecodeIfBinaryToString(buf.Bytes())
 	if got != want {
