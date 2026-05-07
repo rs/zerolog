@@ -63,7 +63,100 @@ func TestDecodeArray(t *testing.T) {
 			t.Errorf("array2Json(0x%s)=%s, want: %s", hex.EncodeToString([]byte(tc.Binary)), buf.String(), tc.Json)
 		}
 	}
-	//TODO add cases for arrays of other types
+
+	// Definite-length empty array
+	var emptyArrayTestCases = []struct {
+		in  string
+		out string
+	}{
+		{"\x80", "[]"},
+	}
+	for _, tc := range emptyArrayTestCases {
+		buf := bytes.NewBuffer([]byte{})
+		array2Json(getReader(tc.in), buf)
+		if buf.String() != tc.out {
+			t.Errorf("array2Json(0x%s)=%s, want: %s", hex.EncodeToString([]byte(tc.in)), buf.String(), tc.out)
+		}
+	}
+
+	// String arrays
+	var stringArrayTestCases = []struct {
+		in  string
+		out string
+	}{
+		{"\x82\x63foo\x63bar", "[\"foo\",\"bar\"]"},
+		{"\x81\x65hello", "[\"hello\"]"},
+	}
+	for _, tc := range stringArrayTestCases {
+		buf := bytes.NewBuffer([]byte{})
+		array2Json(getReader(tc.in), buf)
+		if buf.String() != tc.out {
+			t.Errorf("array2Json(0x%s)=%s, want: %s", hex.EncodeToString([]byte(tc.in)), buf.String(), tc.out)
+		}
+	}
+
+	// Nested arrays
+	var nestedArrayTestCases = []struct {
+		in  string
+		out string
+	}{
+		{"\x82\x82\x01\x02\x82\x03\x04", "[[1,2],[3,4]]"},
+		{"\x81\x81\x01", "[[1]]"},
+	}
+	for _, tc := range nestedArrayTestCases {
+		buf := bytes.NewBuffer([]byte{})
+		array2Json(getReader(tc.in), buf)
+		if buf.String() != tc.out {
+			t.Errorf("array2Json(0x%s)=%s, want: %s", hex.EncodeToString([]byte(tc.in)), buf.String(), tc.out)
+		}
+	}
+
+	// Float arrays
+	var floatArrayTestCases = []struct {
+		in  string
+		out string
+	}{
+		{"\x82\xfa\x3f\xc0\x00\x00\xfa\xc0\x20\x00\x00", "[1.5,-2.5]"},
+		{"\x81\xfb\x3f\xf0\x00\x00\x00\x00\x00\x00", "[1]"},
+	}
+	for _, tc := range floatArrayTestCases {
+		buf := bytes.NewBuffer([]byte{})
+		array2Json(getReader(tc.in), buf)
+		if buf.String() != tc.out {
+			t.Errorf("array2Json(0x%s)=%s, want: %s", hex.EncodeToString([]byte(tc.in)), buf.String(), tc.out)
+		}
+	}
+
+	// Mixed-type arrays (int, null, bool, string)
+	var mixedArrayTestCases = []struct {
+		in  string
+		out string
+	}{
+		{"\x84\x01\xf6\xf5\x61x", "[1,null,true,\"x\"]"},
+		{"\x83\x00\xf4\x63abc", "[0,false,\"abc\"]"},
+	}
+	for _, tc := range mixedArrayTestCases {
+		buf := bytes.NewBuffer([]byte{})
+		array2Json(getReader(tc.in), buf)
+		if buf.String() != tc.out {
+			t.Errorf("array2Json(0x%s)=%s, want: %s", hex.EncodeToString([]byte(tc.in)), buf.String(), tc.out)
+		}
+	}
+
+	// Array of maps
+	var arrayOfMapsTestCases = []struct {
+		in  string
+		out string
+	}{
+		{"\x81\xa2\x61a\x01", "[{\"a\":1}]"},
+	}
+	for _, tc := range arrayOfMapsTestCases {
+		buf := bytes.NewBuffer([]byte{})
+		array2Json(getReader(tc.in), buf)
+		if buf.String() != tc.out {
+			t.Errorf("array2Json(0x%s)=%s, want: %s", hex.EncodeToString([]byte(tc.in)), buf.String(), tc.out)
+		}
+	}
 }
 
 var infiniteMapDecodeTestCases = []struct {
