@@ -1,5 +1,5 @@
-// +build !binary_log
-// +build !windows
+//go:build !binary_log && !windows
+// +build !binary_log,!windows
 
 package zerolog
 
@@ -61,6 +61,7 @@ func TestSyslogWriter(t *testing.T) {
 	log.Error().Msg("error")
 	log.Log().Msg("nolevel")
 	want := []syslogEvent{
+		{"Debug", `{"level":"trace","message":"trace"}` + "\n"},
 		{"Debug", `{"level":"debug","message":"debug"}` + "\n"},
 		{"Info", `{"level":"info","message":"info"}` + "\n"},
 		{"Warning", `{"level":"warn","message":"warn"}` + "\n"},
