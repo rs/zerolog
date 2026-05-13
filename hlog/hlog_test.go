@@ -28,17 +28,24 @@ func decodeIfBinary(out *bytes.Buffer) string {
 }
 
 func TestNewHandler(t *testing.T) {
-	log := zerolog.New(nil).With().
+	out := &bytes.Buffer{}
+	log := zerolog.New(out).With().
 		Str("foo", "bar").
 		Logger()
 	lh := NewHandler(log)
 	h := lh(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
-		if !reflect.DeepEqual(*l, log) {
-			t.Fail()
+		// Verify the logger retrieved from the request context carries the
+		// fields that were set on the original logger.
+		if l.GetLevel() != log.GetLevel() {
+			t.Errorf("level mismatch: got %v, want %v", l.GetLevel(), log.GetLevel())
 		}
+		l.Info().Msg("")
 	}))
 	h.ServeHTTP(nil, &http.Request{})
+	if got := decodeIfBinary(out); got != `{"level":"info","foo":"bar"}`+"\n" {
+		t.Errorf("unexpected log output: %s", got)
+	}
 }
 
 func TestURLHandler(t *testing.T) {

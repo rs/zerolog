@@ -15,7 +15,10 @@ func TestCtx(t *testing.T) {
 	log := New(io.Discard)
 	ctx := log.WithContext(context.Background())
 	log2 := Ctx(ctx)
-	if !reflect.DeepEqual(log, *log2) {
+	// Ctx attaches the Go context to the returned logger so events have it.
+	want := log
+	want.ctx = ctx
+	if !reflect.DeepEqual(want, *log2) {
 		t.Error("Ctx did not return the expected logger")
 	}
 
@@ -23,7 +26,9 @@ func TestCtx(t *testing.T) {
 	log = log.Level(InfoLevel)
 	ctx = log.WithContext(ctx)
 	log2 = Ctx(ctx)
-	if !reflect.DeepEqual(log, *log2) {
+	want = log
+	want.ctx = ctx
+	if !reflect.DeepEqual(want, *log2) {
 		t.Error("Ctx did not return the expected logger")
 	}
 
@@ -49,7 +54,10 @@ func TestCtxDisabled(t *testing.T) {
 
 	l := New(io.Discard).With().Str("foo", "bar").Logger()
 	ctx = l.WithContext(ctx)
-	if !reflect.DeepEqual(Ctx(ctx), &l) {
+	// Ctx returns a copy with ctx attached; compare against l with ctx set.
+	lWithCtx := l
+	lWithCtx.ctx = ctx
+	if !reflect.DeepEqual(Ctx(ctx), &lWithCtx) {
 		t.Error("WithContext did not store logger")
 	}
 
@@ -57,18 +65,24 @@ func TestCtxDisabled(t *testing.T) {
 		return c.Str("bar", "baz")
 	})
 	ctx = l.WithContext(ctx)
-	if !reflect.DeepEqual(Ctx(ctx), &l) {
+	lWithCtx = l
+	lWithCtx.ctx = ctx
+	if !reflect.DeepEqual(Ctx(ctx), &lWithCtx) {
 		t.Error("WithContext did not store updated logger")
 	}
 
 	l = l.Level(DebugLevel)
 	ctx = l.WithContext(ctx)
-	if !reflect.DeepEqual(Ctx(ctx), &l) {
+	lWithCtx = l
+	lWithCtx.ctx = ctx
+	if !reflect.DeepEqual(Ctx(ctx), &lWithCtx) {
 		t.Error("WithContext did not store copied logger")
 	}
 
 	ctx = dl.WithContext(ctx)
-	if !reflect.DeepEqual(Ctx(ctx), &dl) {
+	dlWithCtx := dl
+	dlWithCtx.ctx = ctx
+	if !reflect.DeepEqual(Ctx(ctx), &dlWithCtx) {
 		t.Error("WithContext did not override logger with a disabled logger")
 	}
 }
@@ -98,5 +112,32 @@ func Test_InterfaceLogObjectMarshaler(t *testing.T) {
 
 	if got, want := cbor.DecodeIfBinaryToString(buf.Bytes()), `{"level":"info","obj":{"name":"foo","age":-29},"message":"test"}`+"\n"; got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestCtxEventHasContext(t *testing.T) {
+	// Verify that events created from a context-retrieved logger automatically
+	// have the Go context attached, so hooks can access it without callers
+	// needing to chain .Ctx(ctx) on every event.
+	var buf bytes.Buffer
+
+	type ctxKeyType struct{}
+	var gotCtx context.Context
+
+	hook := HookFunc(func(e *Event, level Level, msg string) {
+		gotCtx = e.GetCtx()
+	})
+
+	logger := New(&buf).Hook(hook)
+	ctx := context.WithValue(context.Background(), ctxKeyType{}, "sentinel")
+	ctx = logger.WithContext(ctx)
+
+	Ctx(ctx).Info().Msg("test")
+
+	if gotCtx == nil {
+		t.Fatal("hook saw nil ctx; expected the context from WithContext")
+	}
+	if gotCtx.Value(ctxKeyType{}) != "sentinel" {
+		t.Errorf("hook ctx missing expected value; got %v", gotCtx.Value(ctxKeyType{}))
 	}
 }

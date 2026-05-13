@@ -35,7 +35,12 @@ func (l Logger) WithContext(ctx context.Context) context.Context {
 		// Do not store disabled logger.
 		return ctx
 	}
-	return context.WithValue(ctx, ctxKey{}, &l)
+	// Attach ctx to the logger so that events created via Ctx(ctx).Info() etc.
+	// automatically have the Go context set and available to hooks, without
+	// callers needing to chain .Ctx(ctx) manually on every event.
+	newCtx := context.WithValue(ctx, ctxKey{}, &l)
+	l.ctx = newCtx
+	return newCtx
 }
 
 // Ctx returns the Logger associated with the ctx. If no logger
