@@ -144,6 +144,8 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		return n, fmt.Errorf("cannot decode event: %s", err)
 	}
 
+	fieldOrder, _ := jsonFieldOrder(p)
+
 	if w.FormatPrepare != nil {
 		err = w.FormatPrepare(evt)
 		if err != nil {
@@ -155,7 +157,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		w.writePart(buf, evt, p)
 	}
 
-	w.writeFields(evt, buf)
+	w.writeFields(evt, buf, fieldOrder)
 
 	if w.FormatExtra != nil {
 		err = w.FormatExtra(evt, buf)
@@ -182,8 +184,74 @@ func (w ConsoleWriter) Close() error {
 	return nil
 }
 
+// jsonFieldOrder returns top-level JSON object keys in document order.
+func jsonFieldOrder(data []byte) ([]string, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	t, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+	d, ok := t.(json.Delim)
+	if !ok || d != '{' {
+		return nil, fmt.Errorf("not a JSON object")
+	}
+
+	var keys []string
+	for dec.More() {
+		t, err = dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := t.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected object key")
+		}
+		keys = append(keys, key)
+		var skip json.RawMessage
+		if err := dec.Decode(&skip); err != nil {
+			return nil, err
+		}
+	}
+	return keys, nil
+}
+
+func reorderFieldsByJSON(fields []string, order []string) []string {
+	if len(order) == 0 {
+		return fields
+	}
+
+	present := make(map[string]struct{}, len(fields))
+	for _, field := range fields {
+		present[field] = struct{}{}
+	}
+
+	ordered := make([]string, 0, len(fields))
+	seen := make(map[string]struct{}, len(fields))
+	for _, field := range order {
+		if _, ok := present[field]; !ok {
+			continue
+		}
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		ordered = append(ordered, field)
+		seen[field] = struct{}{}
+	}
+
+	rest := make([]string, 0, len(fields)-len(ordered))
+	for _, field := range fields {
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		rest = append(rest, field)
+	}
+	sort.Strings(rest)
+
+	return append(ordered, rest...)
+}
+
 // writeFields appends formatted key-value pairs to buf.
-func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
+func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer, fieldOrder []string) {
 	var fields = make([]string, 0, len(evt))
 	for field := range evt {
 		var isExcluded bool
@@ -207,7 +275,10 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 	if len(w.FieldsOrder) > 0 {
 		w.orderFields(fields)
 	} else {
-		sort.Strings(fields)
+		fields = reorderFieldsByJSON(fields, fieldOrder)
+		if len(fieldOrder) == 0 {
+			sort.Strings(fields)
+		}
 	}
 
 	// Write space only if something has already been written to the buffer, and if there are fields.
@@ -307,6 +378,9 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 			f = w.FormatLevel
 		}
 	case TimestampFieldName:
+		if evt[p] == nil {
+			return
+		}
 		if w.FormatTimestamp == nil {
 			f = consoleDefaultFormatTimestamp(w.TimeFormat, w.TimeLocation, w.NoColor)
 		} else {
