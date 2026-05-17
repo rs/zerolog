@@ -307,6 +307,9 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 			f = w.FormatLevel
 		}
 	case TimestampFieldName:
+		if evt[p] == nil {
+			return
+		}
 		if w.FormatTimestamp == nil {
 			f = consoleDefaultFormatTimestamp(w.TimeFormat, w.TimeLocation, w.NoColor)
 		} else {
