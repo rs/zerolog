@@ -18,7 +18,7 @@ func ExampleConsoleWriter() {
 	log := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, NoColor: true})
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
-	// Output: <nil> INF Hello World foo=bar
+	// Output: INF Hello World foo=bar
 }
 
 func ExampleConsoleWriter_customFormatters() {
@@ -29,7 +29,7 @@ func ExampleConsoleWriter_customFormatters() {
 	log := zerolog.New(out)
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
-	// Output: <nil> INFO  | Hello World foo:BAR
+	// Output: INFO  | Hello World foo:BAR
 }
 
 func ExampleConsoleWriter_partValueFormatter() {
@@ -66,7 +66,7 @@ func ExampleNewConsoleWriter() {
 	log := zerolog.New(out)
 
 	log.Debug().Str("foo", "bar").Msg("Hello World")
-	// Output: <nil> DBG Hello World foo=bar
+	// Output: DBG Hello World foo=bar
 }
 
 func ExampleNewConsoleWriter_customFormatters() {
@@ -83,7 +83,45 @@ func ExampleNewConsoleWriter_customFormatters() {
 	log := zerolog.New(out)
 
 	log.Info().Str("foo", "bar").Msg("Hello World")
-	// Output: <nil> [INFO ] Hello World foo=bar
+	// Output: [INFO ] Hello World foo=bar
+}
+
+func TestConsoleWriterPreservesFieldOrder(t *testing.T) {
+	buf := &bytes.Buffer{}
+	w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+	_, err := w.Write([]byte(`{"level":"info","message":"hello","zebra":1,"alpha":2}`))
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+
+	got := buf.String()
+	zebra := strings.Index(got, "zebra=")
+	alpha := strings.Index(got, "alpha=")
+	if zebra < 0 || alpha < 0 {
+		t.Fatalf("output missing fields: %q", got)
+	}
+	if zebra > alpha {
+		t.Fatalf("fields not in JSON order: %q", got)
+	}
+}
+
+func TestConsoleWriterMissingTimestamp(t *testing.T) {
+	buf := &bytes.Buffer{}
+	w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+	_, err := w.Write([]byte(`{"level":"info","message":"hello"}`))
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+
+	got := strings.TrimSpace(buf.String())
+	if strings.Contains(got, "<nil>") {
+		t.Fatalf("output contains <nil> timestamp placeholder: %q", got)
+	}
+	if want := "INF hello"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
 }
 
 func TestConsoleLogger(t *testing.T) {
@@ -95,7 +133,7 @@ func TestConsoleLogger(t *testing.T) {
 			Uint64("small", 123).
 			Uint64("big", 1152921504606846976).
 			Msg("msg")
-		if got, want := strings.TrimSpace(buf.String()), "<nil> INF msg big=1152921504606846976 float=1.23 small=123"; got != want {
+		if got, want := strings.TrimSpace(buf.String()), "INF msg big=1152921504606846976 float=1.23 small=123"; got != want {
 			t.Errorf("\ngot:\n%s\nwant:\n%s", got, want)
 		}
 	})
@@ -127,7 +165,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m\n"
+		expectedOutput := "\x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -145,7 +183,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> WRN Foobar\n"
+		expectedOutput := "WRN Foobar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -246,7 +284,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> DBG foo=bar\n"
+		expectedOutput := "DBG foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -262,7 +300,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> ??? Foobar foo=bar\n"
+		expectedOutput := "??? Foobar foo=bar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -278,7 +316,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m \x1b[36mfoo=\x1b[0mbar\n"
+		expectedOutput := "\x1b[33mWRN\x1b[0m \x1b[1mFoobar\x1b[0m \x1b[36mfoo=\x1b[0mbar\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -361,7 +399,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> DBG Foobar bar=true foo=[1,2,3]\n"
+		expectedOutput := "DBG Foobar bar=true foo=[1,2,3]\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -374,24 +412,24 @@ func TestConsoleWriter(t *testing.T) {
 				field  string
 				output string
 			}{
-				{"", "<nil> ??? Hello World foo=bar\n"},
-				{"-", "<nil> - Hello World foo=bar\n"},
-				{"1", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
-				{"a", "<nil> A Hello World foo=bar\n"},
-				{"12", "<nil> 12 Hello World foo=bar\n"},
-				{"a2", "<nil> A2 Hello World foo=bar\n"},
-				{"2a", "<nil> 2A Hello World foo=bar\n"},
-				{"ab", "<nil> AB Hello World foo=bar\n"},
-				{"12a", "<nil> 12A Hello World foo=bar\n"},
-				{"a12", "<nil> A12 Hello World foo=bar\n"},
-				{"abc", "<nil> ABC Hello World foo=bar\n"},
-				{"123", "<nil> 123 Hello World foo=bar\n"},
-				{"abcd", "<nil> ABC Hello World foo=bar\n"},
-				{"1234", "<nil> 123 Hello World foo=bar\n"},
-				{"123d", "<nil> 123 Hello World foo=bar\n"},
-				{"01", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
-				{"001", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
-				{"0001", "<nil> " + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"", "??? Hello World foo=bar\n"},
+				{"-", "- Hello World foo=bar\n"},
+				{"1", "" + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"a", "A Hello World foo=bar\n"},
+				{"12", "12 Hello World foo=bar\n"},
+				{"a2", "A2 Hello World foo=bar\n"},
+				{"2a", "2A Hello World foo=bar\n"},
+				{"ab", "AB Hello World foo=bar\n"},
+				{"12a", "12A Hello World foo=bar\n"},
+				{"a12", "A12 Hello World foo=bar\n"},
+				{"abc", "ABC Hello World foo=bar\n"},
+				{"123", "123 Hello World foo=bar\n"},
+				{"abcd", "ABC Hello World foo=bar\n"},
+				{"1234", "123 Hello World foo=bar\n"},
+				{"123d", "123 Hello World foo=bar\n"},
+				{"01", "" + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"001", "" + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
+				{"0001", "" + zerolog.FormattedLevels[1] + " Hello World foo=bar\n"},
 			}
 			for i, c := range cases {
 				c := c
@@ -417,15 +455,15 @@ func TestConsoleWriter(t *testing.T) {
 				field  interface{}
 				output string
 			}{
-				{0, "<nil> 0 Hello World foo=bar\n"},
-				{1, "<nil> 1 Hello World foo=bar\n"},
-				{-1, "<nil> -1 Hello World foo=bar\n"},
-				{-3, "<nil> -3 Hello World foo=bar\n"},
-				{-32, "<nil> -32 Hello World foo=bar\n"},
-				{-321, "<nil> -32 Hello World foo=bar\n"},
-				{12, "<nil> 12 Hello World foo=bar\n"},
-				{123, "<nil> 123 Hello World foo=bar\n"},
-				{1234, "<nil> 123 Hello World foo=bar\n"},
+				{0, "0 Hello World foo=bar\n"},
+				{1, "1 Hello World foo=bar\n"},
+				{-1, "-1 Hello World foo=bar\n"},
+				{-3, "-3 Hello World foo=bar\n"},
+				{-32, "-32 Hello World foo=bar\n"},
+				{-321, "-32 Hello World foo=bar\n"},
+				{12, "12 Hello World foo=bar\n"},
+				{123, "123 Hello World foo=bar\n"},
+				{1234, "123 Hello World foo=bar\n"},
 			}
 			for i, c := range cases {
 				c := c
@@ -543,7 +581,7 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> INF Zoo zebra=Zulu aardvark=Able mussel=Mountain\n"
+		expectedOutput := "INF Zoo zebra=Zulu aardvark=Able mussel=Mountain\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -560,7 +598,7 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> INF Foobar baz=quux\n"
+		expectedOutput := "INF Foobar baz=quux\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
