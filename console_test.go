@@ -118,6 +118,22 @@ func TestConsoleWriter(t *testing.T) {
 		}
 	})
 
+	t.Run("Missing custom part is skipped", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, PartsOrder: []string{"level", "request_id", "message"}}
+
+		_, err := w.Write([]byte(`{"level": "info", "message": "Starting server"}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF Starting server\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("Write colorized", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: false}
