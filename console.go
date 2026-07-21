@@ -418,6 +418,11 @@ func consoleDefaultFormatTimestamp(timeFormat string, location *time.Location, n
 	}
 
 	return func(i interface{}) string {
+		// No timestamp field (logger without .Timestamp()) — omit the token
+		// instead of printing a literal "<nil>" (#725).
+		if i == nil {
+			return ""
+		}
 		t := "<nil>"
 		switch tt := i.(type) {
 		case string:
