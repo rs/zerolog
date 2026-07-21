@@ -81,6 +81,11 @@ func TestSanitizeKey(t *testing.T) {
 }
 
 func TestWriteReturnsNoOfWrittenBytes(t *testing.T) {
+	mock := &mockSend{}
+	oldSend := SendFunc
+	SendFunc = mock.send
+	defer func() { SendFunc = oldSend }()
+
 	input := []byte(`{"level":"info","time":1570912626,"message":"Starting..."}`)
 	wr := NewJournalDWriter()
 	want := len(input)
