@@ -102,6 +102,8 @@ func TestConsoleLogger(t *testing.T) {
 }
 
 func TestConsoleWriter(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+
 	t.Run("Default field formatter", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, PartsOrder: []string{"foo"}}
