@@ -15,7 +15,7 @@ func init() {
 type ctxKey struct{}
 
 // WithContext returns a copy of ctx with the receiver attached. The Logger
-// attached to the provided Context (if any) will not be effected.  If the
+// attached to the provided Context (if any) will not be affected. If the
 // receiver's log level is Disabled it will only be attached to the returned
 // Context if the provided Context has a previously attached Logger. If the
 // provided Context has no attached Logger, a Disabled Logger will not be

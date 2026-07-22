@@ -37,7 +37,7 @@ func (s RandomSampler) Sample(lvl Level) bool {
 	return true
 }
 
-// BasicSampler is a sampler that will send every Nth events, regardless of
+// BasicSampler is a sampler that will send every Nth event, regardless of
 // their level.
 type BasicSampler struct {
 	N       uint32
@@ -58,7 +58,7 @@ func (s *BasicSampler) Sample(lvl Level) bool {
 }
 
 // BurstSampler lets Burst events pass per Period then pass the decision to
-// NextSampler. If Sampler is not set, all subsequent events are rejected.
+// NextSampler. If NextSampler is not set, all subsequent events are rejected.
 type BurstSampler struct {
 	// Burst is the maximum number of event per period allowed before calling
 	// NextSampler.
