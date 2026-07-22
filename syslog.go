@@ -56,8 +56,8 @@ func (sw syslogWriter) Write(p []byte) (n int, err error) {
 // WriteLevel implements LevelWriter interface.
 func (sw syslogWriter) WriteLevel(level Level, p []byte) (n int, err error) {
 	switch level {
-	case TraceLevel:
-	case DebugLevel:
+	case TraceLevel, DebugLevel:
+		// syslog has no TRACE severity; map Trace to Debug
 		err = sw.w.Debug(sw.prefix + string(p))
 	case InfoLevel:
 		err = sw.w.Info(sw.prefix + string(p))
