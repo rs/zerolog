@@ -61,6 +61,7 @@ func TestSyslogWriter(t *testing.T) {
 	log.Error().Msg("error")
 	log.Log().Msg("nolevel")
 	want := []syslogEvent{
+		{"Debug", `{"level":"trace","message":"trace"}` + "\n"}, // syslog has no TRACE; mapped to Debug
 		{"Debug", `{"level":"debug","message":"debug"}` + "\n"},
 		{"Info", `{"level":"info","message":"info"}` + "\n"},
 		{"Warning", `{"level":"warn","message":"warn"}` + "\n"},
@@ -173,6 +174,7 @@ func TestSyslogWriter_WriteLevel_AllLevels(t *testing.T) {
 	writer.WriteLevel(NoLevel, []byte(`{"message":"nolevel"}`+"\n"))
 
 	want := []syslogEvent{
+		{"Debug", `{"level":"trace","message":"trace"}` + "\n"}, // syslog has no TRACE; mapped to Debug
 		{"Debug", `{"level":"debug","message":"debug"}` + "\n"},
 		{"Info", `{"level":"info","message":"info"}` + "\n"},
 		{"Warning", `{"level":"warn","message":"warn"}` + "\n"},
