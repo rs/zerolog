@@ -1455,3 +1455,14 @@ func TestHTMLNoEscaping(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+func TestParseLevelWarningAlias(t *testing.T) {
+	l, err := ParseLevel("warning")
+	if err != nil || l != WarnLevel {
+		t.Fatalf("ParseLevel(warning)=%v %v", l, err)
+	}
+	l, err = ParseLevel("WARNING")
+	if err != nil || l != WarnLevel {
+		t.Fatalf("ParseLevel(WARNING)=%v %v", l, err)
+	}
+}

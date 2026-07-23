@@ -183,7 +183,8 @@ func ParseLevel(levelStr string) (Level, error) {
 		return DebugLevel, nil
 	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(InfoLevel)):
 		return InfoLevel, nil
-	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(WarnLevel)):
+	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(WarnLevel)),
+		strings.EqualFold(levelStr, "warning"):
 		return WarnLevel, nil
 	case strings.EqualFold(levelStr, LevelFieldMarshalFunc(ErrorLevel)):
 		return ErrorLevel, nil
