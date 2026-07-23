@@ -120,6 +120,9 @@ func NewConsoleWriter(options ...func(w *ConsoleWriter)) ConsoleWriter {
 
 // Write transforms the JSON input with formatters and appends to w.Out.
 func (w ConsoleWriter) Write(p []byte) (n int, err error) {
+	if w.Out == nil {
+		return 0, fmt.Errorf("zerolog: ConsoleWriter.Out is nil")
+	}
 	// Fix color on Windows
 	if w.Out == os.Stdout || w.Out == os.Stderr {
 		w.Out = colorable.NewColorable(w.Out.(*os.File))

@@ -654,3 +654,14 @@ func BenchmarkConsoleWriter(b *testing.B) {
 		w.Write(msg)
 	}
 }
+
+func TestConsoleWriterNilOut(t *testing.T) {
+	w := zerolog.ConsoleWriter{Out: nil, NoColor: true}
+	_, err := w.Write([]byte(`{"level":"info","message":"hi"}`))
+	if err == nil {
+		t.Fatal("expected error for nil Out")
+	}
+	if !strings.Contains(err.Error(), "nil") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
