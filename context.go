@@ -504,7 +504,7 @@ func (c Context) Stack() Context {
 	return c
 }
 
-// IPAddr adds adds the field key with ip as a net.IP IPv4 or IPv6 Address to the context
+// IPAddr adds the field key with ip as a net.IP IPv4 or IPv6 Address to the context
 func (c Context) IPAddr(key string, ip net.IP) Context {
 	c.l.context = enc.AppendIPAddr(enc.AppendKey(c.l.context, key), ip)
 	return c
@@ -516,19 +516,19 @@ func (c Context) IPAddrs(key string, ip []net.IP) Context {
 	return c
 }
 
-// IPPrefix adds adds the field key with pfx as a []net.IPNet IPv4 or IPv6 Prefix (address and mask) to the context
+// IPPrefix adds the field key with pfx as a []net.IPNet IPv4 or IPv6 Prefix (address and mask) to the context
 func (c Context) IPPrefix(key string, pfx net.IPNet) Context {
 	c.l.context = enc.AppendIPPrefix(enc.AppendKey(c.l.context, key), pfx)
 	return c
 }
 
-// IPPrefix adds adds the field key with pfx as a []net.IPNet array of IPv4 or IPv6 Prefix (address and mask) to the context
+// IPPrefix adds the field key with pfx as a []net.IPNet array of IPv4 or IPv6 Prefix (address and mask) to the context
 func (c Context) IPPrefixes(key string, pfx []net.IPNet) Context {
 	c.l.context = enc.AppendIPPrefixes(enc.AppendKey(c.l.context, key), pfx)
 	return c
 }
 
-// MACAddr adds adds the field key with ha as a net.HardwareAddr MAC address to the context
+// MACAddr adds the field key with ha as a net.HardwareAddr MAC address to the context
 func (c Context) MACAddr(key string, ha net.HardwareAddr) Context {
 	c.l.context = enc.AppendMACAddr(enc.AppendKey(c.l.context, key), ha)
 	return c
