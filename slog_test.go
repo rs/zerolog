@@ -1,559 +1,735 @@
-package zerolog_test
+package zerolog
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
+	"net"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
 	"testing"
+	"testing/slogtest"
 	"time"
-
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/cbor"
 )
 
-func newSlogLogger(buf *bytes.Buffer) *slog.Logger {
-	zl := zerolog.New(buf)
-	return slog.New(zerolog.NewSlogHandler(zl))
-}
-
-// decodeOutput converts the buffer contents to a JSON string,
-// handling CBOR-encoded output when built with the binary_log tag.
-func decodeOutput(buf *bytes.Buffer) string {
-	p := buf.Bytes()
-	if len(p) == 0 || p[0] < 0x7F {
-		return buf.String()
-	}
-	return cbor.DecodeObjectToStr(p) + "\n"
-}
-
-func decodeJSON(t *testing.T, buf *bytes.Buffer) map[string]interface{} {
-	t.Helper()
-	var m map[string]interface{}
-	s := decodeOutput(buf)
-	if err := json.Unmarshal([]byte(s), &m); err != nil {
-		t.Fatalf("failed to decode JSON %q: %v", s, err)
-	}
-	return m
-}
-
-func TestSlogHandler_BasicInfo(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("hello world")
-
-	m := decodeJSON(t, &buf)
-	if m["level"] != "info" {
-		t.Errorf("expected level info, got %v", m["level"])
-	}
-	if m["message"] != "hello world" {
-		t.Errorf("expected message 'hello world', got %v", m["message"])
-	}
-}
-
-func TestSlogHandler_Debug(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.DebugLevel)
-	logger := slog.New(zerolog.NewSlogHandler(zl))
-
-	logger.Debug("debug msg")
-
-	m := decodeJSON(t, &buf)
-	if m["level"] != "debug" {
-		t.Errorf("expected level debug, got %v", m["level"])
-	}
-	if m["message"] != "debug msg" {
-		t.Errorf("expected message 'debug msg', got %v", m["message"])
-	}
-}
-
-func TestSlogHandler_Warn(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Warn("warn msg")
-
-	m := decodeJSON(t, &buf)
-	if m["level"] != "warn" {
-		t.Errorf("expected level warn, got %v", m["level"])
-	}
-}
-
-func TestSlogHandler_Error(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Error("error msg")
-
-	m := decodeJSON(t, &buf)
-	if m["level"] != "error" {
-		t.Errorf("expected level error, got %v", m["level"])
-	}
-}
-
-func TestSlogHandler_WithStringAttr(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", "key", "value")
-
-	m := decodeJSON(t, &buf)
-	if m["key"] != "value" {
-		t.Errorf("expected key=value, got %v", m["key"])
-	}
-}
-
-func TestSlogHandler_WithIntAttr(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", slog.Int("count", 42))
-
-	m := decodeJSON(t, &buf)
-	if m["count"] != float64(42) {
-		t.Errorf("expected count=42, got %v", m["count"])
-	}
-}
-
-func TestSlogHandler_WithBoolAttr(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", slog.Bool("flag", true))
-
-	m := decodeJSON(t, &buf)
-	if m["flag"] != true {
-		t.Errorf("expected flag=true, got %v", m["flag"])
-	}
-}
-
-func TestSlogHandler_WithFloat64Attr(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", slog.Float64("pi", 3.14))
-
-	m := decodeJSON(t, &buf)
-	if m["pi"] != 3.14 {
-		t.Errorf("expected pi=3.14, got %v", m["pi"])
-	}
-}
-
-func TestSlogHandler_WithTimeAttr(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	ts := time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC)
-	logger.Info("test", slog.Time("created", ts))
-
-	m := decodeJSON(t, &buf)
-	if m["created"] == nil {
-		t.Error("expected created field to be present")
-	}
-}
-
-func TestSlogHandler_WithDurationAttr(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", slog.Duration("elapsed", 5*time.Second))
-
-	m := decodeJSON(t, &buf)
-	if m["elapsed"] == nil {
-		t.Error("expected elapsed field to be present")
-	}
-}
-
-func TestSlogHandler_WithErrorAttr(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", slog.Any("err", errors.New("something failed")))
-
-	m := decodeJSON(t, &buf)
-	if m["err"] != "something failed" {
-		t.Errorf("expected err='something failed', got %v", m["err"])
-	}
-}
-
-func TestSlogHandler_WithAttrs(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
-
-	child := handler.WithAttrs([]slog.Attr{
-		slog.String("component", "auth"),
-		slog.Int("version", 2),
+func TestNewSlogHandler(t *testing.T) {
+	t.Run("no hooks", func(t *testing.T) {
+		h := NewSlogHandler(New(io.Discard))
+		if h.hasTimestampHook {
+			t.Error("hasTimestampHook, got: true, want: false")
+		}
+		if h.hasCallerHook {
+			t.Error("hasCallerHook, got: true, want: false")
+		}
+		if got, want := len(h.logger.hooks), 0; got != want {
+			t.Errorf("hooks len, got: %d, want: %d", got, want)
+		}
 	})
-	logger := slog.New(child)
 
-	logger.Info("request handled")
-
-	m := decodeJSON(t, &buf)
-	if m["component"] != "auth" {
-		t.Errorf("expected component=auth, got %v", m["component"])
-	}
-	if m["version"] != float64(2) {
-		t.Errorf("expected version=2, got %v", m["version"])
-	}
-	if m["message"] != "request handled" {
-		t.Errorf("expected message 'request handled', got %v", m["message"])
-	}
-}
-
-func TestSlogHandler_WithAttrsEmpty(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
-
-	// WithAttrs with empty slice should return same handler
-	child := handler.WithAttrs(nil)
-	if child != handler {
-		t.Error("expected WithAttrs(nil) to return same handler")
-	}
-}
-
-func TestSlogHandler_WithGroup(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
-
-	child := handler.WithGroup("request")
-	logger := slog.New(child)
-
-	logger.Info("handled", "method", "GET", "status", 200)
-
-	m := decodeJSON(t, &buf)
-	if m["request.method"] != "GET" {
-		t.Errorf("expected request.method=GET, got %v", m["request.method"])
-	}
-	if m["request.status"] != float64(200) {
-		t.Errorf("expected request.status=200, got %v", m["request.status"])
-	}
-}
-
-func TestSlogHandler_WithGroupEmpty(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
-
-	// WithGroup with empty name should return same handler
-	child := handler.WithGroup("")
-	if child != handler {
-		t.Error("expected WithGroup('') to return same handler")
-	}
-}
-
-func TestSlogHandler_WithNestedGroups(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
-
-	child := handler.WithGroup("http").WithGroup("request")
-	logger := slog.New(child)
-
-	logger.Info("handled", "method", "POST")
-
-	m := decodeJSON(t, &buf)
-	if m["http.request.method"] != "POST" {
-		t.Errorf("expected http.request.method=POST, got %v", m["http.request.method"])
-	}
-}
-
-func TestSlogHandler_WithGroupAndAttrs(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
-
-	child := handler.WithGroup("server").WithAttrs([]slog.Attr{
-		slog.String("host", "localhost"),
+	t.Run("timestamp hook stripped", func(t *testing.T) {
+		h := NewSlogHandler(New(io.Discard).With().Timestamp().Logger())
+		if !h.hasTimestampHook {
+			t.Error("hasTimestampHook, got: false, want: true")
+		}
+		if got, want := len(h.logger.hooks), 0; got != want {
+			t.Errorf("hooks len, got: %d, want: %d", got, want)
+		}
 	})
-	logger := slog.New(child)
 
-	logger.Info("started", "port", 8080)
+	t.Run("caller hook stripped", func(t *testing.T) {
+		h := NewSlogHandler(New(io.Discard).With().Caller().Logger())
+		if !h.hasCallerHook {
+			t.Error("hasCallerHook, got: false, want: true")
+		}
+		if got, want := len(h.logger.hooks), 0; got != want {
+			t.Errorf("hooks len, got: %d, want: %d", got, want)
+		}
+	})
 
-	m := decodeJSON(t, &buf)
-	if m["server.host"] != "localhost" {
-		t.Errorf("expected server.host=localhost, got %v", m["server.host"])
+	t.Run("other hooks preserved", func(t *testing.T) {
+		logger := New(io.Discard).With().Timestamp().Caller().Logger().Hook(HookFunc(func(e *Event, level Level, msg string) {}))
+		h := NewSlogHandler(logger)
+		if !h.hasTimestampHook {
+			t.Error("hasTimestampHook, got: false, want: true")
+		}
+		if !h.hasCallerHook {
+			t.Error("hasCallerHook, got: false, want: true")
+		}
+		if got, want := len(h.logger.hooks), 1; got != want {
+			t.Errorf("hooks len, got: %d, want: %d", got, want)
+		}
+	})
+
+	t.Run("original logger not mutated", func(t *testing.T) {
+		logger := New(io.Discard).With().Timestamp().Caller().Logger()
+		before := len(logger.hooks)
+		NewSlogHandler(logger)
+		if got, want := len(logger.hooks), before; got != want {
+			t.Errorf("original logger hooks mutated, got: %d, want: %d", got, want)
+		}
+	})
+}
+
+func TestSlogHandler_Enabled(t *testing.T) {
+	origGlobalLevel := GlobalLevel()
+	SetGlobalLevel(DebugLevel)
+	t.Cleanup(func() {
+		SetGlobalLevel(origGlobalLevel)
+	})
+
+	tests := []struct {
+		name        string
+		loggerLevel Level
+		level       slog.Level
+		want        bool
+	}{
+		{"InfoLevel/slog.LevelInfo", InfoLevel, slog.LevelInfo, true},
+		{"InfoLevel/slog.LevelDebug", InfoLevel, slog.LevelDebug, false},
+		{"InfoLevel/slog.LevelWarn", InfoLevel, slog.LevelWarn, true},
+		{"InfoLevel/slog.LevelInfo-1", InfoLevel, slog.LevelInfo - 1, false},
+		{"InfoLevel/slog.LevelInfo+1", InfoLevel, slog.LevelInfo + 1, true},
+		{"Disabled/slog.LevelDebug", Disabled, slog.LevelDebug, false},
+		{"Disabled/slog.LevelInfo", Disabled, slog.LevelInfo, false},
+		{"Disabled/slog.LevelWarn", Disabled, slog.LevelWarn, false},
+		{"Disabled/slog.LevelError", Disabled, slog.LevelError, false},
+		{"Global_DebugLevel/TraceLevel/slog.LevelDebug-2", TraceLevel, slog.LevelDebug - 2, false},
 	}
-	if m["server.port"] != float64(8080) {
-		t.Errorf("expected server.port=8080, got %v", m["server.port"])
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewSlogHandler(New(io.Discard).Level(tt.loggerLevel))
+			if got, want := h.Enabled(context.Background(), tt.level), tt.want; got != want {
+				t.Errorf("SlogHandler.Enabled, got: %v, want: %v", got, want)
+			}
+		})
 	}
 }
 
-func TestSlogHandler_GroupAttrInRecord(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", slog.Group("user",
-		slog.String("name", "alice"),
-		slog.Int("age", 30),
-	))
-
-	m := decodeJSON(t, &buf)
-	if m["user.name"] != "alice" {
-		t.Errorf("expected user.name=alice, got %v", m["user.name"])
-	}
-	if m["user.age"] != float64(30) {
-		t.Errorf("expected user.age=30, got %v", m["user.age"])
-	}
-}
-
-func TestSlogHandler_LevelFiltering(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.WarnLevel)
-	handler := zerolog.NewSlogHandler(zl)
-
-	// Debug should be filtered
-	if handler.Enabled(nil, slog.LevelDebug) {
-		t.Error("expected debug to be filtered at warn level")
-	}
-	// Info should be filtered
-	if handler.Enabled(nil, slog.LevelInfo) {
-		t.Error("expected info to be filtered at warn level")
-	}
-	// Warn should pass
-	if !handler.Enabled(nil, slog.LevelWarn) {
-		t.Error("expected warn to be enabled at warn level")
-	}
-	// Error should pass
-	if !handler.Enabled(nil, slog.LevelError) {
-		t.Error("expected error to be enabled at warn level")
-	}
-}
-
-func TestSlogHandler_FilteredMessageNotWritten(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.ErrorLevel)
-	logger := slog.New(zerolog.NewSlogHandler(zl))
-
-	logger.Info("should not appear")
-
-	if buf.Len() != 0 {
-		t.Errorf("expected no output for filtered message, got %q", buf.String())
-	}
-}
-
-func TestSlogHandler_MultipleAttrs(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("multi",
-		slog.String("a", "1"),
-		slog.Int("b", 2),
-		slog.Bool("c", true),
-		slog.Float64("d", 3.5),
-	)
-
-	m := decodeJSON(t, &buf)
-	if m["a"] != "1" {
-		t.Errorf("expected a=1, got %v", m["a"])
-	}
-	if m["b"] != float64(2) {
-		t.Errorf("expected b=2, got %v", m["b"])
-	}
-	if m["c"] != true {
-		t.Errorf("expected c=true, got %v", m["c"])
-	}
-	if m["d"] != 3.5 {
-		t.Errorf("expected d=3.5, got %v", m["d"])
-	}
-}
-
-func TestSlogHandler_LogValuer(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("test", "addr", testLogValuer{host: "example.com", port: 443})
-
-	m := decodeJSON(t, &buf)
-	// LogValuer resolves to a group
-	if m["addr.host"] != "example.com" {
-		t.Errorf("expected addr.host=example.com, got %v", m["addr.host"])
-	}
-	if m["addr.port"] != float64(443) {
-		t.Errorf("expected addr.port=443, got %v", m["addr.port"])
-	}
-}
-
-type testLogValuer struct {
-	host string
-	port int
-}
-
-func (v testLogValuer) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("host", v.host),
-		slog.Int("port", v.port),
-	)
-}
-
-func TestSlogHandler_WithAttrsImmutability(t *testing.T) {
-	var buf1, buf2 bytes.Buffer
-	zl1 := zerolog.New(&buf1)
-	zl2 := zerolog.New(&buf2)
-
-	handler := zerolog.NewSlogHandler(zl1)
-	child1 := handler.WithAttrs([]slog.Attr{slog.String("from", "child1")})
-	_ = zerolog.NewSlogHandler(zl2).WithAttrs([]slog.Attr{slog.String("from", "child2")})
-
-	slog.New(child1).Info("test")
-
-	m := decodeJSON(t, &buf1)
-	if m["from"] != "child1" {
-		t.Errorf("expected from=child1, got %v", m["from"])
+func TestSlogHandler_EnabledNilWriter(t *testing.T) {
+	h := NewSlogHandler(Logger{})
+	if got, want := h.Enabled(context.Background(), slog.LevelError), false; got != want {
+		t.Errorf("SlogHandler.Enabled, got: %v, want: %v", got, want)
 	}
 }
 
 func TestSlogHandler_LevelMapping(t *testing.T) {
 	tests := []struct {
-		slogLevel slog.Level
-		wantLevel string
+		name  string
+		level slog.Level
+		want  string
 	}{
-		{slog.LevelDebug - 4, "trace"},
-		{slog.LevelDebug, "debug"},
-		{slog.LevelInfo, "info"},
-		{slog.LevelWarn, "warn"},
-		{slog.LevelError, "error"},
+		{"below debug", slog.LevelDebug - 2, `{"level":"trace","message":"msg"}` + "\n"},
+		{"debug", slog.LevelDebug, `{"level":"debug","message":"msg"}` + "\n"},
+		{"between debug and info", slog.LevelInfo - 2, `{"level":"debug","message":"msg"}` + "\n"},
+		{"info", slog.LevelInfo, `{"level":"info","message":"msg"}` + "\n"},
+		{"between info and warn", slog.LevelWarn - 2, `{"level":"info","message":"msg"}` + "\n"},
+		{"warn", slog.LevelWarn, `{"level":"warn","message":"msg"}` + "\n"},
+		{"between warn and error", slog.LevelError - 2, `{"level":"warn","message":"msg"}` + "\n"},
+		{"error", slog.LevelError, `{"level":"error","message":"msg"}` + "\n"},
+		{"above error", slog.LevelError + 2, `{"level":"error","message":"msg"}` + "\n"},
 	}
 
 	for _, tt := range tests {
-		var buf bytes.Buffer
-		zl := zerolog.New(&buf).Level(zerolog.TraceLevel)
-		logger := slog.New(zerolog.NewSlogHandler(zl))
+		t.Run(tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			logger := slog.New(NewSlogHandler(New(out)))
+			logger.Log(context.Background(), tt.level, "msg")
+			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+	}
+}
 
-		logger.Log(nil, tt.slogLevel, "test")
-
-		m := decodeJSON(t, &buf)
-		if m["level"] != tt.wantLevel {
-			t.Errorf("slog level %d: expected zerolog level %q, got %q",
-				tt.slogLevel, tt.wantLevel, m["level"])
+func TestSlogHandler_Timestamp(t *testing.T) {
+	t.Run("no timestamp hook omits timestamp field", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out)))
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
-		buf.Reset()
-	}
-}
-
-func TestSlogHandler_EmptyMessage(t *testing.T) {
-	var buf bytes.Buffer
-	logger := newSlogLogger(&buf)
-
-	logger.Info("", "key", "val")
-
-	m := decodeJSON(t, &buf)
-	if m["key"] != "val" {
-		t.Errorf("expected key=val, got %v", m["key"])
-	}
-}
-
-func TestSlogHandler_WithContext(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf).With().Str("service", "api").Logger()
-	logger := slog.New(zerolog.NewSlogHandler(zl))
-
-	logger.Info("request")
-
-	m := decodeJSON(t, &buf)
-	if m["service"] != "api" {
-		t.Errorf("expected service=api, got %v", m["service"])
-	}
-	if m["message"] != "request" {
-		t.Errorf("expected message 'request', got %v", m["message"])
-	}
-}
-
-func TestSlogHandler_EnabledRespectsGlobalLevel(t *testing.T) {
-	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.DebugLevel)
-	handler := zerolog.NewSlogHandler(zl)
-
-	// Logger level is debug, so info should be enabled
-	if !handler.Enabled(nil, slog.LevelInfo) {
-		t.Fatal("expected info to be enabled before setting global level")
-	}
-
-	// Set global level to error
-	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	defer zerolog.SetGlobalLevel(zerolog.TraceLevel)
-
-	// Now info should be disabled even though logger level allows it
-	if handler.Enabled(nil, slog.LevelInfo) {
-		t.Error("expected info to be disabled when GlobalLevel is error")
-	}
-	// Error should still be enabled
-	if !handler.Enabled(nil, slog.LevelError) {
-		t.Error("expected error to be enabled when GlobalLevel is error")
-	}
-}
-
-func TestSlogHandler_EnabledNilWriter(t *testing.T) {
-	zl := zerolog.Nop()
-	handler := zerolog.NewSlogHandler(zl)
-
-	if handler.Enabled(nil, slog.LevelError) {
-		t.Error("expected disabled for nop logger")
-	}
-}
-
-func TestSlogHandler_HandlePropagatesContext(t *testing.T) {
-	var buf bytes.Buffer
-	type ctxKey struct{}
-	ctx := context.WithValue(context.Background(), ctxKey{}, "test-value")
-
-	var gotCtx context.Context
-	hook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
-		gotCtx = e.GetCtx()
 	})
 
-	zl := zerolog.New(&buf).Hook(hook)
-	handler := zerolog.NewSlogHandler(zl)
-
-	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test", 0)
-	_ = handler.Handle(ctx, record)
-
-	if gotCtx == nil {
-		t.Fatal("expected context to be propagated to event")
-	}
-	if gotCtx.Value(ctxKey{}) != "test-value" {
-		t.Error("expected context value to be preserved")
-	}
-}
-
-func TestSlogHandler_NoDuplicateTimestamp(t *testing.T) {
-	var buf bytes.Buffer
-	// Create logger with Timestamp() hook - this adds "time" automatically
-	zl := zerolog.New(&buf).With().Timestamp().Logger()
-	handler := zerolog.NewSlogHandler(zl)
-
-	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test", 0)
-	_ = handler.Handle(context.Background(), record)
-
-	output := decodeOutput(&buf)
-	// Count occurrences of the timestamp field name - should appear exactly once
-	count := 0
-	for i := 0; i < len(output); i++ {
-		if i+4 <= len(output) && output[i:i+4] == "time" {
-			count++
+	t.Run("zero time omits timestamp field", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		h := NewSlogHandler(New(out).With().Timestamp().Logger())
+		record := slog.NewRecord(time.Time{}, slog.LevelInfo, "msg", 0)
+		if err := h.Handle(context.Background(), record); err != nil {
+			t.Fatal(err)
 		}
-	}
-	if count > 1 {
-		t.Errorf("expected at most 1 timestamp field, got %d in output: %s", count, output)
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("timestamp field logged from record.Time", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		h := NewSlogHandler(New(out).With().Timestamp().Logger())
+		record := slog.NewRecord(time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC), slog.LevelInfo, "msg", 0)
+		if err := h.Handle(context.Background(), record); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","time":"2001-02-03T04:05:06Z","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("custom TimeFieldFormat", func(t *testing.T) {
+		origTimeFieldFormat := TimeFieldFormat
+		TimeFieldFormat = TimeFormatUnix
+		t.Cleanup(func() { TimeFieldFormat = origTimeFieldFormat })
+		out := &bytes.Buffer{}
+		h := NewSlogHandler(New(out).With().Timestamp().Logger())
+		record := slog.NewRecord(time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC), slog.LevelInfo, "msg", 0)
+		if err := h.Handle(context.Background(), record); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","time":981173106,"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("custom TimestampFieldName", func(t *testing.T) {
+		origTimestampFieldName := TimestampFieldName
+		TimestampFieldName = "t"
+		t.Cleanup(func() { TimestampFieldName = origTimestampFieldName })
+		out := &bytes.Buffer{}
+		h := NewSlogHandler(New(out).With().Timestamp().Logger())
+		record := slog.NewRecord(time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC), slog.LevelInfo, "msg", 0)
+		if err := h.Handle(context.Background(), record); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","t":"2001-02-03T04:05:06Z","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+}
+
+func TestSlogHandler_Caller(t *testing.T) {
+	t.Run("no caller hook omits caller field", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out)))
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("zero PC omits caller field", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		h := NewSlogHandler(New(out).With().Caller().Logger())
+		record := slog.NewRecord(time.Time{}, slog.LevelInfo, "msg", 0)
+		if err := h.Handle(context.Background(), record); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("caller field resolves from record.PC", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out).With().Caller().Logger()))
+		pc, file, line, _ := runtime.Caller(0)
+		caller := CallerMarshalFunc(pc, file, line+2)
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","caller":"`+caller+`","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("custom CallerMarshalFunc", func(t *testing.T) {
+		origCallerMarshalFunc := CallerMarshalFunc
+		CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+			parts := strings.Split(file, "/")
+			if len(parts) > 1 {
+				return strings.Join(parts[len(parts)-2:], "/") + ":" + strconv.Itoa(line)
+			}
+
+			return runtime.FuncForPC(pc).Name() + ":" + file + ":" + strconv.Itoa(line)
+		}
+		t.Cleanup(func() { CallerMarshalFunc = origCallerMarshalFunc })
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out).With().Caller().Logger()))
+		pc, file, line, _ := runtime.Caller(0)
+		caller := CallerMarshalFunc(pc, file, line+2)
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","caller":"`+caller+`","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("custom CallerFieldName", func(t *testing.T) {
+		origCallerFieldName := CallerFieldName
+		CallerFieldName = "source"
+		t.Cleanup(func() { CallerFieldName = origCallerFieldName })
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out).With().Caller().Logger()))
+		pc, file, line, _ := runtime.Caller(0)
+		caller := CallerMarshalFunc(pc, file, line+2)
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","source":"`+caller+`","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+}
+
+func TestSlogHandler_Message(t *testing.T) {
+	t.Run("empty message omits message field", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out)))
+		logger.Info("")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("logs message field", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out)))
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("custom MessageFieldName", func(t *testing.T) {
+		origMessageFieldName := MessageFieldName
+		MessageFieldName = "msg"
+		t.Cleanup(func() { MessageFieldName = origMessageFieldName })
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out)))
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","msg":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+}
+
+type testCtxKey struct{}
+
+func TestSlogHandler_PropagatesContext(t *testing.T) {
+	ctx := context.WithValue(context.Background(), testCtxKey{}, "v")
+
+	hook := HookFunc(func(e *Event, level Level, message string) {
+		ctx := e.GetCtx()
+		if ctx == nil {
+			return
+		}
+		if v, ok := ctx.Value(testCtxKey{}).(string); ok {
+			e.Str("k", v)
+		}
+	})
+
+	out := &bytes.Buffer{}
+	logger := slog.New(NewSlogHandler(New(out).Hook(hook)))
+	logger.InfoContext(ctx, "msg")
+	if got, want := decodeIfBinaryToString(out.Bytes()),
+		`{"level":"info","k":"v","message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
 
-func TestSlogHandler_TimestampWithoutHook(t *testing.T) {
-	var buf bytes.Buffer
-	// Logger without Timestamp() hook - Handle should add the timestamp
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+type testLogValuer struct {
+	v any
+}
 
-	ts := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
-	record := slog.NewRecord(ts, slog.LevelInfo, "test", 0)
-	_ = handler.Handle(context.Background(), record)
+func (t testLogValuer) LogValue() slog.Value { return slog.AnyValue(t.v) }
 
-	m := decodeJSON(t, &buf)
-	if m[zerolog.TimestampFieldName] == nil {
-		t.Error("expected timestamp field when logger has no timestamp hook")
+type testAny struct {
+	Name string `json:"name"`
+}
+
+func TestSlogHandler_AttrsTypes(t *testing.T) {
+	tests := []struct {
+		name string
+		args []any
+		want string
+	}{
+		{"zero attr", []any{slog.Attr{}}, `{"level":"info","message":"msg"}` + "\n"},
+		{"empty key", []any{"", "v"}, `{"level":"info","":"v","message":"msg"}` + "\n"},
+		{"empty group", []any{slog.Group("g")}, `{"level":"info","message":"msg"}` + "\n"},
+		{"basic types", []any{
+			"string", "hello",
+			"int64", -1,
+			"uint64", uint64(1),
+			"float64", 3.14,
+			"bool", true,
+			"time", time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC),
+			"duration", time.Second,
+		}, `{"level":"info","string":"hello","int64":-1,"uint64":1,"float64":3.14,"bool":true,"time":"2001-02-03T04:05:06Z","duration":1000,"message":"msg"}` + "\n"},
+		{"group", []any{slog.Group("g", "k", "v")}, `{"level":"info","g":{"k":"v"},"message":"msg"}` + "\n"},
+		{"empty group name", []any{slog.Group("", "k", "v")}, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"nested group", []any{slog.Group("g1", slog.Group("g2", "k", "v"))}, `{"level":"info","g1":{"g2":{"k":"v"}},"message":"msg"}` + "\n"},
+		{"slog.LogValuer", []any{"k", &testLogValuer{"v"}}, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"slog.LogValuer in group", []any{slog.Group("g", "k", &testLogValuer{"v"})}, `{"level":"info","g":{"k":"v"},"message":"msg"}` + "\n"},
+		{"any", []any{"user", testAny{Name: "john"}}, `{"level":"info","user":{"name":"john"},"message":"msg"}` + "\n"},
+		{"other types", []any{
+			"strs", []string{"one", "two"},
+			"ints", []int{-1, 2},
+			"ints8", []int8{-1, 2},
+			"ints16", []int16{-1, 2},
+			"ints32", []int32{-1, 2},
+			"ints64", []int64{-1, 2},
+			"uints", []uint{1, 2},
+			"uints16", []uint16{1, 2},
+			"uints32", []uint32{1, 2},
+			"uints64", []uint64{1, 2},
+			"floats32", []float32{3.14, 1.414},
+			"floats64", []float64{3.14, 1.414},
+			"bools", []bool{true, false},
+			"times", []time.Time{time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC), time.Date(2002, time.February, 3, 4, 5, 6, 7, time.UTC)},
+			"durs", []time.Duration{time.Second, time.Minute},
+			"error", errors.New("test error"),
+			"errs", []error{errors.New("first error"), errors.New("second error")},
+			"bytes", []byte("foo"),
+			"ipAddr", net.IP{192, 168, 0, 10},
+			"ipAddrs", []net.IP{{192, 168, 0, 10}, {127, 0, 0, 0}},
+			"ipPrefix", net.IPNet{IP: net.IP{192, 168, 0, 10}, Mask: net.CIDRMask(24, 32)},
+			"ipPrefixes", []net.IPNet{{IP: net.IP{192, 168, 0, 10}, Mask: net.CIDRMask(24, 32)}, {IP: net.IP{127, 0, 0, 0}, Mask: net.CIDRMask(24, 32)}},
+			"macAddr", net.HardwareAddr{0x01, 0x23, 0x45, 0x67, 0x89, 0xab},
+		}, `{"level":"info","strs":["one","two"],"ints":[-1,2],"ints8":[-1,2],"ints16":[-1,2],"ints32":[-1,2],"ints64":[-1,2],"uints":[1,2],"uints16":[1,2],"uints32":[1,2],"uints64":[1,2],"floats32":[3.14,1.414],"floats64":[3.14,1.414],"bools":[true,false],"times":["2001-02-03T04:05:06Z","2002-02-03T04:05:06Z"],"durs":[1000,60000],"error":"test error","errs":["first error","second error"],"bytes":"foo","ipAddr":"192.168.0.10","ipAddrs":["192.168.0.10","127.0.0.0"],"ipPrefix":"192.168.0.10/24","ipPrefixes":["192.168.0.10/24","127.0.0.0/24"],"macAddr":"01:23:45:67:89:ab","message":"msg"}` + "\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run("RecordAttrs/"+tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			logger := slog.New(NewSlogHandler(New(out)))
+			logger.Info("msg", tt.args...)
+			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+
+		t.Run("WithAttrs/"+tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			logger := slog.New(NewSlogHandler(New(out))).With(tt.args...)
+			logger.Info("msg")
+			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+	}
+}
+
+func TestSlogHandler_WithGroup(t *testing.T) {
+	t.Run("empty name returns same handler", func(t *testing.T) {
+		h := NewSlogHandler(New(io.Discard))
+		if got := h.WithGroup(""); got != h {
+			t.Error("empty group name: expected same handler")
+		}
+	})
+
+	t.Run("original handler not mutated", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out)))
+		logger.WithGroup("g")
+		logger.Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","k":"v","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("no attrs produces no group key", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g")
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("no attrs produces no group key (multiple nested groups)", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g1").WithGroup("g2")
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("record attrs nested under group", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g")
+		logger.Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g":{"k":"v"},"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("sibling groups", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		base := slog.New(NewSlogHandler(New(out)))
+		base.WithGroup("g1").Info("msg", "k", "v")
+		base.WithGroup("g2").Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g1":{"k":"v"},"message":"msg"}`+"\n"+`{"level":"info","g2":{"k":"v"},"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("nested groups", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g1").WithGroup("g2")
+		logger.Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g1":{"g2":{"k":"v"}},"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+}
+
+func TestSlogHandler_WithAttrs(t *testing.T) {
+	t.Run("empty attrs returns same handler", func(t *testing.T) {
+		h := NewSlogHandler(New(io.Discard))
+		if got := h.WithAttrs(nil); got != h {
+			t.Error("nil attrs: expected same handler")
+		}
+		if got := h.WithAttrs([]slog.Attr{}); got != h {
+			t.Error("empty attrs: expected same handler")
+		}
+	})
+
+	t.Run("original handler not mutated", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out)))
+		logger.With("k", "v")
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("attrs applied to every record", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).With("k", "v")
+		logger.Info("first")
+		logger.Info("second")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","k":"v","message":"first"}`+"\n"+`{"level":"info","k":"v","message":"second"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("attrs accumulate across multiple calls", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).With("k1", "v1").With("k2", "v2")
+		logger.Info("msg")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","k1":"v1","k2":"v2","message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+}
+
+func TestSlogHandler_WithGroupAndAttrs(t *testing.T) {
+	t.Run("WithGroup/WithAttrs", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g").With("a", "b")
+		logger.Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g":{"a":"b","k":"v"},"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("WithAttrs/WithGroup", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).With("a", "b").WithGroup("g")
+		logger.Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","a":"b","g":{"k":"v"},"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("WithAttrs/WithGroup/WithAttrs", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).With("a", "b").WithGroup("g").With("c", "d")
+		logger.Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","a":"b","g":{"c":"d","k":"v"},"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+
+	t.Run("WithGroup/WithAttrs/WithGroup", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g1").With("a", "b").WithGroup("g2")
+		logger.Info("msg", "k", "v")
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g1":{"a":"b","g2":{"k":"v"}},"message":"msg"}`+"\n"; got != want {
+			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+		}
+	})
+}
+
+func TestSlogHandler_WithSampler(t *testing.T) {
+	out := &bytes.Buffer{}
+	sampler := &BasicSampler{N: 2}
+	logger := slog.New(NewSlogHandler(New(out).Sample(sampler)))
+	logger.Info("msg", "i", 1)
+	logger.Info("msg", "i", 2)
+	logger.Info("msg", "i", 3)
+	logger.Info("msg", "i", 4)
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","i":1,"message":"msg"}`+"\n"+`{"level":"info","i":3,"message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestSlogHandler_WithZerologContext(t *testing.T) {
+	tests := []struct {
+		name     string
+		group    string
+		withArgs []any
+		logArgs  []any
+		want     string
+	}{
+		{"Empty/Empty/Empty", "", nil, nil, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"Empty/Empty/Attrs", "", nil, []any{"k1", "v1"}, `{"level":"info","k":"v","k1":"v1","message":"msg"}` + "\n"},
+		{"Empty/WithAttrs/Empty", "", []any{"k1", "v1"}, nil, `{"level":"info","k":"v","k1":"v1","message":"msg"}` + "\n"},
+		{"Empty/WithAttrs/Attrs", "", []any{"k1", "v1"}, []any{"k2", "v2"}, `{"level":"info","k":"v","k1":"v1","k2":"v2","message":"msg"}` + "\n"},
+		{"Group/Empty/Empty", "g", nil, nil, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"Group/Empty/Attrs", "g", nil, []any{"k1", "v1"}, `{"level":"info","k":"v","g":{"k1":"v1"},"message":"msg"}` + "\n"},
+		{"Group/WithAttrs/Empty", "g", []any{"k1", "v1"}, nil, `{"level":"info","k":"v","g":{"k1":"v1"},"message":"msg"}` + "\n"},
+		{"Group/WithAttrs/Attrs", "g", []any{"k1", "v1"}, []any{"k2", "v2"}, `{"level":"info","k":"v","g":{"k1":"v1","k2":"v2"},"message":"msg"}` + "\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			logger := slog.New(NewSlogHandler(New(out).With().Str("k", "v").Logger())).WithGroup(tt.group).With(tt.withArgs...)
+			logger.Info("msg", tt.logArgs...)
+			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+	}
+}
+
+func TestSlogHandler_WithHook(t *testing.T) {
+	called := false
+	hook := HookFunc(func(e *Event, level Level, msg string) {
+		called = true
+	})
+	logger := slog.New(NewSlogHandler(New(io.Discard).Hook(hook)))
+	logger.Info("msg")
+	if !called {
+		t.Error("called, got: false, want: true")
+	}
+}
+
+// Run a few different loggers with concurrent logs
+// in an attempt to trip up 'go test -race' and discover any data races.
+//
+// Adopted from :- https://github.com/uber-go/zap/blob/018b91390e74732e9e40f8d356887b8d06461886/exp/zapslog/handler_test.go#L271
+func TestSlogHandler_ConcurrentLogs(t *testing.T) {
+	t.Parallel()
+
+	workers := 100
+	logs := 10
+
+	tests := []struct {
+		name string
+		log  func(*slog.Logger)
+	}{
+		{
+			name: "default",
+			log: func(l *slog.Logger) {
+				l.Info("default", "k", "v")
+			},
+		},
+		{
+			name: "WithGroup",
+			log: func(l *slog.Logger) {
+				l.WithGroup("g").Info("with group", "k", "v")
+			},
+		},
+		{
+			name: "WithAttrs",
+			log: func(l *slog.Logger) {
+				l.With("a", "b").Info("with attrs", "k", "v")
+			},
+		},
+		{
+			name: "WithGroupAndAttrs",
+			log: func(l *slog.Logger) {
+				l.WithGroup("g").With("a", "b").Info("with group and attrs", "k", "v")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			out := &bytes.Buffer{}
+			logger := slog.New(NewSlogHandler(New(SyncWriter(out)).With().Timestamp().Caller().Str("x", "y").Logger()))
+
+			// Use two wait groups to coordinate the workers:
+			//
+			// - ready: indicates when all workers should start logging.
+			// - done: indicates when all workers have finished logging.
+			var ready, done sync.WaitGroup
+
+			ready.Add(workers)
+			done.Add(workers)
+			for range workers {
+				go func() {
+					defer done.Done()
+
+					ready.Done() // I'm ready.
+					ready.Wait() // Are others?
+
+					for range logs {
+						tt.log(logger)
+					}
+				}()
+			}
+
+			done.Wait()
+
+			if got, want := strings.Count(decodeIfBinaryToString(out.Bytes()), "\n"), workers*logs; got != want {
+				t.Errorf("number of logs, got: %d, want: %d", got, want)
+			}
+		})
+	}
+}
+
+func TestSlogtest(t *testing.T) {
+	origMessageFieldName := MessageFieldName
+	origCallerFieldName := CallerFieldName
+	origLevelFieldName := LevelFieldName
+	origTimestampFieldName := TimestampFieldName
+
+	// Set field names as expected by slogtest
+	MessageFieldName = slog.MessageKey
+	CallerFieldName = slog.SourceKey
+	LevelFieldName = slog.LevelKey
+	TimestampFieldName = slog.TimeKey
+
+	t.Cleanup(func() {
+		MessageFieldName = origMessageFieldName
+		CallerFieldName = origCallerFieldName
+		LevelFieldName = origLevelFieldName
+		TimestampFieldName = origTimestampFieldName
+	})
+
+	out := &bytes.Buffer{}
+	handler := NewSlogHandler(New(out).With().Timestamp().Caller().Logger())
+
+	if err := slogtest.TestHandler(
+		handler,
+		func() []map[string]any {
+			var entries []map[string]any
+			dec := json.NewDecoder(bytes.NewReader(decodeIfBinaryToBytes(out.Bytes())))
+			for dec.More() {
+				var decoded map[string]any
+				if err := dec.Decode(&decoded); err != nil {
+					t.Fatal(err)
+				}
+				entries = append(entries, decoded)
+			}
+			return entries
+		},
+	); err != nil {
+		t.Fatal(err)
 	}
 }
