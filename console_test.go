@@ -113,7 +113,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "DEFAULT foo=DEFAULT\n"
+		expectedOutput := "DEFAULT\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -563,6 +563,54 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 
 		expectedOutput := "<nil> INF Foobar baz=quux\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("PartsOrder custom fields are not duplicated", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out:     buf,
+			NoColor: true,
+			PartsOrder: []string{
+				zerolog.LevelFieldName,
+				"pkg",
+				"fn",
+				zerolog.MessageFieldName,
+			},
+		}
+
+		evt := `{"level": "info", "message": "This is a test.", "pkg": "main", "fn": "TestFunc"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF main TestFunc This is a test.\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("PartsExclude suppresses custom fields from trailing writeFields", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out:          buf,
+			NoColor:      true,
+			PartsOrder:   []string{zerolog.LevelFieldName, zerolog.MessageFieldName},
+			PartsExclude: []string{"pkg"},
+		}
+
+		evt := `{"level": "info", "message": "This is a test.", "pkg": "main", "fn": "TestFunc"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF This is a test. fn=TestFunc\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)

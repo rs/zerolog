@@ -196,6 +196,25 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		if isExcluded {
 			continue
 		}
+		// Parts already rendered via PartsOrder (including custom part names)
+		// must not be duplicated here. PartsExclude also suppresses remaining output.
+		for _, part := range w.PartsOrder {
+			if field == part {
+				isExcluded = true
+				break
+			}
+		}
+		if !isExcluded {
+			for _, excluded := range w.PartsExclude {
+				if field == excluded {
+					isExcluded = true
+					break
+				}
+			}
+		}
+		if isExcluded {
+			continue
+		}
 
 		switch field {
 		case LevelFieldName, TimestampFieldName, MessageFieldName, CallerFieldName:
