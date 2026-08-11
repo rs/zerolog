@@ -624,35 +624,37 @@ func TestSlogHandler_WithHook(t *testing.T) {
 func TestSlogHandler_ConcurrentLogs(t *testing.T) {
 	t.Parallel()
 
-	workers := 100
-	logs := 10
+	const (
+		NumWorkers = 10
+		NumLogs    = 100
+	)
 
 	tests := []struct {
 		name string
-		log  func(*slog.Logger)
+		log  func(l *slog.Logger, worker, log int)
 	}{
 		{
 			name: "default",
-			log: func(l *slog.Logger) {
-				l.Info("default", "k", "v")
+			log: func(l *slog.Logger, worker, log int) {
+				l.Info("default", "worker", worker, "log", log)
 			},
 		},
 		{
 			name: "WithGroup",
-			log: func(l *slog.Logger) {
-				l.WithGroup("g").Info("with group", "k", "v")
+			log: func(l *slog.Logger, worker, log int) {
+				l.WithGroup("g").Info("with group", "worker", worker, "log", log)
 			},
 		},
 		{
 			name: "WithAttrs",
-			log: func(l *slog.Logger) {
-				l.With("a", "b").Info("with attrs", "k", "v")
+			log: func(l *slog.Logger, worker, log int) {
+				l.With("a", "b").Info("with attrs", "worker", worker, "log", log)
 			},
 		},
 		{
 			name: "WithGroupAndAttrs",
-			log: func(l *slog.Logger) {
-				l.WithGroup("g").With("a", "b").Info("with group and attrs", "k", "v")
+			log: func(l *slog.Logger, worker, log int) {
+				l.WithGroup("g").With("a", "b").Info("with group and attrs", "worker", worker, "log", log)
 			},
 		},
 	}
@@ -668,25 +670,25 @@ func TestSlogHandler_ConcurrentLogs(t *testing.T) {
 			// - ready: indicates when all workers should start logging.
 			// - done: indicates when all workers have finished logging.
 			var ready, done sync.WaitGroup
+			ready.Add(NumWorkers)
+			done.Add(NumWorkers)
 
-			ready.Add(workers)
-			done.Add(workers)
-			for range workers {
+			for i := range NumWorkers {
 				go func() {
 					defer done.Done()
 
 					ready.Done() // I'm ready.
 					ready.Wait() // Are others?
 
-					for range logs {
-						tt.log(logger)
+					for j := range NumLogs {
+						tt.log(logger, i, j)
 					}
 				}()
 			}
 
 			done.Wait()
 
-			if got, want := strings.Count(decodeIfBinaryToString(out.Bytes()), "\n"), workers*logs; got != want {
+			if got, want := strings.Count(decodeIfBinaryToString(out.Bytes()), "\n"), NumWorkers*NumLogs; got != want {
 				t.Errorf("number of logs, got: %d, want: %d", got, want)
 			}
 		})
