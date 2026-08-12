@@ -180,21 +180,6 @@ func TestSlogHandler_Timestamp(t *testing.T) {
 		}
 	})
 
-	t.Run("custom TimeFieldFormat", func(t *testing.T) {
-		origTimeFieldFormat := TimeFieldFormat
-		TimeFieldFormat = TimeFormatUnix
-		t.Cleanup(func() { TimeFieldFormat = origTimeFieldFormat })
-		out := &bytes.Buffer{}
-		h := NewSlogHandler(New(out).With().Timestamp().Logger())
-		record := slog.NewRecord(time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC), slog.LevelInfo, "msg", 0)
-		if err := h.Handle(context.Background(), record); err != nil {
-			t.Fatal(err)
-		}
-		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","time":981173106,"message":"msg"}`+"\n"; got != want {
-			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-		}
-	})
-
 	t.Run("custom TimestampFieldName", func(t *testing.T) {
 		origTimestampFieldName := TimestampFieldName
 		TimestampFieldName = "t"

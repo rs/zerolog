@@ -94,7 +94,7 @@ func (h *SlogHandler) Handle(ctx context.Context, record slog.Record) error {
 
 	// Add timestamp using slog.Record.Time
 	if h.hasTimestampHook && !record.Time.IsZero() {
-		e.buf = enc.AppendTime(enc.AppendKey(e.buf, TimestampFieldName), record.Time, TimeFieldFormat)
+		e = e.Time(TimestampFieldName, record.Time)
 	}
 
 	// Add caller using slog.Record.PC
