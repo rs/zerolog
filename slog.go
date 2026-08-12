@@ -134,8 +134,7 @@ func (h *SlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 
 func (h *SlogHandler) appendUnopenedGroups(buf []byte) []byte {
 	for _, group := range h.unopenedGroups {
-		buf = enc.AppendKey(buf, group)
-		buf = enc.AppendBeginMarker(buf)
+		buf = enc.AppendBeginMarker(enc.AppendKey(buf, group))
 	}
 	return buf
 }
@@ -179,6 +178,7 @@ func appendSlogAttrToEvent(event *Event, attr slog.Attr) *Event {
 	}
 
 	attr.Value = attr.Value.Resolve()
+
 	if attr.Equal(slog.Attr{}) {
 		return event
 	}
@@ -283,7 +283,6 @@ func appendSlogAttrToContext(ctx Context, attr slog.Attr) Context {
 
 	key := attr.Key
 	val := attr.Value
-
 	switch val.Kind() {
 	case slog.KindString:
 		ctx = ctx.Str(key, val.String())

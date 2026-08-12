@@ -680,7 +680,7 @@ func TestSlogHandler_ConcurrentLogs(t *testing.T) {
 	}
 }
 
-func TestSlogtest(t *testing.T) {
+func TestSlogHandler_Slogtest(t *testing.T) {
 	origMessageFieldName := MessageFieldName
 	origCallerFieldName := CallerFieldName
 	origLevelFieldName := LevelFieldName
