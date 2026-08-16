@@ -66,46 +66,59 @@ func (h *SlogHandler) Enabled(_ context.Context, level slog.Level) bool {
 
 // Handle converts the slog.Record to a zerolog event and writes it.
 func (h *SlogHandler) Handle(ctx context.Context, record slog.Record) error {
-	e := h.logger.WithLevel(slogToZerologLevel(record.Level))
-	if e == nil {
+	event := h.logger.WithLevel(slogToZerologLevel(record.Level))
+	if event == nil {
 		return nil
 	}
 
 	if ctx != nil {
-		e = e.Ctx(ctx)
+		event = event.Ctx(ctx)
 	}
 
 	nOpenGroups := h.nOpenGroups
 
 	if record.NumAttrs() > 0 {
-		e.buf = h.appendUnopenedGroups(e.buf)
-		nOpenGroups += len(h.unopenedGroups)
+		// The group may turn out to be empty even though it has attrs (for example, all attrs are zero slog.Attr).
+		// So remember where we are in the buffer, to restore the position later if necessary.
+		pos := len(event.buf)
+		event.buf = h.appendUnopenedGroups(event.buf)
 
+		notEmpty := false
 		record.Attrs(func(a slog.Attr) bool {
-			e = appendSlogAttrToEvent(e, a)
+			e, changed := appendSlogAttrToEvent(event, a)
+			event = e
+			if changed {
+				notEmpty = true
+			}
 			return true
 		})
+
+		if notEmpty {
+			nOpenGroups += len(h.unopenedGroups)
+		} else {
+			event.buf = event.buf[:pos]
+		}
 	}
 
 	// Close all opened groups
 	for range nOpenGroups {
-		e.buf = enc.AppendEndMarker(e.buf)
+		event.buf = enc.AppendEndMarker(event.buf)
 	}
 
 	// Add timestamp using slog.Record.Time
 	if h.hasTimestampHook && !record.Time.IsZero() {
-		e = e.Time(TimestampFieldName, record.Time)
+		event = event.Time(TimestampFieldName, record.Time)
 	}
 
 	// Add caller using slog.Record.PC
 	if h.hasCallerHook && record.PC != 0 {
 		f, _ := runtime.CallersFrames([]uintptr{record.PC}).Next()
 		if f.PC != 0 {
-			e.buf = enc.AppendString(enc.AppendKey(e.buf, CallerFieldName), CallerMarshalFunc(f.PC, f.File, f.Line))
+			event.buf = enc.AppendString(enc.AppendKey(event.buf, CallerFieldName), CallerMarshalFunc(f.PC, f.File, f.Line))
 		}
 	}
 
-	e.Msg(record.Message)
+	event.Msg(record.Message)
 	return nil
 }
 
@@ -117,15 +130,27 @@ func (h *SlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 
 	h2 := *h
+	ctx := h2.logger.With()
 
-	ctx := h.logger.With()
+	// The group may turn out to be empty even though it has attrs (for example, all attrs are zero slog.Attr).
+	// So remember where we are in the buffer, to restore the position later if necessary.
+	pos := len(ctx.l.context)
+	ctx.l.context = h2.appendUnopenedGroups(ctx.l.context)
 
-	ctx.l.context = h.appendUnopenedGroups(ctx.l.context)
-	h2.nOpenGroups += len(h2.unopenedGroups)
-	h2.unopenedGroups = nil
-
+	notEmpty := false
 	for _, attr := range attrs {
-		ctx = appendSlogAttrToContext(ctx, attr)
+		c, changed := appendSlogAttrToContext(ctx, attr)
+		ctx = c
+		if changed {
+			notEmpty = true
+		}
+	}
+
+	if notEmpty {
+		h2.nOpenGroups += len(h2.unopenedGroups)
+		h2.unopenedGroups = nil
+	} else {
+		ctx.l.context = ctx.l.context[:pos]
 	}
 
 	h2.logger = ctx.Logger()
@@ -172,15 +197,15 @@ func slogToZerologLevel(level slog.Level) Level {
 }
 
 // appendSlogAttrToEvent appends a single slog.Attr to the zerolog event, handling type-specific encoding to avoid reflection where possible.
-func appendSlogAttrToEvent(event *Event, attr slog.Attr) *Event {
+func appendSlogAttrToEvent(event *Event, attr slog.Attr) (*Event, bool) {
 	if event == nil {
-		return event
+		return event, false
 	}
 
 	attr.Value = attr.Value.Resolve()
 
 	if attr.Equal(slog.Attr{}) {
-		return event
+		return event, false
 	}
 
 	key := attr.Key
@@ -202,19 +227,36 @@ func appendSlogAttrToEvent(event *Event, attr slog.Attr) *Event {
 		event = event.Time(key, val.Time())
 	case slog.KindGroup:
 		attrs := val.Group()
-		if len(attrs) > 0 {
-			if key == "" {
-				for _, ga := range attrs {
-					event = appendSlogAttrToEvent(event, ga)
+		if len(attrs) == 0 {
+			return event, false
+		}
+
+		if key == "" {
+			notEmpty := false
+			for _, ga := range attrs {
+				e, changed := appendSlogAttrToEvent(event, ga)
+				event = e
+				if changed {
+					notEmpty = true
 				}
-			} else {
-				dict := event.CreateDict()
-				for _, ga := range attrs {
-					dict = appendSlogAttrToEvent(dict, ga)
-				}
-				event = event.Dict(key, dict)
+			}
+			return event, notEmpty
+		}
+
+		dict := event.CreateDict()
+		notEmpty := false
+		for _, ga := range attrs {
+			d, changed := appendSlogAttrToEvent(dict, ga)
+			dict = d
+			if changed {
+				notEmpty = true
 			}
 		}
+		if !notEmpty {
+			putEvent(dict)
+			return event, false
+		}
+		event = event.Dict(key, dict)
 	case slog.KindAny:
 		v := val.Any()
 		switch cv := v.(type) {
@@ -271,14 +313,14 @@ func appendSlogAttrToEvent(event *Event, attr slog.Attr) *Event {
 		event = event.Interface(key, val.Any())
 	}
 
-	return event
+	return event, true
 }
 
-func appendSlogAttrToContext(ctx Context, attr slog.Attr) Context {
+func appendSlogAttrToContext(ctx Context, attr slog.Attr) (Context, bool) {
 	attr.Value = attr.Value.Resolve()
 
 	if attr.Equal(slog.Attr{}) {
-		return ctx
+		return ctx, false
 	}
 
 	key := attr.Key
@@ -300,19 +342,36 @@ func appendSlogAttrToContext(ctx Context, attr slog.Attr) Context {
 		ctx = ctx.Time(key, val.Time())
 	case slog.KindGroup:
 		attrs := val.Group()
-		if len(attrs) > 0 {
-			if key == "" {
-				for _, ga := range attrs {
-					ctx = appendSlogAttrToContext(ctx, ga)
+		if len(attrs) == 0 {
+			return ctx, false
+		}
+
+		if key == "" {
+			notEmpty := false
+			for _, ga := range attrs {
+				c, changed := appendSlogAttrToContext(ctx, ga)
+				ctx = c
+				if changed {
+					notEmpty = true
 				}
-			} else {
-				dict := ctx.CreateDict()
-				for _, ga := range attrs {
-					dict = appendSlogAttrToEvent(dict, ga)
-				}
-				ctx = ctx.Dict(key, dict)
+			}
+			return ctx, notEmpty
+		}
+
+		dict := ctx.CreateDict()
+		notEmpty := false
+		for _, ga := range attrs {
+			d, changed := appendSlogAttrToEvent(dict, ga)
+			dict = d
+			if changed {
+				notEmpty = true
 			}
 		}
+		if !notEmpty {
+			putEvent(dict)
+			return ctx, false
+		}
+		ctx = ctx.Dict(key, dict)
 	case slog.KindAny:
 		v := val.Any()
 		switch cv := v.(type) {
@@ -369,7 +428,7 @@ func appendSlogAttrToContext(ctx Context, attr slog.Attr) Context {
 		ctx = ctx.Interface(key, val.Any())
 	}
 
-	return ctx
+	return ctx, true
 }
 
 // Verify at compile time that SlogHandler satisfies the slog.Handler interface.
