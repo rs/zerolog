@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"math"
 	"net"
 	"runtime"
 	"strconv"
@@ -17,71 +18,7 @@ import (
 	"time"
 )
 
-func TestNewSlogHandler(t *testing.T) {
-	t.Run("no hooks", func(t *testing.T) {
-		h := NewSlogHandler(New(io.Discard))
-		if h.hasTimestampHook {
-			t.Error("hasTimestampHook, got: true, want: false")
-		}
-		if h.hasCallerHook {
-			t.Error("hasCallerHook, got: true, want: false")
-		}
-		if got, want := len(h.logger.hooks), 0; got != want {
-			t.Errorf("hooks len, got: %d, want: %d", got, want)
-		}
-	})
-
-	t.Run("timestamp hook stripped", func(t *testing.T) {
-		h := NewSlogHandler(New(io.Discard).With().Timestamp().Logger())
-		if !h.hasTimestampHook {
-			t.Error("hasTimestampHook, got: false, want: true")
-		}
-		if got, want := len(h.logger.hooks), 0; got != want {
-			t.Errorf("hooks len, got: %d, want: %d", got, want)
-		}
-	})
-
-	t.Run("caller hook stripped", func(t *testing.T) {
-		h := NewSlogHandler(New(io.Discard).With().Caller().Logger())
-		if !h.hasCallerHook {
-			t.Error("hasCallerHook, got: false, want: true")
-		}
-		if got, want := len(h.logger.hooks), 0; got != want {
-			t.Errorf("hooks len, got: %d, want: %d", got, want)
-		}
-	})
-
-	t.Run("other hooks preserved", func(t *testing.T) {
-		logger := New(io.Discard).With().Timestamp().Caller().Logger().Hook(HookFunc(func(e *Event, level Level, msg string) {}))
-		h := NewSlogHandler(logger)
-		if !h.hasTimestampHook {
-			t.Error("hasTimestampHook, got: false, want: true")
-		}
-		if !h.hasCallerHook {
-			t.Error("hasCallerHook, got: false, want: true")
-		}
-		if got, want := len(h.logger.hooks), 1; got != want {
-			t.Errorf("hooks len, got: %d, want: %d", got, want)
-		}
-	})
-
-	t.Run("original logger not mutated", func(t *testing.T) {
-		logger := New(io.Discard).With().Timestamp().Caller().Logger()
-		before := len(logger.hooks)
-		NewSlogHandler(logger)
-		if got, want := len(logger.hooks), before; got != want {
-			t.Errorf("original logger hooks mutated, got: %d, want: %d", got, want)
-		}
-	})
-}
-
 func TestSlogHandler_Enabled(t *testing.T) {
-	origGlobalLevel := GlobalLevel()
-	SetGlobalLevel(DebugLevel)
-	t.Cleanup(func() {
-		SetGlobalLevel(origGlobalLevel)
-	})
-
 	tests := []struct {
 		name        string
 		loggerLevel Level
@@ -97,24 +34,46 @@ func TestSlogHandler_Enabled(t *testing.T) {
 		{"Disabled/slog.LevelInfo", Disabled, slog.LevelInfo, false},
 		{"Disabled/slog.LevelWarn", Disabled, slog.LevelWarn, false},
 		{"Disabled/slog.LevelError", Disabled, slog.LevelError, false},
-		{"Global_DebugLevel/TraceLevel/slog.LevelDebug-2", TraceLevel, slog.LevelDebug - 2, false},
+		{"Disabled/math.MaxInt", Disabled, math.MaxInt, false},
+		{"TraceLevel/math.MinInt", TraceLevel, math.MinInt, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := NewSlogHandler(New(io.Discard).Level(tt.loggerLevel))
 			if got, want := h.Enabled(context.Background(), tt.level), tt.want; got != want {
-				t.Errorf("SlogHandler.Enabled, got: %v, want: %v", got, want)
+				t.Errorf("SlogHandler.Enabled() got = %v, want %v", got, want)
 			}
 		})
 	}
-}
 
-func TestSlogHandler_EnabledNilWriter(t *testing.T) {
-	h := NewSlogHandler(Logger{})
-	if got, want := h.Enabled(context.Background(), slog.LevelError), false; got != want {
-		t.Errorf("SlogHandler.Enabled, got: %v, want: %v", got, want)
-	}
+	t.Run("GlobalLevel", func(t *testing.T) {
+		origGlobalLevel := GlobalLevel()
+		SetGlobalLevel(WarnLevel)
+		t.Cleanup(func() {
+			SetGlobalLevel(origGlobalLevel)
+		})
+		h := NewSlogHandler(New(io.Discard).Level(InfoLevel))
+		if h.Enabled(context.Background(), slog.LevelInfo) {
+			t.Error("SlogHandler.Enabled() got = true, want false")
+		}
+	})
+
+	t.Run("Zero Logger (Nil Writer)", func(t *testing.T) {
+		h := NewSlogHandler(Logger{})
+		if h.Enabled(context.Background(), slog.LevelInfo) {
+			t.Error("SlogHandler.Enabled() got = true, want false")
+		}
+	})
+
+	t.Run("Nil Context", func(t *testing.T) {
+		h := NewSlogHandler(New(io.Discard).Level(InfoLevel))
+		// passing `nil` where a context is wanted is against
+		// the rules, but people still do it.
+		if !h.Enabled(nil, slog.LevelInfo) {
+			t.Error("SlogHandler.Enabled() got = false, want true")
+		}
+	})
 }
 
 func TestSlogHandler_LevelMapping(t *testing.T) {
@@ -123,6 +82,7 @@ func TestSlogHandler_LevelMapping(t *testing.T) {
 		level slog.Level
 		want  string
 	}{
+		{"math.MinInt", math.MinInt, `{"level":"trace","message":"msg"}` + "\n"},
 		{"below debug", slog.LevelDebug - 2, `{"level":"trace","message":"msg"}` + "\n"},
 		{"debug", slog.LevelDebug, `{"level":"debug","message":"msg"}` + "\n"},
 		{"between debug and info", slog.LevelInfo - 2, `{"level":"debug","message":"msg"}` + "\n"},
@@ -132,6 +92,7 @@ func TestSlogHandler_LevelMapping(t *testing.T) {
 		{"between warn and error", slog.LevelError - 2, `{"level":"warn","message":"msg"}` + "\n"},
 		{"error", slog.LevelError, `{"level":"error","message":"msg"}` + "\n"},
 		{"above error", slog.LevelError + 2, `{"level":"error","message":"msg"}` + "\n"},
+		{"math.MaxInt", math.MaxInt, `{"level":"error","message":"msg"}` + "\n"},
 	}
 
 	for _, tt := range tests {
@@ -149,8 +110,11 @@ func TestSlogHandler_LevelMapping(t *testing.T) {
 func TestSlogHandler_Timestamp(t *testing.T) {
 	t.Run("no timestamp hook omits timestamp field", func(t *testing.T) {
 		out := &bytes.Buffer{}
-		logger := slog.New(NewSlogHandler(New(out)))
-		logger.Info("msg")
+		h := NewSlogHandler(New(out))
+		record := slog.NewRecord(time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC), slog.LevelInfo, "msg", 0)
+		if err := h.Handle(context.Background(), record); err != nil {
+			t.Fatal(err)
+		}
 		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
@@ -297,11 +261,35 @@ func TestSlogHandler_Message(t *testing.T) {
 	})
 }
 
+func TestSlogHandler_NilContext(t *testing.T) {
+	out := &bytes.Buffer{}
+	h := NewSlogHandler(New(out))
+	record := slog.NewRecord(time.Time{}, slog.LevelInfo, "msg", 0)
+	// passing `nil` where a context is wanted is against
+	// the rules, but people still do it.
+	if err := h.Handle(nil, record); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestSlogHandler_ZeroRecord(t *testing.T) {
+	out := &bytes.Buffer{}
+	h := NewSlogHandler(New(out))
+	if err := h.Handle(context.Background(), slog.Record{}); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 type testCtxKey struct{}
 
 func TestSlogHandler_PropagatesContext(t *testing.T) {
 	ctx := context.WithValue(context.Background(), testCtxKey{}, "v")
-
 	hook := HookFunc(func(e *Event, level Level, message string) {
 		ctx := e.GetCtx()
 		if ctx == nil {
@@ -311,7 +299,6 @@ func TestSlogHandler_PropagatesContext(t *testing.T) {
 			e.Str("k", v)
 		}
 	})
-
 	out := &bytes.Buffer{}
 	logger := slog.New(NewSlogHandler(New(out).Hook(hook)))
 	logger.InfoContext(ctx, "msg")
@@ -339,7 +326,6 @@ func TestSlogHandler_AttrsTypes(t *testing.T) {
 	}{
 		{"zero attr", []any{slog.Attr{}}, `{"level":"info","message":"msg"}` + "\n"},
 		{"empty key", []any{"", "v"}, `{"level":"info","":"v","message":"msg"}` + "\n"},
-		{"empty group", []any{slog.Group("g")}, `{"level":"info","message":"msg"}` + "\n"},
 		{"basic types", []any{
 			"string", "hello",
 			"int64", -1,
@@ -349,10 +335,16 @@ func TestSlogHandler_AttrsTypes(t *testing.T) {
 			"time", time.Date(2001, time.February, 3, 4, 5, 6, 7, time.UTC),
 			"duration", time.Second,
 		}, `{"level":"info","string":"hello","int64":-1,"uint64":1,"float64":3.14,"bool":true,"time":"2001-02-03T04:05:06Z","duration":1000,"message":"msg"}` + "\n"},
-		{"group", []any{slog.Group("g", "k", "v")}, `{"level":"info","g":{"k":"v"},"message":"msg"}` + "\n"},
-		{"empty group name", []any{slog.Group("", "k", "v")}, `{"level":"info","k":"v","message":"msg"}` + "\n"},
-		{"nested group", []any{slog.Group("g1", slog.Group("g2", "k", "v"))}, `{"level":"info","g1":{"g2":{"k":"v"}},"message":"msg"}` + "\n"},
 		{"slog.LogValuer", []any{"k", &testLogValuer{"v"}}, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"group", []any{slog.Group("g", "k", "v")}, `{"level":"info","g":{"k":"v"},"message":"msg"}` + "\n"},
+		{"empty group", []any{slog.Group("g")}, `{"level":"info","message":"msg"}` + "\n"},
+		{"empty group name", []any{slog.Group("", "k", "v")}, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"zero attrs in group", []any{slog.Group("g", slog.Attr{}, slog.Attr{})}, `{"level":"info","message":"msg"}` + "\n"},
+		{"mixed nonzero and zero attrs in group", []any{slog.Group("g", slog.Attr{}, slog.String("k", "v"), slog.Attr{})}, `{"level":"info","g":{"k":"v"},"message":"msg"}` + "\n"},
+		{"mixed nonzero and zero attrs in group (with empty group name)", []any{slog.Group("", slog.Attr{}, slog.String("k", "v"), slog.Attr{})}, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"nested groups", []any{slog.Group("g1", slog.Group("g2", "k", "v"))}, `{"level":"info","g1":{"g2":{"k":"v"}},"message":"msg"}` + "\n"},
+		{"nested empty groups", []any{slog.Group("g1", slog.Group("g2"))}, `{"level":"info","message":"msg"}` + "\n"},
+		{"nested empty group names", []any{slog.Group("", "a", "b", slog.Group("", "c", "d"))}, `{"level":"info","a":"b","c":"d","message":"msg"}` + "\n"},
 		{"slog.LogValuer in group", []any{slog.Group("g", "k", &testLogValuer{"v"})}, `{"level":"info","g":{"k":"v"},"message":"msg"}` + "\n"},
 		{"any", []any{"user", testAny{Name: "john"}}, `{"level":"info","user":{"name":"john"},"message":"msg"}` + "\n"},
 		{"other types", []any{
@@ -528,23 +520,56 @@ func TestSlogHandler_WithGroupAndAttrs(t *testing.T) {
 		}
 	})
 
-	t.Run("WithAttrs/WithGroup/WithAttrs", func(t *testing.T) {
+	t.Run("chained", func(t *testing.T) {
 		out := &bytes.Buffer{}
-		logger := slog.New(NewSlogHandler(New(out))).With("a", "b").WithGroup("g").With("c", "d")
+		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g1").With("a", "b").WithGroup("g2").With("c", "d").WithGroup("g3")
 		logger.Info("msg", "k", "v")
-		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","a":"b","g":{"c":"d","k":"v"},"message":"msg"}`+"\n"; got != want {
+		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g1":{"a":"b","g2":{"c":"d","g3":{"k":"v"}}},"message":"msg"}`+"\n"; got != want {
 			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 		}
 	})
+}
 
-	t.Run("WithGroup/WithAttrs/WithGroup", func(t *testing.T) {
-		out := &bytes.Buffer{}
-		logger := slog.New(NewSlogHandler(New(out))).WithGroup("g1").With("a", "b").WithGroup("g2")
-		logger.Info("msg", "k", "v")
-		if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g1":{"a":"b","g2":{"k":"v"}},"message":"msg"}`+"\n"; got != want {
-			t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
-		}
-	})
+func TestSlogHandler_ZeroAttrsAndEmptyGroup(t *testing.T) {
+	none := func(l *slog.Logger) *slog.Logger { return l }
+	group := func(l *slog.Logger) *slog.Logger { return l.WithGroup("g") }
+	nestedGroup := func(l *slog.Logger) *slog.Logger { return l.WithGroup("g1").With("a", "b").WithGroup("g2") }
+
+	tests := []struct {
+		name string
+		with func(*slog.Logger) *slog.Logger
+		args []any
+		want string
+	}{
+		{"empty group", group, []any{slog.Attr{}, slog.Group("x")}, `{"level":"info","message":"msg"}` + "\n"},
+		{"nonempty group", group, []any{slog.Attr{}, "a", "b", slog.Group("x"), slog.Group("y", "c", "d")}, `{"level":"info","g":{"a":"b","y":{"c":"d"}},"message":"msg"}` + "\n"},
+		{"empty group with empty group name", none, []any{slog.Attr{}, slog.Group("x")}, `{"level":"info","message":"msg"}` + "\n"},
+		{"nonempty group with empty group name", none, []any{slog.Attr{}, "a", "b", slog.Group("x"), slog.Group("y", "c", "d")}, `{"level":"info","a":"b","y":{"c":"d"},"message":"msg"}` + "\n"},
+		{"empty nested group", nestedGroup, []any{slog.Attr{}, slog.Group("x")}, `{"level":"info","g1":{"a":"b"},"message":"msg"}` + "\n"},
+		{"non empty nested group", nestedGroup, []any{slog.Attr{}, "c", "d", slog.Group("x")}, `{"level":"info","g1":{"a":"b","g2":{"c":"d"}},"message":"msg"}` + "\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run("RecordAttrs/"+tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			logger := slog.New(NewSlogHandler(New(out)))
+			logger = tt.with(logger)
+			logger.Info("msg", tt.args...)
+			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+
+		t.Run("WithAttrs/"+tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			logger := slog.New(NewSlogHandler(New(out)))
+			logger = tt.with(logger)
+			logger.With(tt.args...).Info("msg")
+			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+			}
+		})
+	}
 }
 
 func TestSlogHandler_WithSampler(t *testing.T) {
@@ -562,27 +587,21 @@ func TestSlogHandler_WithSampler(t *testing.T) {
 
 func TestSlogHandler_WithZerologContext(t *testing.T) {
 	tests := []struct {
-		name     string
-		group    string
-		withArgs []any
-		logArgs  []any
-		want     string
+		name  string
+		group string
+		args  []any
+		want  string
 	}{
-		{"Empty/Empty/Empty", "", nil, nil, `{"level":"info","k":"v","message":"msg"}` + "\n"},
-		{"Empty/Empty/Attrs", "", nil, []any{"k1", "v1"}, `{"level":"info","k":"v","k1":"v1","message":"msg"}` + "\n"},
-		{"Empty/WithAttrs/Empty", "", []any{"k1", "v1"}, nil, `{"level":"info","k":"v","k1":"v1","message":"msg"}` + "\n"},
-		{"Empty/WithAttrs/Attrs", "", []any{"k1", "v1"}, []any{"k2", "v2"}, `{"level":"info","k":"v","k1":"v1","k2":"v2","message":"msg"}` + "\n"},
-		{"Group/Empty/Empty", "g", nil, nil, `{"level":"info","k":"v","message":"msg"}` + "\n"},
-		{"Group/Empty/Attrs", "g", nil, []any{"k1", "v1"}, `{"level":"info","k":"v","g":{"k1":"v1"},"message":"msg"}` + "\n"},
-		{"Group/WithAttrs/Empty", "g", []any{"k1", "v1"}, nil, `{"level":"info","k":"v","g":{"k1":"v1"},"message":"msg"}` + "\n"},
-		{"Group/WithAttrs/Attrs", "g", []any{"k1", "v1"}, []any{"k2", "v2"}, `{"level":"info","k":"v","g":{"k1":"v1","k2":"v2"},"message":"msg"}` + "\n"},
+		{"just context", "", nil, `{"level":"info","k":"v","message":"msg"}` + "\n"},
+		{"context+group", "g", []any{"a", "b"}, `{"level":"info","k":"v","g":{"a":"b"},"message":"msg"}` + "\n"},
+		{"context+attrs", "", []any{"a", "b"}, `{"level":"info","k":"v","a":"b","message":"msg"}` + "\n"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			logger := slog.New(NewSlogHandler(New(out).With().Str("k", "v").Logger())).WithGroup(tt.group).With(tt.withArgs...)
-			logger.Info("msg", tt.logArgs...)
+			logger := slog.New(NewSlogHandler(New(out).With().Str("k", "v").Logger())).WithGroup(tt.group)
+			logger.Info("msg", tt.args...)
 			if got, want := decodeIfBinaryToString(out.Bytes()), tt.want; got != want {
 				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 			}
@@ -594,11 +613,18 @@ func TestSlogHandler_WithHook(t *testing.T) {
 	called := false
 	hook := HookFunc(func(e *Event, level Level, msg string) {
 		called = true
+		e.Str("k", "v")
 	})
-	logger := slog.New(NewSlogHandler(New(io.Discard).Hook(hook)))
+
+	out := &bytes.Buffer{}
+	logger := slog.New(NewSlogHandler(New(out).Hook(hook))).WithGroup("g").With("a", "b")
 	logger.Info("msg")
+
 	if !called {
 		t.Error("called, got: false, want: true")
+	}
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"info","g":{"a":"b"},"k":"v","message":"msg"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
 
@@ -674,7 +700,7 @@ func TestSlogHandler_ConcurrentLogs(t *testing.T) {
 			done.Wait()
 
 			if got, want := strings.Count(decodeIfBinaryToString(out.Bytes()), "\n"), NumWorkers*NumLogs; got != want {
-				t.Errorf("number of logs, got: %d, want: %d", got, want)
+				t.Errorf("number of logs = %d, want: %v", got, want)
 			}
 		})
 	}
