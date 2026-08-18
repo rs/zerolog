@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"sync"
 	"testing"
 	"time"
 
@@ -45,7 +44,10 @@ func TestFatal(t *testing.T) {
 		w := diode.NewWriter(os.Stderr, 1000, 0, func(missed int) {
 			fmt.Printf("Dropped %d messages\n", missed)
 		})
-		defer w.Close()
+		// Fatal closes the diode writer (via LevelWriterAdapter) before os.Exit,
+		// which drains the async buffer. Do not defer Close here: a second Close
+		// after Fatal's Close would hang on the already-closed done channel if
+		// FatalExitFunc ever prevented exit.
 		log := zerolog.New(w)
 		log.Fatal().Msg("test")
 		return
@@ -53,35 +55,17 @@ func TestFatal(t *testing.T) {
 
 	cmd := exec.Command(os.Args[0], "-test.run=TestFatal")
 	cmd.Env = append(os.Environ(), "TEST_FATAL=1")
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = cmd.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	// Capture stderr on the command directly. A StderrPipe + concurrent Copy can
+	// race with process exit on some platforms (seen empty on macos/1.23 CI).
 	var stderrBuf bytes.Buffer
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if _, err := io.Copy(&stderrBuf, stderr); err != nil {
-			t.Errorf("failed to copy stderr: %v", err)
-		}
-	}()
-
-	err = cmd.Wait()
+	cmd.Stderr = &stderrBuf
+	err := cmd.Run()
 	if err == nil {
 		t.Error("Expected log.Fatal to exit with non-zero status")
 	}
 
-	wg.Wait() // Wait for the goroutine to finish copying
-	slurp := stderrBuf.Bytes()
-
 	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
-	got := cbor.DecodeIfBinaryToString(slurp)
+	got := cbor.DecodeIfBinaryToString(stderrBuf.Bytes())
 	if got != want {
 		t.Errorf("Diode Fatal Test failed. got:%s, want:%s!", got, want)
 	}
@@ -115,32 +99,14 @@ func TestFatalWithFilteredLevelWriter(t *testing.T) {
 
 	cmd := exec.Command(os.Args[0], "-test.run=TestFatalWithFilteredLevelWriter")
 	cmd.Env = append(os.Environ(), "TEST_FATAL_SLOW=1")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = cmd.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	var stdoutBuf bytes.Buffer
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		_, _ = io.Copy(&stdoutBuf, stdout)
-	}()
-
-	err = cmd.Wait()
+	cmd.Stdout = &stdoutBuf
+	err := cmd.Run()
 	if err == nil {
 		t.Error("Expected log.Fatal to exit with non-zero status")
 	}
 
-	wg.Wait() // Wait for the goroutine to finish copying
-	slurp := stdoutBuf.Bytes()
-
-	got := cbor.DecodeIfBinaryToString(slurp)
+	got := cbor.DecodeIfBinaryToString(stdoutBuf.Bytes())
 	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
 	if got != want {
 		t.Errorf("Expected output %q, got: %q", want, got)
