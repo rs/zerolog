@@ -1466,3 +1466,15 @@ func TestParseLevelWarningAlias(t *testing.T) {
 		t.Fatalf("ParseLevel(WARNING)=%v %v", l, err)
 	}
 }
+
+func TestParseLevelOutOfBounds(t *testing.T) {
+	l, err := ParseLevel("128")
+	if err == nil || l != NoLevel {
+		t.Fatalf("expected error for 128, got %v (%v)", l, err)
+	}
+	l, err = ParseLevel("-129")
+	if err == nil || l != NoLevel {
+		t.Fatalf("expected error for -129, got %v (%v)", l, err)
+	}
+}
+
