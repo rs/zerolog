@@ -858,4 +858,3 @@ own code as they will be cleared and returned to the pool after being buffered b
 
 Any _dictionary_ `Event` returned from `Context.CreateDict()` or `Event.CreateDict()` **must not** be referenced after being
 buffered by a call to `Array.Dict()`, `Context.Dict()`, or `Event.Dict()` as they will be cleared and returned to the pool.
-
