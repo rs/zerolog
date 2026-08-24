@@ -130,6 +130,8 @@ func main() {
 
 You can set the Global logging level to any of these options using the `SetGlobalLevel` function in the zerolog package, passing in one of the given constants above, e.g. `zerolog.InfoLevel` would be the "info" level. Whichever level is chosen, all logs with a level greater than or equal to that level will be written. To turn off logging entirely, pass the `zerolog.Disabled` constant.
 
+> **Default level.** If you never call `SetGlobalLevel`, the global logger writes to `os.Stderr` at the `trace` level (the lowest level), so **every** event - `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic` - is written to stderr by default. In particular, a plain `log.Info(...)` call **will** appear on stderr out of the box. Calling `zerolog.SetGlobalLevel(zerolog.InfoLevel)` raises the minimum level so `trace` and `debug` messages are suppressed.
+
 #### Setting Global Log Level
 
 This example uses command-line flags to demonstrate various outputs depending on the chosen log level.
