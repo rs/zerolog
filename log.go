@@ -1,6 +1,6 @@
 // Package zerolog provides a lightweight logging library dedicated to JSON logging.
 //
-// A global Logger can be use for simple logging:
+// A global Logger can be used for simple logging:
 //
 //	import "github.com/rs/zerolog/log"
 //
@@ -38,7 +38,7 @@
 //	if e := log.Debug(); e.Enabled() {
 //	    // Compute log output only if enabled.
 //	    value := compute()
-//	    e.Str("foo": value).Msg("some debug message")
+//	    e.Str("foo", value).Msg("some debug message")
 //	}
 //	// Output: {"level":"info","time":1494567715,"routed message"}
 //
@@ -86,8 +86,8 @@
 //
 // Field duplication:
 //
-// There is no fields deduplication out-of-the-box.
-// Using the same key multiple times creates new key in final JSON each time.
+// There is no field deduplication out-of-the-box.
+// Using the same key multiple times creates a new key in the final JSON each time.
 //
 //	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 //	logger.Info().
