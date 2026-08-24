@@ -61,8 +61,9 @@ func main() {
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
 
-> Note: By default log writes to `os.Stderr`
-> Note: The default log level for `log.Print` is _trace_
+> Note: By default, `log` writes to `os.Stderr`
+> Note: The default log level of `log.Print` is _debug_, not _trace_
+> Note: With the default global level (`zerolog.DebugLevel`), everything from `log.Print`/`log.Printf` (_debug_) through `log.Info`, `log.Warn`, `log.Error` and `log.Fatal` is written to stderr out of the box. Only `log.Trace` messages are suppressed; call `zerolog.SetGlobalLevel(zerolog.TraceLevel)` to include them
 
 ### Contextual Logging
 
