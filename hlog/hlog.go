@@ -302,6 +302,36 @@ func AccessHandler(f func(r *http.Request, status, size int, duration time.Durat
 	}
 }
 
+type AccessHandlerData struct {
+	Request      *http.Request
+	Duration     time.Duration
+	Status       int
+	BytesWritten int
+	BytesRead    int64
+}
+
+// AccessHandlerWithData returns a handler that call f after each request.
+func AccessHandlerWithData(f func(data AccessHandlerData)) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			ww := mutil.WrapWriter(w)
+			body := mutil.NewByteCountReadCloser(r.Body)
+			r.Body = body
+			defer func() {
+				f(AccessHandlerData{
+					Request:      r,
+					Duration:     time.Since(start),
+					Status:       ww.Status(),
+					BytesWritten: ww.BytesWritten(),
+					BytesRead:    body.BytesRead(),
+				})
+			}()
+			next.ServeHTTP(ww, r)
+		})
+	}
+}
+
 // HostHandler adds the request's host as a field to the context's logger
 // using fieldKey as field key. If trimPort is set to true, then port is
 // removed from the host.
