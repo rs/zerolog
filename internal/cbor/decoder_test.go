@@ -3,7 +3,9 @@ package cbor
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +18,39 @@ func TestDecodeInteger(t *testing.T) {
 		if gotv != int64(tc.Val) {
 			t.Errorf("decodeInteger(0x%s)=0x%d, want: 0x%d",
 				hex.EncodeToString([]byte(tc.Binary)), gotv, tc.Val)
+		}
+	}
+}
+
+func TestDecodeUnsignedInteger64Bit(t *testing.T) {
+	// RFC 8949 section 3.1: major type 0 carries 0..2^64-1. Values at or above
+	// 2^63 do not fit the int64 decodeInteger returns, so they must be decoded
+	// and rendered unsigned.
+	var enc Encoder
+	for _, val := range []uint64{0, 1, math.MaxInt64, 1 << 63, math.MaxUint64} {
+		b := enc.AppendBeginMarker(nil)
+		b = enc.AppendKey(b, "k")
+		b = enc.AppendUint64(b, val)
+		b = enc.AppendEndMarker(b)
+
+		want := fmt.Sprintf("{\"k\":%d}", val)
+		got := strings.TrimSpace(DecodeIfBinaryToString(b))
+		if got != want {
+			t.Errorf("DecodeIfBinaryToString(AppendUint64(%d))=%s, want: %s", val, got, want)
+		}
+	}
+
+	// Negative integers (major type 1) keep their existing rendering.
+	for _, val := range []int64{-1, math.MinInt64} {
+		b := enc.AppendBeginMarker(nil)
+		b = enc.AppendKey(b, "k")
+		b = enc.AppendInt64(b, val)
+		b = enc.AppendEndMarker(b)
+
+		want := fmt.Sprintf("{\"k\":%d}", val)
+		got := strings.TrimSpace(DecodeIfBinaryToString(b))
+		if got != want {
+			t.Errorf("DecodeIfBinaryToString(AppendInt64(%d))=%s, want: %s", val, got, want)
 		}
 	}
 }
