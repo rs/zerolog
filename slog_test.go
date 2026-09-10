@@ -283,6 +283,28 @@ func TestSlogHandler_WithGroupAndAttrs(t *testing.T) {
 	}
 }
 
+func TestSlogHandler_WithGroupAndAttrsOrder(t *testing.T) {
+	var buf bytes.Buffer
+	zl := zerolog.New(&buf)
+	handler := zerolog.NewSlogHandler(zl)
+
+	// Add group "g1", then attr "a1", then nested group "g2"
+	child := handler.WithGroup("g1").WithAttrs([]slog.Attr{
+		slog.String("a1", "val1"),
+	}).WithGroup("g2")
+
+	logger := slog.New(child)
+	logger.Info("nested test", "a2", "val2")
+
+	m := decodeJSON(t, &buf)
+	if m["g1.a1"] != "val1" {
+		t.Errorf("expected g1.a1=val1, got %v", m["g1.a1"])
+	}
+	if m["g1.g2.a2"] != "val2" {
+		t.Errorf("expected g1.g2.a2=val2, got %v", m["g1.g2.a2"])
+	}
+}
+
 func TestSlogHandler_GroupAttrInRecord(t *testing.T) {
 	var buf bytes.Buffer
 	logger := newSlogLogger(&buf)

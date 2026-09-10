@@ -6,13 +6,18 @@ import (
 	"time"
 )
 
+type prefixedAttr struct {
+	attr   slog.Attr
+	prefix string
+}
+
 // SlogHandler implements the slog.Handler interface using a zerolog.Logger
 // as the underlying log backend. This allows code that uses the standard
 // library's slog package to route log output through zerolog.
 type SlogHandler struct {
 	logger Logger
 	prefix string // group prefix for nested groups
-	attrs  []slog.Attr
+	attrs  []prefixedAttr
 }
 
 // NewSlogHandler creates a new slog.Handler that writes log records to the
@@ -51,8 +56,8 @@ func (h *SlogHandler) Handle(ctx context.Context, record slog.Record) error {
 	}
 
 	// Add pre-attached attrs from WithAttrs
-	for _, a := range h.attrs {
-		event = appendSlogAttr(event, a, h.prefix)
+	for _, pa := range h.attrs {
+		event = appendSlogAttr(event, pa.attr, pa.prefix)
 	}
 
 	// Add attrs from the record itself
@@ -90,7 +95,9 @@ func (h *SlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		return h
 	}
 	h2 := h.clone()
-	h2.attrs = append(h2.attrs, attrs...)
+	for _, a := range attrs {
+		h2.attrs = append(h2.attrs, prefixedAttr{attr: a, prefix: h.prefix})
+	}
 	return h2
 }
 
@@ -115,7 +122,7 @@ func (h *SlogHandler) clone() *SlogHandler {
 		prefix: h.prefix,
 	}
 	if len(h.attrs) > 0 {
-		h2.attrs = make([]slog.Attr, len(h.attrs))
+		h2.attrs = make([]prefixedAttr, len(h.attrs))
 		copy(h2.attrs, h.attrs)
 	}
 	return h2
