@@ -1,5 +1,5 @@
-// +build !binary_log
-// +build !windows
+//go:build !binary_log && !windows
+// +build !binary_log,!windows
 
 package zerolog
 
@@ -144,7 +144,7 @@ func TestSyslogWriter_Write(t *testing.T) {
 	if err2 != nil {
 		t.Errorf("Write with CEE failed: %v", err2)
 	}
-	expectedLen := len(ceePrefix) + len(data2)
+	expectedLen := len(data2)
 	if n2 != expectedLen {
 		t.Errorf("Write with CEE returned wrong length: got %d, want %d", n2, expectedLen)
 	}
@@ -235,4 +235,47 @@ func TestSyslogWriter_WriteLevel_InvalidLevel(t *testing.T) {
 	}()
 
 	writer.WriteLevel(Level(100), []byte("test"))
+}
+
+// A syslog writer emits one record for each Write call.
+type recordingSyslogWriter struct {
+	syslogTestWriter
+	writes []string
+	n      int
+	err    error
+}
+
+func (w *recordingSyslogWriter) Write(p []byte) (int, error) {
+	w.writes = append(w.writes, string(p))
+	if w.n >= 0 {
+		return w.n, w.err
+	}
+	return len(p), w.err
+}
+
+func TestSyslogCEEWriterSingleRecord(t *testing.T) {
+	data := []byte(`{"message":"hello"}`)
+	for _, tc := range []struct {
+		name    string
+		written int
+		err     error
+		wantN   int
+	}{
+		{"complete", -1, nil, len(data)},
+		{"prefix failure", 0, io.ErrClosedPipe, 0},
+		{"partial prefix", 2, io.ErrShortWrite, 0},
+		{"partial message", len(ceePrefix) + 3, io.ErrShortWrite, 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sw := &recordingSyslogWriter{n: tc.written, err: tc.err}
+			n, err := SyslogCEEWriter(sw).Write(data)
+			if n != tc.wantN || err != tc.err {
+				t.Fatalf("Write() = (%d, %v), want (%d, %v)", n, err, tc.wantN, tc.err)
+			}
+			want := []string{ceePrefix + string(data)}
+			if !reflect.DeepEqual(sw.writes, want) {
+				t.Fatalf("writes = %q, want %q", sw.writes, want)
+			}
+		})
+	}
 }
