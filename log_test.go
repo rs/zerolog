@@ -331,6 +331,32 @@ func TestFieldsErr(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+func TestFieldsTypedNilErrors(t *testing.T) {
+	var nilErr *net.OpError
+	fields := map[string]interface{}{
+		"error":  nilErr,
+		"errors": []error{nilErr, errors.New("middle"), nilErr},
+		"tail":   "value",
+	}
+	want := `{"error":null,"errors":[null,"middle",null],"tail":"value"}` + "\n"
+	for _, contextual := range []bool{false, true} {
+		t.Run(fmt.Sprintf("context=%t", contextual), func(t *testing.T) {
+			var out bytes.Buffer
+			logger := New(&out)
+			if contextual {
+				logger = logger.With().Fields(fields).Logger()
+				logger.Log().Msg("")
+			} else {
+				logger.Log().Fields(fields).Msg("")
+			}
+			if got := decodeIfBinaryToString(out.Bytes()); got != want {
+				t.Errorf("invalid log output:\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+	}
+}
+
 func TestFieldsErrs(t *testing.T) {
 	var err error = nil
 	out := &bytes.Buffer{}
