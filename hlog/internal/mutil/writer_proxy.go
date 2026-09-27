@@ -113,6 +113,7 @@ func (f *fancyWriter) CloseNotify() <-chan bool {
 }
 
 func (f *fancyWriter) Flush() {
+	f.basicWriter.maybeWriteHeader()
 	fl := f.basicWriter.ResponseWriter.(http.Flusher)
 	fl.Flush()
 }
@@ -141,6 +142,7 @@ type flushWriter struct {
 }
 
 func (f *flushWriter) Flush() {
+	f.basicWriter.maybeWriteHeader()
 	fl := f.basicWriter.ResponseWriter.(http.Flusher)
 	fl.Flush()
 }
