@@ -345,6 +345,19 @@ log.Info().Str("foo", "bar").Msg("Hello world")
 // Output: 3:04PM INF Hello World foo=bar
 ```
 
+`zerolog.TimestampFunc` changes the timestamp written into JSON events, but
+`ConsoleWriter` formats that value for display using local time by default. Set
+`TimeLocation` if you want the pretty output in another zone (for example UTC):
+
+```go
+output := zerolog.ConsoleWriter{
+    Out:          os.Stderr,
+    TimeFormat:   time.RFC3339,
+    TimeLocation: time.UTC,
+}
+log.Logger = log.Output(output)
+```
+
 To customize the configuration and formatting:
 
 ```go
