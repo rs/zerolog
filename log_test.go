@@ -1478,3 +1478,37 @@ func TestParseLevelOutOfBounds(t *testing.T) {
 	}
 }
 
+// outputCtxProbeKey is the context key used by TestOutputPreservesGoContext.
+type outputCtxProbeKey struct{}
+
+// outputCtxProbeHook records the trace value it can read from the event's Go
+// context, so tests can assert whether Logger.Output preserved it.
+type outputCtxProbeHook struct {
+	saw string
+}
+
+func (h *outputCtxProbeHook) Run(e *Event, _ Level, _ string) {
+	if v, ok := e.GetCtx().Value(outputCtxProbeKey{}).(string); ok {
+		h.saw = v
+		return
+	}
+	h.saw = ""
+}
+
+// Logger.Output duplicates every other piece of logger state (level, sampler,
+// stack, hooks and the context buffer), so it must also carry over the Go
+// context.Context. Hooks and Func callbacks read it via Event.GetCtx.
+func TestOutputPreservesGoContext(t *testing.T) {
+	probe := &outputCtxProbeHook{}
+	log := New(&bytes.Buffer{}).Hook(probe).
+		With().Ctx(context.WithValue(context.Background(), outputCtxProbeKey{}, "abc-123")).Logger()
+
+	out := &bytes.Buffer{}
+	got := log.Output(out)
+	probe.saw = ""
+	got.Info().Msg("hello world")
+
+	if probe.saw != "abc-123" {
+		t.Errorf("Logger.Output() dropped the Go context: hook saw %q, want %q", probe.saw, "abc-123")
+	}
+}
