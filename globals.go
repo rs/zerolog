@@ -1,8 +1,6 @@
 package zerolog
 
 import (
-	"bytes"
-	"encoding/json"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -92,22 +90,9 @@ var (
 	}
 
 	// InterfaceMarshalFunc allows customization of interface marshaling.
-	// Default: "encoding/json.Marshal" with disabled HTML escaping
-	InterfaceMarshalFunc = func(v interface{}) ([]byte, error) {
-		var buf bytes.Buffer
-		encoder := json.NewEncoder(&buf)
-		encoder.SetEscapeHTML(false)
-		err := encoder.Encode(v)
-		if err != nil {
-			return nil, err
-		}
-		b := buf.Bytes()
-		if len(b) > 0 {
-			// Remove trailing \n which is added by Encode.
-			return b[:len(b)-1], nil
-		}
-		return b, nil
-	}
+	// Default: encoding/json with disabled HTML escaping, honoring
+	// LogObjectMarshaler on nested and embedded values.
+	InterfaceMarshalFunc = marshalInterface
 
 	// TimeFieldFormat defines the time format of the Time field type. If set to
 	// TimeFormatUnix, TimeFormatUnixMs, TimeFormatUnixMicro or TimeFormatUnixNano, the time is formatted as a UNIX
