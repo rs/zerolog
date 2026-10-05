@@ -6,8 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
-	"sync"
 	"testing"
 	"time"
 
@@ -16,15 +14,39 @@ import (
 	"github.com/rs/zerolog/internal/cbor"
 )
 
+type signalWriter struct {
+	w     io.Writer
+	wrote chan struct{}
+}
+
+func (w *signalWriter) Write(p []byte) (n int, err error) {
+	n, err = w.w.Write(p)
+	if err == nil {
+		select {
+		case w.wrote <- struct{}{}:
+		default:
+		}
+	}
+	return n, err
+}
+
 func TestNewWriter(t *testing.T) {
-	buf := bytes.Buffer{}
-	w := diode.NewWriter(&buf, 1000, 0, func(missed int) {
+	var buf bytes.Buffer
+	sw := signalWriter{w: &buf, wrote: make(chan struct{}, 1)}
+	w := diode.NewWriter(&sw, 1000, 0, func(missed int) {
 		fmt.Printf("Dropped %d messages\n", missed)
 	})
 	log := zerolog.New(w)
 	log.Print("test")
 
-	w.Close()
+	select {
+	case <-sw.wrote:
+	case <-time.After(2 * time.Second):
+		w.Close()
+		t.Fatal("timed out waiting for diode writer to flush")
+	}
+
+	_ = w.Close()
 	want := "{\"level\":\"debug\",\"message\":\"test\"}\n"
 	got := cbor.DecodeIfBinaryToString(buf.Bytes())
 	if got != want {
@@ -41,110 +63,68 @@ func TestClose(t *testing.T) {
 }
 
 func TestFatal(t *testing.T) {
-	if os.Getenv("TEST_FATAL") == "1" {
-		w := diode.NewWriter(os.Stderr, 1000, 0, func(missed int) {
-			fmt.Printf("Dropped %d messages\n", missed)
-		})
-		defer w.Close()
-		log := zerolog.New(w)
-		log.Fatal().Msg("test")
-		return
-	}
+	var buf bytes.Buffer
+	w := diode.NewWriter(&buf, 1000, 0, func(missed int) {
+		fmt.Printf("Dropped %d messages\n", missed)
+	})
+	log := zerolog.New(w)
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestFatal")
-	cmd.Env = append(os.Environ(), "TEST_FATAL=1")
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = cmd.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	oldExitFunc := zerolog.FatalExitFunc
+	zerolog.FatalExitFunc = func() { panic("fatal exit") }
+	defer func() { zerolog.FatalExitFunc = oldExitFunc }()
 
-	var stderrBuf bytes.Buffer
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if _, err := io.Copy(&stderrBuf, stderr); err != nil {
-			t.Errorf("failed to copy stderr: %v", err)
+	defer func() {
+		if r := recover(); r == nil || r != "fatal exit" {
+			t.Fatalf("expected panic %q from log.Fatal(), got %v", "fatal exit", r)
+		}
+		want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
+		got := cbor.DecodeIfBinaryToString(buf.Bytes())
+		if got != want {
+			t.Errorf("Diode Fatal Test failed. got:%s, want:%s!", got, want)
 		}
 	}()
 
-	err = cmd.Wait()
-	if err == nil {
-		t.Error("Expected log.Fatal to exit with non-zero status")
-	}
-
-	wg.Wait() // Wait for the goroutine to finish copying
-	slurp := stderrBuf.Bytes()
-
-	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
-	got := cbor.DecodeIfBinaryToString(slurp)
-	if got != want {
-		t.Errorf("Diode Fatal Test failed. got:%s, want:%s!", got, want)
-	}
+	log.Fatal().Msg("test")
 }
 
-type SlowWriter struct{}
+type SlowWriter struct{ w io.Writer }
 
 func (rw *SlowWriter) Write(p []byte) (n int, err error) {
 	time.Sleep(200 * time.Millisecond)
-	fmt.Print(string(p))
-	return len(p), nil
+	return rw.w.Write(p)
 }
 
 func TestFatalWithFilteredLevelWriter(t *testing.T) {
-	if os.Getenv("TEST_FATAL_SLOW") == "1" {
-		slowWriter := SlowWriter{}
-		diodeWriter := diode.NewWriter(&slowWriter, 500, 0, func(missed int) {
-			fmt.Printf("Missed %d logs\n", missed)
-		})
-		leveledDiodeWriter := zerolog.LevelWriterAdapter{
-			Writer: &diodeWriter,
-		}
-		filteredDiodeWriter := zerolog.FilteredLevelWriter{
-			Writer: &leveledDiodeWriter,
-			Level:  zerolog.InfoLevel,
-		}
-		logger := zerolog.New(&filteredDiodeWriter)
-		logger.Fatal().Msg("test")
-		return
+	var buf bytes.Buffer
+	slowWriter := SlowWriter{w: &buf}
+	diodeWriter := diode.NewWriter(&slowWriter, 500, 0, func(missed int) {
+		fmt.Printf("Missed %d logs\n", missed)
+	})
+	leveledDiodeWriter := zerolog.LevelWriterAdapter{
+		Writer: &diodeWriter,
 	}
+	filteredDiodeWriter := zerolog.FilteredLevelWriter{
+		Writer: &leveledDiodeWriter,
+		Level:  zerolog.InfoLevel,
+	}
+	logger := zerolog.New(&filteredDiodeWriter)
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestFatalWithFilteredLevelWriter")
-	cmd.Env = append(os.Environ(), "TEST_FATAL_SLOW=1")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = cmd.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	oldExitFunc := zerolog.FatalExitFunc
+	zerolog.FatalExitFunc = func() { panic("fatal exit") }
+	defer func() { zerolog.FatalExitFunc = oldExitFunc }()
 
-	var stdoutBuf bytes.Buffer
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		_, _ = io.Copy(&stdoutBuf, stdout)
+	defer func() {
+		if r := recover(); r == nil || r != "fatal exit" {
+			t.Fatalf("expected panic %q from log.Fatal(), got %v", "fatal exit", r)
+		}
+		want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
+		got := cbor.DecodeIfBinaryToString(buf.Bytes())
+		if got != want {
+			t.Errorf("Expected output %q, got: %q", want, got)
+		}
 	}()
 
-	err = cmd.Wait()
-	if err == nil {
-		t.Error("Expected log.Fatal to exit with non-zero status")
-	}
-
-	wg.Wait() // Wait for the goroutine to finish copying
-	slurp := stdoutBuf.Bytes()
-
-	got := cbor.DecodeIfBinaryToString(slurp)
-	want := "{\"level\":\"fatal\",\"message\":\"test\"}\n"
-	if got != want {
-		t.Errorf("Expected output %q, got: %q", want, got)
-	}
+	logger.Fatal().Msg("test")
 }
 
 func Benchmark(b *testing.B) {
