@@ -70,7 +70,9 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool, ctx context.C
 			case LogObjectMarshaler:
 				dst = appendObject(dst, m, stack, ctx, hooks)
 			case error:
-				if !isNilValue(m) {
+				if isNilValue(m) {
+					dst = enc.AppendNil(dst)
+				} else {
 					dst = enc.AppendString(dst, m.Error())
 				}
 			case string:
@@ -106,7 +108,9 @@ func appendFieldList(dst []byte, kvList []interface{}, stack bool, ctx context.C
 				case LogObjectMarshaler:
 					dst = appendObject(dst, m, stack, ctx, hooks)
 				case error:
-					if !isNilValue(m) {
+					if isNilValue(m) {
+						dst = enc.AppendNil(dst)
+					} else {
 						dst = enc.AppendString(dst, m.Error())
 					}
 				case string:
