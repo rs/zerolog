@@ -64,3 +64,21 @@ func TestArray_MarshalZerologArray(t *testing.T) {
 	a := Arr()
 	a.MarshalZerologArray(nil) // no-op method, should not panic
 }
+
+func TestArrayTypedNilErrors(t *testing.T) {
+	var nilErr *net.OpError
+	for _, tc := range []struct {
+		name  string
+		array *Array
+	}{
+		{"Err", Arr().Err(nilErr).Err(fmt.Errorf("middle")).Err(nilErr)},
+		{"Errs", Arr().Errs([]error{nilErr, fmt.Errorf("middle"), nilErr})},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			want := `[null,"middle",null]`
+			if got := decodeObjectToStr(tc.array.write(nil)); got != want {
+				t.Errorf("Array.write()\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+	}
+}
