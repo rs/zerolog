@@ -44,10 +44,10 @@ func readByte(src *bufio.Reader) byte {
 	return b
 }
 
-func decodeIntAdditionalType(src *bufio.Reader, minor byte) int64 {
-	val := int64(0)
+func decodeIntAdditionalType(src *bufio.Reader, minor byte) uint64 {
+	val := uint64(0)
 	if minor <= 23 {
-		val = int64(minor)
+		val = uint64(minor)
 	} else {
 		bytesToRead := 0
 		switch minor {
@@ -65,7 +65,7 @@ func decodeIntAdditionalType(src *bufio.Reader, minor byte) int64 {
 		pb := readNBytes(src, bytesToRead)
 		for i := 0; i < bytesToRead; i++ {
 			val = val * 256
-			val += int64(pb[i])
+			val += uint64(pb[i])
 		}
 	}
 	return val
@@ -80,9 +80,22 @@ func decodeInteger(src *bufio.Reader) int64 {
 	}
 	val := decodeIntAdditionalType(src, minor)
 	if major == 0 {
-		return val
+		return int64(val)
 	}
-	return (-1 - val)
+	return (-1 - int64(val))
+}
+
+// decodeUnsignedInteger decodes a major type 0 integer over the whole range
+// RFC 8949 section 3.1 gives it, 0..2^64-1, which does not fit the int64 that
+// decodeInteger returns.
+func decodeUnsignedInteger(src *bufio.Reader) uint64 {
+	pb := readByte(src)
+	major := pb & maskOutAdditionalType
+	minor := pb & maskOutMajorType
+	if major != majorTypeUnsignedInt {
+		panic(fmt.Errorf("Major type is: %d in decodeUnsignedInteger!! (expected 0)", major))
+	}
+	return decodeIntAdditionalType(src, minor)
 }
 
 func decodeFloat(src *bufio.Reader) (float64, int) {
@@ -545,10 +558,10 @@ func cbor2JsonOneObject(src *bufio.Reader, dst io.Writer) {
 
 	switch major {
 	case majorTypeUnsignedInt:
-		fallthrough
+		dst.Write([]byte(strconv.FormatUint(decodeUnsignedInteger(src), 10)))
+
 	case majorTypeNegativeInt:
-		n := decodeInteger(src)
-		dst.Write([]byte(strconv.Itoa(int(n))))
+		dst.Write([]byte(strconv.FormatInt(decodeInteger(src), 10)))
 
 	case majorTypeByteString:
 		s := decodeString(src, false)
