@@ -10,7 +10,6 @@ import (
 	"io"
 	"math"
 	"net"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +23,12 @@ const hexTable = "0123456789abcdef"
 const isFloat32 = 4
 const isFloat64 = 8
 
+const maxCBORAlloc = 16 << 20 // 16 MiB defensive limit for a single CBOR allocation
+
 func readNBytes(src *bufio.Reader, n int) []byte {
+	if n < 0 || n > maxCBORAlloc {
+		panic(fmt.Errorf("cbor: invalid allocation length %d (limit %d)", n, maxCBORAlloc))
+	}
 	ret := make([]byte, n)
 	for i := 0; i < n; i++ {
 		ch, e := src.ReadByte()
@@ -44,10 +48,10 @@ func readByte(src *bufio.Reader) byte {
 	return b
 }
 
-func decodeIntAdditionalType(src *bufio.Reader, minor byte) int64 {
-	val := int64(0)
+func decodeUintAdditionalType(src *bufio.Reader, minor byte) uint64 {
+	val := uint64(0)
 	if minor <= 23 {
-		val = int64(minor)
+		val = uint64(minor)
 	} else {
 		bytesToRead := 0
 		switch minor {
@@ -65,10 +69,18 @@ func decodeIntAdditionalType(src *bufio.Reader, minor byte) int64 {
 		pb := readNBytes(src, bytesToRead)
 		for i := 0; i < bytesToRead; i++ {
 			val = val * 256
-			val += int64(pb[i])
+			val += uint64(pb[i])
 		}
 	}
 	return val
+}
+
+func decodeIntAdditionalType(src *bufio.Reader, minor byte) int64 {
+	u := decodeUintAdditionalType(src, minor)
+	if u > math.MaxInt64 {
+		panic(fmt.Errorf("cbor: integer overflow for signed int64: %d", u))
+	}
+	return int64(u)
 }
 
 func decodeInteger(src *bufio.Reader) int64 {
@@ -222,6 +234,9 @@ func decodeStringToDataUrl(src *bufio.Reader, mimeType string) []byte {
 		panic(fmt.Errorf("Major type is: %d in decodeString", major))
 	}
 	length := decodeIntAdditionalType(src, minor)
+	if length < 0 || length > int64(maxCBORAlloc) {
+		panic(fmt.Errorf("cbor: invalid data url length %d", length))
+	}
 	l := int(length)
 	enc := base64.StdEncoding
 	lEnc := enc.EncodedLen(l)
@@ -249,6 +264,9 @@ func decodeUTF8String(src *bufio.Reader) []byte {
 	}
 	result := []byte{'"'}
 	length := decodeIntAdditionalType(src, minor)
+	if length < 0 || length > int64(maxCBORAlloc) {
+		panic(fmt.Errorf("cbor: invalid utf8 string length %d", length))
+	}
 	len := int(length)
 	pbs := readNBytes(src, len)
 
@@ -284,6 +302,9 @@ func array2Json(src *bufio.Reader, dst io.Writer) {
 		unSpecifiedCount = true
 	} else {
 		length := decodeIntAdditionalType(src, minor)
+		if length < 0 || length > int64(maxCBORAlloc) {
+			panic(fmt.Errorf("cbor: invalid array length %d", length))
+		}
 		len = int(length)
 	}
 	for i := 0; unSpecifiedCount || i < len; i++ {
@@ -328,6 +349,9 @@ func map2Json(src *bufio.Reader, dst io.Writer) {
 		unSpecifiedCount = true
 	} else {
 		length := decodeIntAdditionalType(src, minor)
+		if length < 0 || length > int64(maxCBORAlloc) {
+			panic(fmt.Errorf("cbor: invalid map length %d", length))
+		}
 		len = int(length)
 	}
 	dst.Write([]byte{'{'})
@@ -545,10 +569,20 @@ func cbor2JsonOneObject(src *bufio.Reader, dst io.Writer) {
 
 	switch major {
 	case majorTypeUnsignedInt:
-		fallthrough
+		pb := readByte(src)
+		minor := pb & maskOutMajorType
+		u := decodeUintAdditionalType(src, minor)
+		dst.Write([]byte(strconv.FormatUint(u, 10)))
+
 	case majorTypeNegativeInt:
-		n := decodeInteger(src)
-		dst.Write([]byte(strconv.Itoa(int(n))))
+		pb := readByte(src)
+		minor := pb & maskOutMajorType
+		u := decodeUintAdditionalType(src, minor)
+		if u <= math.MaxInt64 {
+			dst.Write([]byte(strconv.FormatInt(-1-int64(u), 10)))
+		} else {
+			dst.Write([]byte("-" + strconv.FormatUint(u+1, 10)))
+		}
 
 	case majorTypeByteString:
 		s := decodeString(src, false)
@@ -590,14 +624,15 @@ func moreBytesToRead(src *bufio.Reader) bool {
 //
 // Returns error (if any) that was encountered during decode.
 // The child functions will generate a panic when error is encountered and
-// this function will recover non-runtime Errors and return the reason as error.
+// this function will recover and return the reason as error.
 func Cbor2JsonManyObjects(src io.Reader, dst io.Writer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if _, ok := r.(runtime.Error); ok {
-				panic(r)
+			if e, ok := r.(error); ok {
+				err = e
+				return
 			}
-			err = r.(error)
+			err = fmt.Errorf("cbor decode panic: %v", r)
 		}
 	}()
 	bufRdr := bufio.NewReader(src)
@@ -625,7 +660,9 @@ func getReader(str string) *bufio.Reader {
 func DecodeIfBinaryToString(in []byte) string {
 	if binaryFmt(in) {
 		var b bytes.Buffer
-		Cbor2JsonManyObjects(strings.NewReader(string(in)), &b)
+		if err := Cbor2JsonManyObjects(strings.NewReader(string(in)), &b); err != nil {
+			return string(in)
+		}
 		return b.String()
 	}
 	return string(in)
@@ -636,7 +673,22 @@ func DecodeIfBinaryToString(in []byte) string {
 func DecodeObjectToStr(in []byte) string {
 	if binaryFmt(in) {
 		var b bytes.Buffer
-		cbor2JsonOneObject(getReader(string(in)), &b)
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if e, ok := r.(error); ok {
+						err = e
+					} else {
+						err = fmt.Errorf("cbor decode panic: %v", r)
+					}
+				}
+			}()
+			cbor2JsonOneObject(getReader(string(in)), &b)
+		}()
+		if err != nil {
+			return ""
+		}
 		return b.String()
 	}
 	return string(in)
@@ -647,7 +699,9 @@ func DecodeObjectToStr(in []byte) string {
 func DecodeIfBinaryToBytes(in []byte) []byte {
 	if binaryFmt(in) {
 		var b bytes.Buffer
-		Cbor2JsonManyObjects(bytes.NewReader(in), &b)
+		if err := Cbor2JsonManyObjects(bytes.NewReader(in), &b); err != nil {
+			return in
+		}
 		return b.Bytes()
 	}
 	return in
