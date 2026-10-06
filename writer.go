@@ -2,6 +2,8 @@ package zerolog
 
 import (
 	"bytes"
+	"encoding/binary"
+	"fmt"
 	"io"
 	"path"
 	"runtime"
@@ -271,10 +273,12 @@ func (w *TriggerLevelWriter) WriteLevel(l Level, p []byte) (n int, err error) {
 			w.buf = triggerWriterPool.Get().(*bytes.Buffer)
 		}
 
-		// We prefix each log line with a byte with the level.
-		// Hopefully we will never have a level value which equals a newline
-		// (which could interfere with reconstruction of log lines in the trigger method).
+		// Prefix each log record with 1 byte level and 4-byte big-endian length.
+		// This avoids scanning for newlines, preserving binary logs and multi-line records.
 		w.buf.WriteByte(byte(l))
+		var hdr [4]byte
+		binary.BigEndian.PutUint32(hdr[:], uint32(len(p)))
+		w.buf.Write(hdr[:])
 		w.buf.Write(p)
 		return len(p), nil
 	}
@@ -300,16 +304,17 @@ func (w *TriggerLevelWriter) trigger() error {
 
 	p := w.buf.Bytes()
 	for len(p) > 0 {
-		// We do not use bufio.Scanner here because we already have full buffer
-		// in the memory and we do not want extra copying from the buffer to
-		// scanner's token slice, nor we want to hit scanner's token size limit,
-		// and we also want to preserve newlines.
-		i := bytes.IndexByte(p, '\n')
-		line := p[0 : i+1]
-		p = p[i+1:]
-		// We prefixed each log line with a byte with the level.
-		level := Level(line[0])
-		line = line[1:]
+		if len(p) < 5 {
+			return fmt.Errorf("zerolog: truncated trigger buffer")
+		}
+		level := Level(p[0])
+		n := int(binary.BigEndian.Uint32(p[1:5]))
+		p = p[5:]
+		if n > len(p) {
+			return fmt.Errorf("zerolog: record length %d exceeds remaining buffer %d", n, len(p))
+		}
+		line := p[:n]
+		p = p[n:]
 		var err error
 		if lw, ok := w.Writer.(LevelWriter); ok {
 			_, err = lw.WriteLevel(level, line)
