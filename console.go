@@ -349,6 +349,13 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 		} else if w.FormatFieldValue != nil {
 			f = w.FormatFieldValue
 		} else {
+			// A custom part listed in PartsOrder may be absent from the event
+			// (for example when using the global logger). Without a custom
+			// formatter the default one renders the missing value as
+			// "%!s(<nil>)", so skip the part entirely instead. See #710.
+			if evt[p] == nil {
+				return
+			}
 			f = consoleDefaultFormatFieldValue
 		}
 	}
