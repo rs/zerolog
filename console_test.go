@@ -95,7 +95,7 @@ func TestConsoleLogger(t *testing.T) {
 			Uint64("small", 123).
 			Uint64("big", 1152921504606846976).
 			Msg("msg")
-		if got, want := strings.TrimSpace(buf.String()), "<nil> INF msg big=1152921504606846976 float=1.23 small=123"; got != want {
+		if got, want := strings.TrimSpace(buf.String()), "<nil> INF msg float=1.23 small=123 big=1152921504606846976"; got != want {
 			t.Errorf("\ngot:\n%s\nwant:\n%s", got, want)
 		}
 	})
@@ -363,7 +363,7 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> DBG Foobar bar=true foo=[1,2,3]\n"
+		expectedOutput := "<nil> DBG Foobar foo=[1,2,3] bar=true\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -686,6 +686,138 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+}
+
+func TestConsoleWriterFieldOrder(t *testing.T) {
+	t.Run("Preserves document order without FieldsOrder", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+		evt := `{"level": "info", "message": "Zoo", "zebra": "Zulu", "mussel": "Mountain", "aardvark": "Able"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+
+		expectedOutput := "<nil> INF Zoo zebra=Zulu mussel=Mountain aardvark=Able\n"
+		if got := buf.String(); got != expectedOutput {
+			t.Errorf("got %q, want %q", got, expectedOutput)
+		}
+	})
+
+	t.Run("Preserves order with nested structures and arrays", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+		evt := `{"level": "info", "message": "nested", "zebra": {"k2": 1, "k1": 2}, "middle": [3, 2, 1], "aardvark": true}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+
+		expectedOutput := "<nil> INF nested zebra={\"k1\":2,\"k2\":1} middle=[3,2,1] aardvark=true\n"
+		if got := buf.String(); got != expectedOutput {
+			t.Errorf("got %q, want %q", got, expectedOutput)
+		}
+	})
+
+	t.Run("Preserves order with RawJSON fields", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		log := zerolog.New(zerolog.ConsoleWriter{Out: buf, NoColor: true})
+
+		log.Info().
+			RawJSON("raw", []byte(`{"id":100}`)).
+			Str("name", "test").
+			Int("count", 5).
+			Msg("rawjson test")
+
+		expectedOutput := "<nil> INF rawjson test raw={\"id\":100} name=test count=5\n"
+		if got := buf.String(); got != expectedOutput {
+			t.Errorf("got %q, want %q", got, expectedOutput)
+		}
+	})
+
+	t.Run("Places error field first while preserving remaining field order", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+		evt := `{"level": "error", "message": "boom", "zebra": "Z", "error": "nope", "aardvark": "A"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+
+		expectedOutput := "<nil> ERR boom error=nope zebra=Z aardvark=A\n"
+		if got := buf.String(); got != expectedOutput {
+			t.Errorf("got %q, want %q", got, expectedOutput)
+		}
+	})
+
+	t.Run("Handles error field already at beginning", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+		evt := `{"level": "error", "message": "boom", "error": "nope", "zebra": "Z", "aardvark": "A"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+
+		expectedOutput := "<nil> ERR boom error=nope zebra=Z aardvark=A\n"
+		if got := buf.String(); got != expectedOutput {
+			t.Errorf("got %q, want %q", got, expectedOutput)
+		}
+	})
+
+	t.Run("Honors FieldsOrder precedence over document order", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true, FieldsOrder: []string{"aardvark", "zebra"}}
+
+		evt := `{"level": "info", "message": "Zoo", "zebra": "Zulu", "mussel": "Mountain", "aardvark": "Able"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+
+		expectedOutput := "<nil> INF Zoo aardvark=Able zebra=Zulu mussel=Mountain\n"
+		if got := buf.String(); got != expectedOutput {
+			t.Errorf("got %q, want %q", got, expectedOutput)
+		}
+	})
+
+	t.Run("Appends dynamically added fields from FormatPrepare alphabetically", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out:     buf,
+			NoColor: true,
+			FormatPrepare: func(evt map[string]interface{}) error {
+				evt["dynamic_z"] = "last"
+				evt["dynamic_a"] = "first"
+				return nil
+			},
+		}
+
+		evt := `{"level": "info", "message": "dynamic", "zebra": "Zulu", "mussel": "Mountain"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+
+		expectedOutput := "<nil> INF dynamic zebra=Zulu mussel=Mountain dynamic_a=first dynamic_z=last\n"
+		if got := buf.String(); got != expectedOutput {
+			t.Errorf("got %q, want %q", got, expectedOutput)
+		}
+	})
+
+	t.Run("Handles malformed JSON gracefully", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+		_, err := w.Write([]byte(`invalid json`))
+		if err == nil {
+			t.Fatal("expected error for malformed json")
 		}
 	})
 }
