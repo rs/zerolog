@@ -31,10 +31,10 @@ func (s RandomSampler) Sample(lvl Level) bool {
 	if s <= 0 {
 		return false
 	}
-	if rand.Intn(int(s)) != 0 {
-		return false
+	if s <= 1<<31-1 {
+		return rand.Int31n(int32(s)) == 0
 	}
-	return true
+	return rand.Int63n(int64(s)) == 0
 }
 
 // BasicSampler is a sampler that will send every Nth event, regardless of
