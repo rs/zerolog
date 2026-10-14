@@ -1,37 +1,26 @@
-package zerolog_test
+package zerolog
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"strings"
 	"testing"
+	"testing/slogtest"
 	"time"
-
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/internal/cbor"
 )
 
 func newSlogLogger(buf *bytes.Buffer) *slog.Logger {
-	zl := zerolog.New(buf)
-	return slog.New(zerolog.NewSlogHandler(zl))
-}
-
-// decodeOutput converts the buffer contents to a JSON string,
-// handling CBOR-encoded output when built with the binary_log tag.
-func decodeOutput(buf *bytes.Buffer) string {
-	p := buf.Bytes()
-	if len(p) == 0 || p[0] < 0x7F {
-		return buf.String()
-	}
-	return cbor.DecodeObjectToStr(p) + "\n"
+	zl := New(buf)
+	return slog.New(NewSlogHandler(zl))
 }
 
 func decodeJSON(t *testing.T, buf *bytes.Buffer) map[string]interface{} {
 	t.Helper()
 	var m map[string]interface{}
-	s := decodeOutput(buf)
+	s := decodeIfBinaryToString(buf.Bytes())
 	if err := json.Unmarshal([]byte(s), &m); err != nil {
 		t.Fatalf("failed to decode JSON %q: %v", s, err)
 	}
@@ -55,8 +44,8 @@ func TestSlogHandler_BasicInfo(t *testing.T) {
 
 func TestSlogHandler_Debug(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.DebugLevel)
-	logger := slog.New(zerolog.NewSlogHandler(zl))
+	zl := New(&buf).Level(DebugLevel)
+	logger := slog.New(NewSlogHandler(zl))
 
 	logger.Debug("debug msg")
 
@@ -180,8 +169,8 @@ func TestSlogHandler_WithErrorAttr(t *testing.T) {
 
 func TestSlogHandler_WithAttrs(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf)
+	handler := NewSlogHandler(zl)
 
 	child := handler.WithAttrs([]slog.Attr{
 		slog.String("component", "auth"),
@@ -205,10 +194,9 @@ func TestSlogHandler_WithAttrs(t *testing.T) {
 
 func TestSlogHandler_WithAttrsEmpty(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf)
+	handler := NewSlogHandler(zl)
 
-	// WithAttrs with empty slice should return same handler
 	child := handler.WithAttrs(nil)
 	if child != handler {
 		t.Error("expected WithAttrs(nil) to return same handler")
@@ -217,8 +205,8 @@ func TestSlogHandler_WithAttrsEmpty(t *testing.T) {
 
 func TestSlogHandler_WithGroup(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf)
+	handler := NewSlogHandler(zl)
 
 	child := handler.WithGroup("request")
 	logger := slog.New(child)
@@ -226,20 +214,23 @@ func TestSlogHandler_WithGroup(t *testing.T) {
 	logger.Info("handled", "method", "GET", "status", 200)
 
 	m := decodeJSON(t, &buf)
-	if m["request.method"] != "GET" {
-		t.Errorf("expected request.method=GET, got %v", m["request.method"])
+	req, ok := m["request"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected request group to be an object, got %T (%v)", m["request"], m["request"])
 	}
-	if m["request.status"] != float64(200) {
-		t.Errorf("expected request.status=200, got %v", m["request.status"])
+	if req["method"] != "GET" {
+		t.Errorf("expected request.method=GET, got %v", req["method"])
+	}
+	if req["status"] != float64(200) {
+		t.Errorf("expected request.status=200, got %v", req["status"])
 	}
 }
 
 func TestSlogHandler_WithGroupEmpty(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf)
+	handler := NewSlogHandler(zl)
 
-	// WithGroup with empty name should return same handler
 	child := handler.WithGroup("")
 	if child != handler {
 		t.Error("expected WithGroup('') to return same handler")
@@ -248,8 +239,8 @@ func TestSlogHandler_WithGroupEmpty(t *testing.T) {
 
 func TestSlogHandler_WithNestedGroups(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf)
+	handler := NewSlogHandler(zl)
 
 	child := handler.WithGroup("http").WithGroup("request")
 	logger := slog.New(child)
@@ -257,15 +248,23 @@ func TestSlogHandler_WithNestedGroups(t *testing.T) {
 	logger.Info("handled", "method", "POST")
 
 	m := decodeJSON(t, &buf)
-	if m["http.request.method"] != "POST" {
-		t.Errorf("expected http.request.method=POST, got %v", m["http.request.method"])
+	httpObj, ok := m["http"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected http group to be an object, got %T (%v)", m["http"], m["http"])
+	}
+	reqObj, ok := httpObj["request"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected http.request group to be an object, got %T (%v)", httpObj["request"], httpObj["request"])
+	}
+	if reqObj["method"] != "POST" {
+		t.Errorf("expected http.request.method=POST, got %v", reqObj["method"])
 	}
 }
 
 func TestSlogHandler_WithGroupAndAttrs(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf)
+	handler := NewSlogHandler(zl)
 
 	child := handler.WithGroup("server").WithAttrs([]slog.Attr{
 		slog.String("host", "localhost"),
@@ -275,11 +274,15 @@ func TestSlogHandler_WithGroupAndAttrs(t *testing.T) {
 	logger.Info("started", "port", 8080)
 
 	m := decodeJSON(t, &buf)
-	if m["server.host"] != "localhost" {
-		t.Errorf("expected server.host=localhost, got %v", m["server.host"])
+	srv, ok := m["server"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected server group to be an object, got %T (%v)", m["server"], m["server"])
 	}
-	if m["server.port"] != float64(8080) {
-		t.Errorf("expected server.port=8080, got %v", m["server.port"])
+	if srv["host"] != "localhost" {
+		t.Errorf("expected server.host=localhost, got %v", srv["host"])
+	}
+	if srv["port"] != float64(8080) {
+		t.Errorf("expected server.port=8080, got %v", srv["port"])
 	}
 }
 
@@ -293,32 +296,32 @@ func TestSlogHandler_GroupAttrInRecord(t *testing.T) {
 	))
 
 	m := decodeJSON(t, &buf)
-	if m["user.name"] != "alice" {
-		t.Errorf("expected user.name=alice, got %v", m["user.name"])
+	user, ok := m["user"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected user group to be an object, got %T (%v)", m["user"], m["user"])
 	}
-	if m["user.age"] != float64(30) {
-		t.Errorf("expected user.age=30, got %v", m["user.age"])
+	if user["name"] != "alice" {
+		t.Errorf("expected user.name=alice, got %v", user["name"])
+	}
+	if user["age"] != float64(30) {
+		t.Errorf("expected user.age=30, got %v", user["age"])
 	}
 }
 
 func TestSlogHandler_LevelFiltering(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.WarnLevel)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf).Level(WarnLevel)
+	handler := NewSlogHandler(zl)
 
-	// Debug should be filtered
 	if handler.Enabled(nil, slog.LevelDebug) {
 		t.Error("expected debug to be filtered at warn level")
 	}
-	// Info should be filtered
 	if handler.Enabled(nil, slog.LevelInfo) {
 		t.Error("expected info to be filtered at warn level")
 	}
-	// Warn should pass
 	if !handler.Enabled(nil, slog.LevelWarn) {
 		t.Error("expected warn to be enabled at warn level")
 	}
-	// Error should pass
 	if !handler.Enabled(nil, slog.LevelError) {
 		t.Error("expected error to be enabled at warn level")
 	}
@@ -326,8 +329,8 @@ func TestSlogHandler_LevelFiltering(t *testing.T) {
 
 func TestSlogHandler_FilteredMessageNotWritten(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.ErrorLevel)
-	logger := slog.New(zerolog.NewSlogHandler(zl))
+	zl := New(&buf).Level(ErrorLevel)
+	logger := slog.New(NewSlogHandler(zl))
 
 	logger.Info("should not appear")
 
@@ -369,12 +372,15 @@ func TestSlogHandler_LogValuer(t *testing.T) {
 	logger.Info("test", "addr", testLogValuer{host: "example.com", port: 443})
 
 	m := decodeJSON(t, &buf)
-	// LogValuer resolves to a group
-	if m["addr.host"] != "example.com" {
-		t.Errorf("expected addr.host=example.com, got %v", m["addr.host"])
+	addr, ok := m["addr"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected addr to resolve to a map object, got %T (%v)", m["addr"], m["addr"])
 	}
-	if m["addr.port"] != float64(443) {
-		t.Errorf("expected addr.port=443, got %v", m["addr.port"])
+	if addr["host"] != "example.com" {
+		t.Errorf("expected addr.host=example.com, got %v", addr["host"])
+	}
+	if addr["port"] != float64(443) {
+		t.Errorf("expected addr.port=443, got %v", addr["port"])
 	}
 }
 
@@ -391,19 +397,38 @@ func (v testLogValuer) LogValue() slog.Value {
 }
 
 func TestSlogHandler_WithAttrsImmutability(t *testing.T) {
-	var buf1, buf2 bytes.Buffer
-	zl1 := zerolog.New(&buf1)
-	zl2 := zerolog.New(&buf2)
+	var buf bytes.Buffer
+	zl := New(&buf)
+	h := NewSlogHandler(zl)
 
-	handler := zerolog.NewSlogHandler(zl1)
-	child1 := handler.WithAttrs([]slog.Attr{slog.String("from", "child1")})
-	_ = zerolog.NewSlogHandler(zl2).WithAttrs([]slog.Attr{slog.String("from", "child2")})
+	child1 := h.WithAttrs([]slog.Attr{slog.String("from", "child1")})
+	child2 := child1.WithAttrs([]slog.Attr{slog.String("from2", "child2")})
 
+	buf.Reset()
 	slog.New(child1).Info("test")
+	m1 := decodeJSON(t, &buf)
+	if m1["from"] != "child1" {
+		t.Errorf("expected from=child1, got %v", m1["from"])
+	}
+	if m1["from2"] != nil {
+		t.Errorf("expected child1 to not have from2, got %v", m1["from2"])
+	}
 
-	m := decodeJSON(t, &buf1)
-	if m["from"] != "child1" {
-		t.Errorf("expected from=child1, got %v", m["from"])
+	buf.Reset()
+	slog.New(child2).Info("test")
+	m2 := decodeJSON(t, &buf)
+	if m2["from"] != "child1" {
+		t.Errorf("expected child2 to have from=child1, got %v", m2["from"])
+	}
+	if m2["from2"] != "child2" {
+		t.Errorf("expected child2 to have from2=child2, got %v", m2["from2"])
+	}
+
+	buf.Reset()
+	slog.New(h).Info("test")
+	m0 := decodeJSON(t, &buf)
+	if m0["from"] != nil || m0["from2"] != nil {
+		t.Errorf("expected root handler to have no child attrs, got %v", m0)
 	}
 }
 
@@ -421,8 +446,8 @@ func TestSlogHandler_LevelMapping(t *testing.T) {
 
 	for _, tt := range tests {
 		var buf bytes.Buffer
-		zl := zerolog.New(&buf).Level(zerolog.TraceLevel)
-		logger := slog.New(zerolog.NewSlogHandler(zl))
+		zl := New(&buf).Level(TraceLevel)
+		logger := slog.New(NewSlogHandler(zl))
 
 		logger.Log(nil, tt.slogLevel, "test")
 
@@ -445,12 +470,15 @@ func TestSlogHandler_EmptyMessage(t *testing.T) {
 	if m["key"] != "val" {
 		t.Errorf("expected key=val, got %v", m["key"])
 	}
+	if _, ok := m[MessageFieldName]; ok {
+		t.Errorf("expected empty message to be omitted, got %v", m[MessageFieldName])
+	}
 }
 
 func TestSlogHandler_WithContext(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf).With().Str("service", "api").Logger()
-	logger := slog.New(zerolog.NewSlogHandler(zl))
+	zl := New(&buf).With().Str("service", "api").Logger()
+	logger := slog.New(NewSlogHandler(zl))
 
 	logger.Info("request")
 
@@ -465,34 +493,30 @@ func TestSlogHandler_WithContext(t *testing.T) {
 
 func TestSlogHandler_EnabledRespectsGlobalLevel(t *testing.T) {
 	var buf bytes.Buffer
-	zl := zerolog.New(&buf).Level(zerolog.DebugLevel)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf).Level(DebugLevel)
+	handler := NewSlogHandler(zl)
 
-	// Logger level is debug, so info should be enabled
 	if !handler.Enabled(nil, slog.LevelInfo) {
 		t.Fatal("expected info to be enabled before setting global level")
 	}
 
-	// Set global level to error
-	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	defer zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	SetGlobalLevel(ErrorLevel)
+	defer SetGlobalLevel(TraceLevel)
 
-	// Now info should be disabled even though logger level allows it
 	if handler.Enabled(nil, slog.LevelInfo) {
 		t.Error("expected info to be disabled when GlobalLevel is error")
 	}
-	// Error should still be enabled
 	if !handler.Enabled(nil, slog.LevelError) {
 		t.Error("expected error to be enabled when GlobalLevel is error")
 	}
 }
 
 func TestSlogHandler_EnabledNilWriter(t *testing.T) {
-	zl := zerolog.Nop()
-	handler := zerolog.NewSlogHandler(zl)
+	var zl Logger
+	handler := NewSlogHandler(zl)
 
 	if handler.Enabled(nil, slog.LevelError) {
-		t.Error("expected disabled for nop logger")
+		t.Error("expected disabled when logger writer is nil")
 	}
 }
 
@@ -502,12 +526,12 @@ func TestSlogHandler_HandlePropagatesContext(t *testing.T) {
 	ctx := context.WithValue(context.Background(), ctxKey{}, "test-value")
 
 	var gotCtx context.Context
-	hook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
+	hook := HookFunc(func(e *Event, level Level, msg string) {
 		gotCtx = e.GetCtx()
 	})
 
-	zl := zerolog.New(&buf).Hook(hook)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf).Hook(hook)
+	handler := NewSlogHandler(zl)
 
 	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test", 0)
 	_ = handler.Handle(ctx, record)
@@ -522,38 +546,253 @@ func TestSlogHandler_HandlePropagatesContext(t *testing.T) {
 
 func TestSlogHandler_NoDuplicateTimestamp(t *testing.T) {
 	var buf bytes.Buffer
-	// Create logger with Timestamp() hook - this adds "time" automatically
-	zl := zerolog.New(&buf).With().Timestamp().Logger()
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf).With().Timestamp().Logger()
+	handler := NewSlogHandler(zl)
 
 	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test", 0)
 	_ = handler.Handle(context.Background(), record)
 
-	output := decodeOutput(&buf)
-	// Count occurrences of the timestamp field name - should appear exactly once
-	count := 0
-	for i := 0; i < len(output); i++ {
-		if i+4 <= len(output) && output[i:i+4] == "time" {
-			count++
-		}
-	}
-	if count > 1 {
-		t.Errorf("expected at most 1 timestamp field, got %d in output: %s", count, output)
+	output := decodeIfBinaryToString(buf.Bytes())
+	count := strings.Count(output, `"`+TimestampFieldName+`":`)
+	if count != 1 {
+		t.Errorf("expected exactly 1 timestamp field, got %d in output: %s", count, output)
 	}
 }
 
 func TestSlogHandler_TimestampWithoutHook(t *testing.T) {
 	var buf bytes.Buffer
-	// Logger without Timestamp() hook - Handle should add the timestamp
-	zl := zerolog.New(&buf)
-	handler := zerolog.NewSlogHandler(zl)
+	zl := New(&buf)
+	handler := NewSlogHandler(zl)
 
 	ts := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	record := slog.NewRecord(ts, slog.LevelInfo, "test", 0)
 	_ = handler.Handle(context.Background(), record)
 
 	m := decodeJSON(t, &buf)
-	if m[zerolog.TimestampFieldName] == nil {
+	if m[TimestampFieldName] == nil {
 		t.Error("expected timestamp field when logger has no timestamp hook")
 	}
+}
+
+// Issue 787 Reproduction and Contract Compliance Tests
+
+func TestSlogHandler_Issue787_NestedGroups(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(NewSlogHandler(New(&buf).With().Timestamp().Logger()))
+	logger.WithGroup("g").Info("msg", "k", "v")
+
+	m := decodeJSON(t, &buf)
+	g, ok := m["g"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected nested group 'g' object, got %T (%v)", m["g"], m["g"])
+	}
+	if g["k"] != "v" {
+		t.Errorf("expected g.k=v, got %v", g["k"])
+	}
+}
+
+func TestSlogHandler_Issue787_SequentialWithGroups(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(NewSlogHandler(New(&buf).With().Timestamp().Logger()))
+	logger.With("l", 1).WithGroup("g").With("l", 2).WithGroup("G").Info("msg", "l", 3)
+
+	m := decodeJSON(t, &buf)
+	if m["l"] != float64(1) {
+		t.Errorf("expected top-level l=1, got %v", m["l"])
+	}
+	g, ok := m["g"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected group 'g' to be an object, got %T (%v)", m["g"], m["g"])
+	}
+	if g["l"] != float64(2) {
+		t.Errorf("expected g.l=2, got %v", g["l"])
+	}
+	bigG, ok := g["G"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected group 'G' to be an object inside 'g', got %T (%v)", g["G"], g["G"])
+	}
+	if bigG["l"] != float64(3) {
+		t.Errorf("expected g.G.l=3, got %v", bigG["l"])
+	}
+}
+
+func TestSlogHandler_Issue787_RecordTimeRespected(t *testing.T) {
+	var buf bytes.Buffer
+	h := NewSlogHandler(New(&buf).With().Timestamp().Logger())
+	targetTime := time.Date(2001, time.April, 1, 0, 0, 0, 0, time.UTC)
+	record := slog.NewRecord(targetTime, slog.LevelInfo, "msg", 0)
+	if err := h.Handle(context.Background(), record); err != nil {
+		t.Fatalf("Handle failed: %v", err)
+	}
+
+	m := decodeJSON(t, &buf)
+	timeVal, ok := m[TimestampFieldName].(string)
+	if !ok {
+		t.Fatalf("expected string timestamp, got %T (%v)", m[TimestampFieldName], m[TimestampFieldName])
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, timeVal)
+	if err != nil {
+		parsed, err = time.Parse(time.RFC3339, timeVal)
+	}
+	if err != nil {
+		t.Fatalf("failed to parse output timestamp %q: %v", timeVal, err)
+	}
+	if !parsed.Equal(targetTime) {
+		t.Errorf("expected timestamp %v, got %v", targetTime, parsed)
+	}
+}
+
+func TestSlogHandler_Issue787_ZeroRecordTimeDropped(t *testing.T) {
+	var buf bytes.Buffer
+	h := NewSlogHandler(New(&buf).With().Timestamp().Logger())
+	record := slog.NewRecord(time.Time{}, slog.LevelInfo, "msg", 0)
+	if err := h.Handle(context.Background(), record); err != nil {
+		t.Fatalf("Handle failed: %v", err)
+	}
+
+	m := decodeJSON(t, &buf)
+	if _, ok := m[TimestampFieldName]; ok {
+		t.Errorf("expected zero timestamp to be omitted, got %v", m[TimestampFieldName])
+	}
+}
+
+func TestSlogHandler_Issue787_CustomTimestampHookNoDuplicate(t *testing.T) {
+	var buf bytes.Buffer
+	hook := HookFunc(func(e *Event, level Level, message string) {
+		e.Time(TimestampFieldName, time.Now())
+	})
+
+	logger := slog.New(NewSlogHandler(New(&buf).Hook(hook)))
+	logger.Info("msg")
+
+	output := decodeIfBinaryToString(buf.Bytes())
+	count := strings.Count(output, `"`+TimestampFieldName+`":`)
+	if count != 1 {
+		t.Fatalf("expected exactly 1 timestamp field in output, got %d: %s", count, output)
+	}
+}
+
+func TestSlogHandler_Issue787_CallerRespected(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(NewSlogHandler(New(&buf).With().Timestamp().Caller().Logger()))
+	logger.Info("msg")
+
+	m := decodeJSON(t, &buf)
+	callerVal, ok := m[CallerFieldName].(string)
+	if !ok {
+		t.Fatalf("expected caller field, got %T (%v)", m[CallerFieldName], m[CallerFieldName])
+	}
+	if !strings.Contains(callerVal, "slog_test.go") {
+		t.Errorf("expected caller to reference slog_test.go call site, got %q", callerVal)
+	}
+	if strings.Contains(callerVal, "slog.go") {
+		t.Errorf("expected caller not to reference slog.go handler internals, got %q", callerVal)
+	}
+}
+
+func TestSlogHandler_Issue787_ZeroPCDropped(t *testing.T) {
+	var buf bytes.Buffer
+	h := NewSlogHandler(New(&buf).With().Timestamp().Caller().Logger())
+	record := slog.NewRecord(time.Now(), slog.LevelInfo, "msg", 0)
+	if err := h.Handle(context.Background(), record); err != nil {
+		t.Fatalf("Handle failed: %v", err)
+	}
+
+	m := decodeJSON(t, &buf)
+	if _, ok := m[CallerFieldName]; ok {
+		t.Errorf("expected zero PC caller to be omitted, got %v", m[CallerFieldName])
+	}
+}
+
+func TestSlogHandler_Issue787_EmptyKeyLogged(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(NewSlogHandler(New(&buf).With().Timestamp().Logger()))
+	logger.Info("msg", "", "v")
+
+	m := decodeJSON(t, &buf)
+	if m[""] != "v" {
+		t.Errorf("expected empty key with value 'v', got %v", m[""])
+	}
+}
+
+func TestSlogHandler_Issue787_ZeroAttrDropped(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(NewSlogHandler(New(&buf)))
+	logger.Info("msg", slog.Attr{}, slog.String("a", "b"))
+
+	m := decodeJSON(t, &buf)
+	if m["a"] != "b" {
+		t.Errorf("expected a=b, got %v", m["a"])
+	}
+	if _, ok := m[""]; ok {
+		t.Errorf("unexpected empty attribute key in %v", m)
+	}
+	for k := range m {
+		if k != "level" && k != "message" && k != "a" && k != TimestampFieldName {
+			t.Errorf("unexpected attribute key %q", k)
+		}
+	}
+}
+
+func TestSlogHandler_Issue787_EmptyGroupOmitted(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(NewSlogHandler(New(&buf)))
+	logger.With("a", "b").WithGroup("G").With("c", "d").WithGroup("H").Info("msg")
+
+	m := decodeJSON(t, &buf)
+	if m["a"] != "b" {
+		t.Errorf("expected a=b, got %v", m["a"])
+	}
+	g, ok := m["G"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected G to be an object, got %T (%v)", m["G"], m["G"])
+	}
+	if g["c"] != "d" {
+		t.Errorf("expected G.c=d, got %v", g["c"])
+	}
+	if _, ok := g["H"]; ok {
+		t.Errorf("expected empty group H to be omitted from G, got %v", g["H"])
+	}
+}
+
+func TestSlogHandler_Issue787_PreformattedWithAttrs(t *testing.T) {
+	var buf bytes.Buffer
+	h := NewSlogHandler(New(&buf))
+	child := h.WithAttrs([]slog.Attr{
+		slog.String("service", "billing"),
+		slog.Int("env_id", 42),
+	})
+
+	slog.New(child).Info("event 1")
+	m1 := decodeJSON(t, &buf)
+	if m1["service"] != "billing" || m1["env_id"] != float64(42) {
+		t.Errorf("expected preformatted attrs in event 1, got %v", m1)
+	}
+
+	buf.Reset()
+	slog.New(child).Info("event 2")
+	m2 := decodeJSON(t, &buf)
+	if m2["service"] != "billing" || m2["env_id"] != float64(42) {
+		t.Errorf("expected preformatted attrs in event 2, got %v", m2)
+	}
+}
+
+func TestSlogHandler_SlogtestConformance_Issue787_10(t *testing.T) {
+	var buf bytes.Buffer
+	newHandler := func(t *testing.T) slog.Handler {
+		buf.Reset()
+		return NewSlogHandler(New(&buf))
+	}
+	result := func(t *testing.T) map[string]any {
+		m := decodeJSON(t, &buf)
+		if msg, ok := m[MessageFieldName]; ok {
+			m[slog.MessageKey] = msg
+		}
+		if caller, ok := m[CallerFieldName]; ok {
+			m[slog.SourceKey] = caller
+		}
+		return m
+	}
+
+	slogtest.Run(t, newHandler, result)
 }

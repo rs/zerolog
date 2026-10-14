@@ -1,25 +1,131 @@
 package zerolog
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
+	"runtime"
+	"slices"
 	"time"
 )
+
+type groupInfo struct {
+	name  string
+	attrs []slog.Attr
+}
 
 // SlogHandler implements the slog.Handler interface using a zerolog.Logger
 // as the underlying log backend. This allows code that uses the standard
 // library's slog package to route log output through zerolog.
 type SlogHandler struct {
-	logger Logger
-	prefix string // group prefix for nested groups
-	attrs  []slog.Attr
+	logger    Logger
+	hasCaller bool
+	groups    []groupInfo
 }
 
 // NewSlogHandler creates a new slog.Handler that writes log records to the
 // given zerolog.Logger. The handler maps slog levels to zerolog levels and
 // converts slog attributes to zerolog fields.
 func NewSlogHandler(logger Logger) *SlogHandler {
-	return &SlogHandler{logger: logger}
+	hasCaller := false
+	var cleanHooks []Hook
+	for _, h := range logger.hooks {
+		if _, ok := h.(timestampHook); ok {
+			// Built-in timestamp hook is dropped; SlogHandler emits record.Time directly.
+			continue
+		}
+		if _, ok := h.(callerHook); ok {
+			// Built-in caller hook is dropped; SlogHandler emits record.PC directly.
+			hasCaller = true
+			continue
+		}
+		if sh, ok := h.(slogHook); ok {
+			cleanHooks = append(cleanHooks, sh)
+			continue
+		}
+		cleanHooks = append(cleanHooks, slogHook{hook: h})
+	}
+	logger.hooks = cleanHooks
+	return &SlogHandler{
+		logger:    logger,
+		hasCaller: hasCaller,
+	}
+}
+
+// slogHook wraps existing hooks to prevent duplicate timestamp or caller fields
+// from being written by custom hooks when slog is managing them.
+type slogHook struct {
+	hook Hook
+}
+
+func (sh slogHook) Run(e *Event, level Level, msg string) {
+	start := len(e.buf)
+	sh.hook.Run(e, level, msg)
+	if len(e.buf) > start {
+		e.buf = stripFieldFromBuf(e.buf, start, TimestampFieldName)
+		e.buf = stripFieldFromBuf(e.buf, start, CallerFieldName)
+	}
+}
+
+func stripFieldFromBuf(buf []byte, start int, fieldName string) []byte {
+	if fieldName == "" || len(buf) <= start {
+		return buf
+	}
+	keyWithoutComma := enc.AppendKey([]byte{'{'}, fieldName)[1:]
+	keyWithComma := append([]byte{','}, keyWithoutComma...)
+
+	for {
+		if len(buf) <= start {
+			break
+		}
+		added := buf[start:]
+		idx := bytes.Index(added, keyWithComma)
+		hasLeadingComma := true
+		keyLen := len(keyWithComma)
+		if idx < 0 {
+			idx = bytes.Index(added, keyWithoutComma)
+			hasLeadingComma = false
+			keyLen = len(keyWithoutComma)
+		}
+		if idx < 0 {
+			break
+		}
+
+		fieldStart := start + idx
+		valStart := fieldStart + keyLen
+		valEnd := valStart
+
+		if valStart < len(buf) {
+			if buf[valStart] == '"' {
+				valEnd++
+				for valEnd < len(buf) {
+					if buf[valEnd] == '\\' {
+						valEnd += 2
+						continue
+					}
+					if buf[valEnd] == '"' {
+						valEnd++
+						break
+					}
+					valEnd++
+				}
+			} else {
+				for valEnd < len(buf) && buf[valEnd] != ',' && buf[valEnd] != '}' {
+					valEnd++
+				}
+			}
+		}
+
+		if hasLeadingComma {
+			buf = append(buf[:fieldStart], buf[valEnd:]...)
+		} else {
+			if valEnd < len(buf) && buf[valEnd] == ',' {
+				valEnd++
+			}
+			buf = append(buf[:fieldStart], buf[valEnd:]...)
+		}
+	}
+	return buf
 }
 
 // Enabled reports whether the handler handles records at the given level.
@@ -50,37 +156,70 @@ func (h *SlogHandler) Handle(ctx context.Context, record slog.Record) error {
 		event = event.Ctx(ctx)
 	}
 
-	// Add pre-attached attrs from WithAttrs
-	for _, a := range h.attrs {
-		event = appendSlogAttr(event, a, h.prefix)
+	// Add timestamp from the slog record.
+	// Contract: if record.Time is zero, ignore the time.
+	if !record.Time.IsZero() {
+		event.Time(TimestampFieldName, record.Time)
 	}
 
-	// Add attrs from the record itself
-	record.Attrs(func(a slog.Attr) bool {
-		event = appendSlogAttr(event, a, h.prefix)
-		return true
-	})
+	// Add caller from slog record PC if caller is enabled on the logger.
+	// Contract: if record.PC is zero, ignore it.
+	if h.hasCaller && record.PC != 0 {
+		fs := runtime.CallersFrames([]uintptr{record.PC})
+		f, _ := fs.Next()
+		if f.File != "" {
+			event.Str(CallerFieldName, CallerMarshalFunc(record.PC, f.File, f.Line))
+		}
+	}
 
-	// Add timestamp from the slog record, but only if the logger doesn't
-	// already have a timestampHook (added via .With().Timestamp()) to
-	// avoid duplicate timestamp keys in the output.
-	if !record.Time.IsZero() && !h.hasTimestampHook() {
-		event.Time(TimestampFieldName, record.Time)
+	// Format groups and record attributes.
+	if len(h.groups) == 0 {
+		record.Attrs(func(a slog.Attr) bool {
+			appendSlogAttr(event, a)
+			return true
+		})
+	} else {
+		h.appendGroups(event, record)
 	}
 
 	event.Msg(record.Message)
 	return nil
 }
 
-// hasTimestampHook reports whether the logger has a timestampHook installed,
-// which would cause duplicate timestamp fields if we also emit record.Time.
-func (h *SlogHandler) hasTimestampHook() bool {
-	for _, hook := range h.logger.hooks {
-		if _, ok := hook.(timestampHook); ok {
-			return true
+func (h *SlogHandler) appendGroups(event *Event, record slog.Record) {
+	appendGroupLevel(event, h.groups, 0, record)
+}
+
+func appendGroupLevel(parent *Event, groups []groupInfo, level int, record slog.Record) bool {
+	dict := parent.CreateDict()
+	appended := false
+
+	for _, a := range groups[level].attrs {
+		if appendSlogAttr(dict, a) {
+			appended = true
 		}
 	}
-	return false
+
+	if level == len(groups)-1 {
+		record.Attrs(func(a slog.Attr) bool {
+			if appendSlogAttr(dict, a) {
+				appended = true
+			}
+			return true
+		})
+	} else {
+		if appendGroupLevel(dict, groups, level+1, record) {
+			appended = true
+		}
+	}
+
+	if !appended {
+		putEvent(dict)
+		return false
+	}
+
+	parent.Dict(groups[level].name, dict)
+	return true
 }
 
 // WithAttrs returns a new Handler with the given attributes pre-attached.
@@ -90,7 +229,15 @@ func (h *SlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		return h
 	}
 	h2 := h.clone()
-	h2.attrs = append(h2.attrs, attrs...)
+	if len(h2.groups) == 0 {
+		ctx := h2.logger.With()
+		for _, a := range attrs {
+			ctx, _ = appendSlogAttrToContext(ctx, a)
+		}
+		h2.logger = ctx.Logger()
+		return h2
+	}
+	h2.groups[len(h2.groups)-1].attrs = append(h2.groups[len(h2.groups)-1].attrs, attrs...)
 	return h2
 }
 
@@ -101,22 +248,23 @@ func (h *SlogHandler) WithGroup(name string) slog.Handler {
 		return h
 	}
 	h2 := h.clone()
-	if h2.prefix != "" {
-		h2.prefix = h2.prefix + "." + name
-	} else {
-		h2.prefix = name
-	}
+	h2.groups = append(h2.groups, groupInfo{name: name})
 	return h2
 }
 
 func (h *SlogHandler) clone() *SlogHandler {
 	h2 := &SlogHandler{
-		logger: h.logger,
-		prefix: h.prefix,
+		logger:    h.logger,
+		hasCaller: h.hasCaller,
 	}
-	if len(h.attrs) > 0 {
-		h2.attrs = make([]slog.Attr, len(h.attrs))
-		copy(h2.attrs, h.attrs)
+	if len(h.groups) > 0 {
+		h2.groups = make([]groupInfo, len(h.groups))
+		for i, g := range h.groups {
+			h2.groups[i] = groupInfo{
+				name:  g.name,
+				attrs: slices.Clone(g.attrs),
+			}
+		}
 	}
 	return h2
 }
@@ -162,85 +310,157 @@ func zerologToSlogLevel(level Level) slog.Level {
 	}
 }
 
-// joinPrefix concatenates a prefix and key with a dot separator.
-// It avoids allocations when either prefix or key is empty.
-func joinPrefix(prefix, key string) string {
-	if prefix == "" {
-		return key
-	}
-	if key == "" {
-		return prefix
-	}
-	return prefix + "." + key
-}
-
-// appendSlogAttr appends a single slog.Attr to the zerolog event, handling
-// type-specific encoding to avoid reflection where possible.
-func appendSlogAttr(event *Event, attr slog.Attr, prefix string) *Event {
+// appendSlogAttr appends a single slog.Attr to the zerolog event.
+func appendSlogAttr(event *Event, attr slog.Attr) bool {
 	if event == nil {
-		return event
+		return false
 	}
 
-	// Resolve the attribute to handle LogValuer types.
-	// This handles slog.KindLogValuer implicitly by unwrapping
-	// any values that implement slog.LogValuer to their resolved form.
 	attr.Value = attr.Value.Resolve()
+	if attr.Equal(slog.Attr{}) {
+		return false
+	}
 
-	// For group kinds, handle grouping before key concatenation
 	if attr.Value.Kind() == slog.KindGroup {
 		attrs := attr.Value.Group()
 		if len(attrs) == 0 {
-			return event
+			return false
 		}
-		groupPrefix := joinPrefix(prefix, attr.Key)
+		if attr.Key == "" {
+			appended := false
+			for _, ga := range attrs {
+				if appendSlogAttr(event, ga) {
+					appended = true
+				}
+			}
+			return appended
+		}
+		sub := event.CreateDict()
+		appended := false
 		for _, ga := range attrs {
-			event = appendSlogAttr(event, ga, groupPrefix)
+			if appendSlogAttr(sub, ga) {
+				appended = true
+			}
 		}
-		return event
+		if !appended {
+			putEvent(sub)
+			return false
+		}
+		event.Dict(attr.Key, sub)
+		return true
 	}
 
-	// Skip empty keys for non-group attributes
-	if attr.Key == "" {
-		return event
-	}
-
-	key := joinPrefix(prefix, attr.Key)
+	key := attr.Key
 	val := attr.Value
 
 	switch val.Kind() {
 	case slog.KindString:
-		event = event.Str(key, val.String())
+		event.Str(key, val.String())
 	case slog.KindInt64:
-		event = event.Int64(key, val.Int64())
+		event.Int64(key, val.Int64())
 	case slog.KindUint64:
-		event = event.Uint64(key, val.Uint64())
+		event.Uint64(key, val.Uint64())
 	case slog.KindFloat64:
-		event = event.Float64(key, val.Float64())
+		event.Float64(key, val.Float64())
 	case slog.KindBool:
-		event = event.Bool(key, val.Bool())
+		event.Bool(key, val.Bool())
 	case slog.KindDuration:
-		event = event.Dur(key, val.Duration())
+		event.Dur(key, val.Duration())
 	case slog.KindTime:
-		event = event.Time(key, val.Time())
+		event.Time(key, val.Time())
 	case slog.KindAny:
 		v := val.Any()
 		switch cv := v.(type) {
 		case error:
-			event = event.AnErr(key, cv)
+			event.AnErr(key, cv)
 		case time.Duration:
-			event = event.Dur(key, cv)
+			event.Dur(key, cv)
 		case time.Time:
-			event = event.Time(key, cv)
+			event.Time(key, cv)
 		case []byte:
-			event = event.Bytes(key, cv)
+			event.Bytes(key, cv)
 		default:
-			event = event.Interface(key, v)
+			event.Interface(key, v)
 		}
 	default:
-		event = event.Interface(key, val.Any())
+		event.Interface(key, val.Any())
 	}
 
-	return event
+	return true
+}
+
+func appendSlogAttrToContext(ctx Context, attr slog.Attr) (Context, bool) {
+	attr.Value = attr.Value.Resolve()
+	if attr.Equal(slog.Attr{}) {
+		return ctx, false
+	}
+
+	if attr.Value.Kind() == slog.KindGroup {
+		attrs := attr.Value.Group()
+		if len(attrs) == 0 {
+			return ctx, false
+		}
+		if attr.Key == "" {
+			appended := false
+			for _, ga := range attrs {
+				var ok bool
+				ctx, ok = appendSlogAttrToContext(ctx, ga)
+				if ok {
+					appended = true
+				}
+			}
+			return ctx, appended
+		}
+		sub := ctx.CreateDict()
+		appended := false
+		for _, ga := range attrs {
+			if appendSlogAttr(sub, ga) {
+				appended = true
+			}
+		}
+		if !appended {
+			putEvent(sub)
+			return ctx, false
+		}
+		ctx = ctx.Dict(attr.Key, sub)
+		return ctx, true
+	}
+
+	key := attr.Key
+	val := attr.Value
+
+	switch val.Kind() {
+	case slog.KindString:
+		return ctx.Str(key, val.String()), true
+	case slog.KindInt64:
+		return ctx.Int64(key, val.Int64()), true
+	case slog.KindUint64:
+		return ctx.Uint64(key, val.Uint64()), true
+	case slog.KindFloat64:
+		return ctx.Float64(key, val.Float64()), true
+	case slog.KindBool:
+		return ctx.Bool(key, val.Bool()), true
+	case slog.KindDuration:
+		return ctx.Dur(key, val.Duration()), true
+	case slog.KindTime:
+		return ctx.Time(key, val.Time()), true
+	case slog.KindAny:
+		v := val.Any()
+		switch cv := v.(type) {
+		case error:
+			return ctx.AnErr(key, cv), true
+		case time.Duration:
+			return ctx.Dur(key, cv), true
+		case time.Time:
+			return ctx.Time(key, cv), true
+		case []byte:
+			return ctx.Bytes(key, cv), true
+		default:
+			return ctx.Interface(key, v), true
+		}
+	default:
+		return ctx.Interface(key, val.Any()), true
+	}
 }
 
 // Verify at compile time that SlogHandler satisfies the slog.Handler interface.
