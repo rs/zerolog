@@ -754,7 +754,7 @@ The handler supports all `slog` features including `WithAttrs`, `WithGroup`, nes
 
 ## Benchmarks
 
-See [logbench](http://bench.zerolog.io/) for more comprehensive and up-to-date benchmarks.
+See [logbench](https://github.com/rs/logbench) for more comprehensive and up-to-date benchmarks.
 
 All operations are allocation free (those numbers _include_ JSON encoding):
 
