@@ -487,3 +487,47 @@ func TestDecodeSimpleFloat(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeLargeUint64(t *testing.T) {
+	// Encode {"val": 18446744073709551615}
+	enc := Encoder{}
+	var b []byte
+	b = enc.AppendBeginMarker(b)
+	b = enc.AppendKey(b, "val")
+	b = enc.AppendUint64(b, math.MaxUint64)
+	b = enc.AppendEndMarker(b)
+
+	var buf bytes.Buffer
+	err := Cbor2JsonManyObjects(bytes.NewReader(b), &buf)
+	if err != nil {
+		t.Fatalf("Cbor2JsonManyObjects failed: %v", err)
+	}
+
+	want := "{\"val\":18446744073709551615}\n"
+	if got := buf.String(); got != want {
+		t.Errorf("Cbor2JsonManyObjects = %q, want %q", got, want)
+	}
+}
+
+func TestDecodeMalformedLength(t *testing.T) {
+	// Trame avec longueur invalide (bit 63 armé)
+	payload := []byte{0xBF, 0x5B, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+
+	var buf bytes.Buffer
+	err := Cbor2JsonManyObjects(bytes.NewReader(payload), &buf)
+	if err == nil {
+		t.Errorf("expected error for malformed length, got nil")
+	}
+
+	// Verify DecodeObjectToStr and DecodeIfBinaryToBytes also handle gracefully without panic
+	str := DecodeObjectToStr(payload)
+	if str != "" {
+		t.Errorf("DecodeObjectToStr expected empty string on error, got %q", str)
+	}
+
+	raw := DecodeIfBinaryToBytes(payload)
+	if !bytes.Equal(raw, payload) {
+		t.Errorf("DecodeIfBinaryToBytes expected original payload returned on error")
+	}
+}
+
