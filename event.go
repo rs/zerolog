@@ -826,7 +826,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 	if e == nil {
 		return e
 	}
-	if obj, ok := i.(LogObjectMarshaler); ok {
+	if obj, ok := i.(LogObjectMarshaler); ok && !logObjectMarshalerIsPromoted(i) {
 		return e.Object(key, obj)
 	}
 	e.buf = enc.AppendInterface(enc.AppendKey(e.buf, key), i)
