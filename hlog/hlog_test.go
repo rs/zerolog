@@ -10,9 +10,12 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
@@ -25,6 +28,76 @@ func decodeIfBinary(out *bytes.Buffer) string {
 		return out.String()
 	}
 	return cbor.DecodeObjectToStr(p) + "\n"
+}
+
+func TestAccessHandlerReverseProxyRedirect(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/orders":
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Error(err)
+			}
+			if r.Method != http.MethodPost || string(body) != "item=book" {
+				t.Errorf("order request = %s %q", r.Method, body)
+			}
+			w.Header().Set("Link", "</app.css>; rel=preload; as=style")
+			w.WriteHeader(http.StatusEarlyHints)
+			w.Header().Del("Link")
+			http.Redirect(w, r, "/receipt", http.StatusSeeOther)
+		case "/receipt":
+			if r.Method != http.MethodGet {
+				t.Errorf("receipt method = %s, want GET", r.Method)
+			}
+			if _, err := io.WriteString(w, "Order confirmed"); err != nil {
+				t.Error(err)
+			}
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer backend.Close()
+	target, err := url.Parse(backend.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	type access struct {
+		path   string
+		status int
+	}
+	logged := make(chan access, 2)
+	handler := AccessHandler(func(r *http.Request, status, _ int, _ time.Duration) {
+		logged <- access{r.URL.Path, status}
+	})(httputil.NewSingleHostReverseProxy(target))
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := server.Client()
+	client.Timeout = 5 * time.Second
+	response, err := client.Post(server.URL+"/orders", "application/x-www-form-urlencoded", strings.NewReader("item=book"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || response.Request.URL.Path != "/receipt" || string(body) != "Order confirmed" {
+		t.Fatalf("checkout result = %d %s %q", response.StatusCode, response.Request.URL.Path, body)
+	}
+	want := map[string]int{"/orders": http.StatusSeeOther, "/receipt": http.StatusOK}
+	statuses := make(map[string]int)
+	for range want {
+		select {
+		case got := <-logged:
+			statuses[got.path] = got.status
+		case <-time.After(5 * time.Second):
+			t.Fatal("access handler did not record both requests")
+		}
+	}
+	if !reflect.DeepEqual(statuses, want) {
+		t.Errorf("logged statuses = %v, want %v", statuses, want)
+	}
 }
 
 func TestNewHandler(t *testing.T) {
