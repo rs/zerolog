@@ -564,6 +564,36 @@ func someFunc(ctx context.Context) {
 }
 ```
 
+To add fields for a downstream operation, derive a child logger and attach it to
+a new context. `zerolog.Ctx(ctx)` returns a `*Logger`, while
+`With().Logger()` returns a `Logger` value, so use a separate variable for the
+child:
+
+```go
+parent := zerolog.New(os.Stdout).With().Str("component", "orders").Logger()
+ctx := parent.WithContext(context.Background())
+
+child := zerolog.Ctx(ctx).With().Str("order_id", "123").Logger()
+childCtx := child.WithContext(ctx)
+
+zerolog.Ctx(childCtx).Info().Msg("processing")
+zerolog.Ctx(ctx).Info().Msg("parent")
+
+// Output:
+// {"level":"info","component":"orders","order_id":"123","message":"processing"}
+// {"level":"info","component":"orders","message":"parent"}
+```
+
+Pass `childCtx` to downstream functions to make the additional fields available
+there. Deriving `child` alone does not replace the logger in `ctx`;
+`WithContext` returns a new context and leaves the parent unchanged. Further
+fields can be added with `child = child.With().Str("step", "payment").Logger()`;
+attach that value to a new context again when passing it downstream.
+
+`UpdateContext` instead modifies the logger in place and is not concurrency
+safe. Avoid using it on a logger retrieved from a context shared by goroutines;
+use `With()` to derive a child as above.
+
 A second form of `context.Context` integration allows you to pass the current
 `context.Context` into the logged event, and retrieve it from hooks. This can be
 useful to log trace and span IDs or other information stored in the go context,
