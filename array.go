@@ -111,7 +111,9 @@ func (a *Array) Err(err error) *Array {
 	case LogObjectMarshaler:
 		a = a.Object(m)
 	case error:
-		if !isNilValue(m) {
+		if isNilValue(m) {
+			a.buf = enc.AppendNil(enc.AppendArrayDelim(a.buf))
+		} else {
 			a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
 		}
 	case string:
@@ -132,7 +134,9 @@ func (a *Array) Errs(errs []error) *Array {
 		case LogObjectMarshaler:
 			a = a.Object(m)
 		case error:
-			if !isNilValue(m) {
+			if isNilValue(m) {
+				a = a.Interface(nil)
+			} else {
 				a = a.Str(m.Error())
 			}
 		case string:
