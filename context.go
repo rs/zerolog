@@ -102,7 +102,9 @@ func (c Context) ObjectsV(key string, objs ...LogObjectMarshaler) Context {
 func (c Context) EmbedObject(obj LogObjectMarshaler) Context {
 	e := c.l.scratchEvent()
 	e.EmbedObject(obj)
-	c.l.context = enc.AppendObjectData(c.l.context, e.buf)
+	if len(e.buf) > 1 {
+		c.l.context = enc.AppendObjectData(c.l.context, e.buf)
+	}
 	putEvent(e)
 	return c
 }
