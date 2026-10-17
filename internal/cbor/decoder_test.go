@@ -30,6 +30,19 @@ func TestDecodeString(t *testing.T) {
 	}
 }
 
+func TestDecodeByteString(t *testing.T) {
+	// A byte string, as written by Event.Bytes, must be escaped in JSON
+	// the same way as a text string.
+	for _, tt := range encodeStringTests {
+		binary := enc.AppendBytes([]byte{}, []byte(tt.plain))
+		buf := bytes.NewBuffer([]byte{})
+		cbor2JsonOneObject(getReader(string(binary)), buf)
+		if buf.String() != "\""+tt.json+"\"" {
+			t.Errorf("cbor2JsonOneObject(0x%s)=%q, want: %q", hex.EncodeToString(binary), buf.String(), "\""+tt.json+"\"")
+		}
+	}
+}
+
 func TestDecodeArray(t *testing.T) {
 	for _, tc := range internal.IntegerArrayTestCases {
 		buf := bytes.NewBuffer([]byte{})

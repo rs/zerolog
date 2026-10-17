@@ -208,10 +208,12 @@ func decodeString(src *bufio.Reader, noQuotes bool) []byte {
 	length := decodeIntAdditionalType(src, minor)
 	len := int(length)
 	pbs := readNBytes(src, len)
-	result = append(result, pbs...)
 	if noQuotes {
-		return result
+		return append(result, pbs...)
 	}
+	// The quoted form is written to the JSON output, so escape it the same
+	// way as a text string.
+	result = decodeStringComplex(result, string(pbs), 0)
 	return append(result, '"')
 }
 func decodeStringToDataUrl(src *bufio.Reader, mimeType string) []byte {
