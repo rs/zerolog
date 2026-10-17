@@ -717,6 +717,15 @@ func TestMsgf(t *testing.T) {
 	}
 }
 
+func TestBytesEscaping(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out)
+	log.Log().Bytes("bytes", []byte("a\"b\\c\n\x00\xff")).Msg("")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"bytes":"a\"b\\c\n\u0000\ufffd"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestWithAndFieldsCombined(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out).With().Str("f1", "val").Str("f2", "val").Logger()
