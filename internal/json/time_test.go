@@ -204,6 +204,35 @@ func TestAppendTimePastPresentInteger(t *testing.T) {
 	}
 }
 
+func TestAppendTimeUnixOutsideNanoRange(t *testing.T) {
+	// UnixNano cannot represent times before 1678 or after 2262, but they
+	// still fit in int64 as Unix milliseconds and microseconds.
+	tests := []struct {
+		name  string
+		tin   time.Time
+		ms    string
+		micro string
+	}{
+		{"zero time", time.Time{}, "-62135596800000", "-62135596800000000"},
+		{"far future", time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC), "253402300799000", "253402300799000000"},
+		{"before epoch with fraction", time.Unix(-1, 999999000), "-1", "-1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			check := func(what string, got []byte, want string) {
+				t.Helper()
+				if string(got) != want {
+					t.Errorf("%s\ngot:  %s\nwant: %s", what, got, want)
+				}
+			}
+			check("AppendTime(UNIXMS)", enc.AppendTime([]byte{}, tt.tin, timeFormatUnixMs), tt.ms)
+			check("AppendTime(UNIXMICRO)", enc.AppendTime([]byte{}, tt.tin, timeFormatUnixMicro), tt.micro)
+			check("AppendTimes(UNIXMS)", enc.AppendTimes([]byte{}, []time.Time{tt.tin}, timeFormatUnixMs), "["+tt.ms+"]")
+			check("AppendTimes(UNIXMICRO)", enc.AppendTimes([]byte{}, []time.Time{tt.tin}, timeFormatUnixMicro), "["+tt.micro+"]")
+		})
+	}
+}
+
 func TestAppendTimePastPresentFloat(t *testing.T) {
 	const timeFloatFmt = "2006-01-02T15:04:05.999999-07:00"
 	for _, tt := range internal.TimeFloatTestcases {

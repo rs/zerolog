@@ -23,9 +23,9 @@ func (e Encoder) AppendTime(dst []byte, t time.Time, format string) []byte {
 	case timeFormatUnix:
 		return e.AppendInt64(dst, t.Unix())
 	case timeFormatUnixMs:
-		return e.AppendInt64(dst, t.UnixNano()/1000000)
+		return e.AppendInt64(dst, t.UnixMilli())
 	case timeFormatUnixMicro:
-		return e.AppendInt64(dst, t.UnixNano()/1000)
+		return e.AppendInt64(dst, t.UnixMicro())
 	case timeFormatUnixNano:
 		return e.AppendInt64(dst, t.UnixNano())
 	}
@@ -78,11 +78,15 @@ func appendUnixNanoTimes(dst []byte, vals []time.Time, div int64) []byte {
 	if len(vals) == 0 {
 		return append(dst, '[', ']')
 	}
+	// Scale seconds and nanoseconds separately, as t.UnixMilli and
+	// t.UnixMicro do: t.UnixNano()/div overflows for times before 1678
+	// or after 2262.
+	mult := int64(time.Second) / div
 	dst = append(dst, '[')
-	dst = strconv.AppendInt(dst, vals[0].UnixNano()/div, 10)
+	dst = strconv.AppendInt(dst, vals[0].Unix()*mult+int64(vals[0].Nanosecond())/div, 10)
 	if len(vals) > 1 {
 		for _, t := range vals[1:] {
-			dst = strconv.AppendInt(append(dst, ','), t.UnixNano()/div, 10)
+			dst = strconv.AppendInt(append(dst, ','), t.Unix()*mult+int64(t.Nanosecond())/div, 10)
 		}
 	}
 	dst = append(dst, ']')
