@@ -58,7 +58,7 @@ func main() {
     log.Print("hello world")
 }
 
-// Output: {"time":1516134303,"level":"debug","message":"hello world"}
+// Output: {"level":"debug","time":1516134303,"message":"hello world"}
 ```
 
 > Note: By default log writes to `os.Stderr`
@@ -113,7 +113,7 @@ func main() {
     log.Info().Msg("hello world")
 }
 
-// Output: {"time":1516134303,"level":"info","message":"hello world"}
+// Output: {"level":"info","time":1516134303,"message":"hello world"}
 ```
 
 > It is very important to note that when using the **zerolog** chaining API, as shown above (`log.Info().Msg("hello world"`), the chain must have either the `Msg` or `Msgf` method call. If you forget to add either of these, the log will not occur and there is no compile time error to alert you of this.
@@ -173,16 +173,16 @@ Info Output (no flag)
 
 ```bash
 $ ./logLevelExample
-{"time":1516387492,"level":"info","message":"This message appears when log level set to Debug or Info"}
+{"level":"info","time":1516387492,"message":"This message appears when log level set to Debug or Info"}
 ```
 
 Debug Output (debug flag set)
 
 ```bash
 $ ./logLevelExample -debug
-{"time":1516387573,"level":"debug","message":"This message appears only when log level set to Debug"}
-{"time":1516387573,"level":"info","message":"This message appears when log level set to Debug or Info"}
-{"time":1516387573,"level":"debug","foo":"bar","message":"some debug message"}
+{"level":"debug","time":1516387573,"message":"This message appears only when log level set to Debug"}
+{"level":"info","time":1516387573,"message":"This message appears when log level set to Debug or Info"}
+{"level":"debug","foo":"bar","time":1516387573,"message":"some debug message"}
 ```
 
 #### Logging without Level or Message
@@ -205,7 +205,7 @@ func main() {
         Msg("")
 }
 
-// Output: {"time":1494567715,"foo":"bar"}
+// Output: {"foo":"bar","time":1494567715}
 ```
 
 ### Error Logging
@@ -306,7 +306,7 @@ func main() {
         Msgf("Cannot start %s", service)
 }
 
-// Output: {"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}
+// Output: {"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","time":1516133263,"message":"Cannot start myservice"}
 //         exit status 1
 ```
 
@@ -319,7 +319,7 @@ logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 logger.Info().Str("foo", "bar").Msg("hello world")
 
-// Output: {"level":"info","time":1494567715,"message":"hello world","foo":"bar"}
+// Output: {"level":"info","foo":"bar","time":1494567715,"message":"hello world"}
 ```
 
 ### Sub-loggers let you chain loggers with additional context
@@ -330,7 +330,7 @@ sublogger := log.With().
                  Logger()
 sublogger.Info().Msg("hello world")
 
-// Output: {"level":"info","time":1494567715,"message":"hello world","component":"foo"}
+// Output: {"level":"info","component":"foo","time":1494567715,"message":"hello world"}
 ```
 
 ### Pretty logging
@@ -342,7 +342,7 @@ log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 log.Info().Str("foo", "bar").Msg("Hello world")
 
-// Output: 3:04PM INF Hello World foo=bar
+// Output: 3:04PM INF Hello world foo=bar
 ```
 
 To customize the configuration and formatting:
@@ -410,7 +410,7 @@ log.Info().
         Int("n", 1),
     ).Msg("hello world")
 
-// Output: {"level":"info","time":1494567715,"foo":"bar","dict":{"bar":"baz","n":1},"message":"hello world"}
+// Output: {"level":"info","foo":"bar","dict":{"bar":"baz","n":1},"time":1494567715,"message":"hello world"}
 ```
 
 ### Customize automatic field names
@@ -439,7 +439,7 @@ Equivalent of `Llongfile`:
 log.Logger = log.With().Caller().Logger()
 log.Info().Msg("hello world")
 
-// Output: {"level": "info", "message": "hello world", "caller": "/go/src/your_project/some_file:21"}
+// Output: {"level":"info","time":1494567715,"caller":"/go/src/your_project/some_file:21","message":"hello world"}
 ```
 
 Equivalent of `Lshortfile`:
@@ -451,7 +451,7 @@ zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
 log.Logger = log.With().Caller().Logger()
 log.Info().Msg("hello world")
 
-// Output: {"level": "info", "message": "hello world", "caller": "some_file:21"}
+// Output: {"level":"info","time":1494567715,"caller":"some_file:21","message":"hello world"}
 ```
 
 ### Thread-safe, lock-free, non-blocking writer
@@ -474,7 +474,7 @@ You will need to install `code.cloudfoundry.org/go-diodes` to use this feature.
 sampled := log.Sample(&zerolog.BasicSampler{N: 10})
 sampled.Info().Msg("will be logged every 10 messages")
 
-// Output: {"time":1494567715,"level":"info","message":"will be logged every 10 messages"}
+// Output: {"level":"info","time":1494567715,"message":"will be logged every 10 messages"}
 ```
 
 More advanced sampling:
@@ -492,7 +492,7 @@ sampled := log.Sample(zerolog.LevelSampler{
 })
 sampled.Debug().Msg("hello world")
 
-// Output: {"time":1494567715,"level":"debug","message":"hello world"}
+// Output: {"level":"debug","time":1494567715,"message":"hello world"}
 ```
 
 ### Hooks
@@ -509,7 +509,7 @@ func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 hooked := log.Hook(SeverityHook{})
 hooked.Warn().Msg("")
 
-// Output: {"level":"warn","severity":"warn"}
+// Output: {"level":"warn","time":1494567715,"severity":"warn"}
 ```
 
 ### Pass a sub-logger by context
@@ -519,7 +519,7 @@ ctx := log.With().Str("component", "module").Logger().WithContext(ctx)
 
 log.Ctx(ctx).Info().Msg("hello world")
 
-// Output: {"component":"module","level":"info","message":"hello world"}
+// Output: {"level":"info","component":"module","time":1494567715,"message":"hello world"}
 ```
 
 ### Set as standard logger output
