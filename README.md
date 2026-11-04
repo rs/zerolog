@@ -459,14 +459,29 @@ log.Info().Msg("hello world")
 If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follows:
 
 ```go
-wr := diode.NewWriter(os.Stdout, 1000, 10*time.Millisecond, func(missed int) {
-        fmt.Printf("Logger Dropped %d messages", missed)
-    })
-log := zerolog.New(wr)
-log.Print("test")
+package main
+
+import (
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/diode"
+)
+
+func main() {
+	wr := diode.NewWriter(os.Stdout, 1000, 10*time.Millisecond, func(missed int) {
+		fmt.Fprintf(os.Stderr, "Logger dropped %d messages\n", missed)
+	})
+	defer wr.Close()
+
+	log := zerolog.New(wr)
+	log.Print("test")
+}
 ```
 
-You will need to install `code.cloudfoundry.org/go-diodes` to use this feature.
+The `diode` package is included in Zerolog; no separate `go-diodes` installation is needed. This example buffers up to 1,000 messages and polls every 10 milliseconds when the buffer is empty. The callback reports how many messages were dropped if the writer could not keep up. Call `Close` after logging has finished to wait for buffered messages to be written; it also closes the underlying writer if it implements `io.Closer`.
 
 ### Log Sampling
 
