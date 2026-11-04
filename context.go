@@ -516,13 +516,13 @@ func (c Context) IPAddrs(key string, ip []net.IP) Context {
 	return c
 }
 
-// IPPrefix adds the field key with pfx as a []net.IPNet IPv4 or IPv6 Prefix (address and mask) to the context
+// IPPrefix adds the field key with pfx as a net.IPNet IPv4 or IPv6 Prefix (address and mask) to the context
 func (c Context) IPPrefix(key string, pfx net.IPNet) Context {
 	c.l.context = enc.AppendIPPrefix(enc.AppendKey(c.l.context, key), pfx)
 	return c
 }
 
-// IPPrefix adds the field key with pfx as a []net.IPNet array of IPv4 or IPv6 Prefix (address and mask) to the context
+// IPPrefixes adds the field key with pfx as a []net.IPNet array of IPv4 or IPv6 Prefix (address and mask) to the context
 func (c Context) IPPrefixes(key string, pfx []net.IPNet) Context {
 	c.l.context = enc.AppendIPPrefixes(enc.AppendKey(c.l.context, key), pfx)
 	return c
