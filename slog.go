@@ -68,64 +68,156 @@ func (sh slogHook) Run(e *Event, level Level, msg string) {
 }
 
 func stripFieldFromBuf(buf []byte, start int, fieldName string) []byte {
-	if fieldName == "" || len(buf) <= start {
+	if fieldName == "" || len(buf) <= start || start < 0 {
 		return buf
 	}
-	keyWithoutComma := enc.AppendKey([]byte{'{'}, fieldName)[1:]
-	keyWithComma := append([]byte{','}, keyWithoutComma...)
+	var keyBuf [64]byte
+	expectedKey := enc.AppendString(keyBuf[:0], fieldName)
 
-	for {
-		if len(buf) <= start {
-			break
-		}
-		added := buf[start:]
-		idx := bytes.Index(added, keyWithComma)
-		hasLeadingComma := true
-		keyLen := len(keyWithComma)
-		if idx < 0 {
-			idx = bytes.Index(added, keyWithoutComma)
-			hasLeadingComma = false
-			keyLen = len(keyWithoutComma)
-		}
-		if idx < 0 {
-			break
-		}
-
-		fieldStart := start + idx
-		valStart := fieldStart + keyLen
-		valEnd := valStart
-
-		if valStart < len(buf) {
-			if buf[valStart] == '"' {
-				valEnd++
-				for valEnd < len(buf) {
-					if buf[valEnd] == '\\' {
-						valEnd += 2
-						continue
-					}
-					if buf[valEnd] == '"' {
-						valEnd++
-						break
-					}
-					valEnd++
-				}
-			} else {
-				for valEnd < len(buf) && buf[valEnd] != ',' && buf[valEnd] != '}' {
-					valEnd++
-				}
-			}
-		}
-
-		if hasLeadingComma {
-			buf = append(buf[:fieldStart], buf[valEnd:]...)
-		} else {
-			if valEnd < len(buf) && buf[valEnd] == ',' {
-				valEnd++
-			}
-			buf = append(buf[:fieldStart], buf[valEnd:]...)
-		}
+	i := 0
+	for i < len(buf) && buf[i] != '{' {
+		i++
 	}
+	if i >= len(buf) {
+		return buf
+	}
+	i++ // move past root '{' into top-level depth 1
+
+	for i < len(buf) {
+		for i < len(buf) && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '\n' || buf[i] == '\r') {
+			i++
+		}
+		if i >= len(buf) || buf[i] == '}' {
+			break
+		}
+
+		fieldStart := i
+		hasLeadingComma := false
+		if buf[i] == ',' {
+			hasLeadingComma = true
+			i++
+			for i < len(buf) && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '\n' || buf[i] == '\r') {
+				i++
+			}
+		}
+
+		if i >= len(buf) || buf[i] != '"' {
+			i++
+			continue
+		}
+
+		keyStart := i
+		keyEnd := skipString(buf, keyStart)
+		if keyEnd == keyStart {
+			break
+		}
+		keyBytes := buf[keyStart:keyEnd]
+		i = keyEnd
+
+		for i < len(buf) && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '\n' || buf[i] == '\r') {
+			i++
+		}
+		if i >= len(buf) || buf[i] != ':' {
+			continue
+		}
+		i++ // skip ':'
+
+		for i < len(buf) && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '\n' || buf[i] == '\r') {
+			i++
+		}
+
+		valEnd := skipValue(buf, i)
+		if valEnd == i && i < len(buf) {
+			valEnd++
+		}
+
+		if keyStart >= start && bytes.Equal(keyBytes, expectedKey) {
+			if hasLeadingComma {
+				buf = append(buf[:fieldStart], buf[valEnd:]...)
+				i = fieldStart
+			} else {
+				trailingComma := valEnd
+				for trailingComma < len(buf) && (buf[trailingComma] == ' ' || buf[trailingComma] == '\t' || buf[trailingComma] == '\n' || buf[trailingComma] == '\r') {
+					trailingComma++
+				}
+				if trailingComma < len(buf) && buf[trailingComma] == ',' {
+					valEnd = trailingComma + 1
+				}
+				buf = append(buf[:fieldStart], buf[valEnd:]...)
+				i = fieldStart
+			}
+			continue
+		}
+
+		i = valEnd
+	}
+
 	return buf
+}
+
+func skipString(buf []byte, i int) int {
+	if i >= len(buf) || buf[i] != '"' {
+		return i
+	}
+	i++
+	for i < len(buf) {
+		if buf[i] == '\\' {
+			i += 2
+			continue
+		}
+		if buf[i] == '"' {
+			i++
+			break
+		}
+		i++
+	}
+	if i > len(buf) {
+		return len(buf)
+	}
+	return i
+}
+
+func skipValue(buf []byte, i int) int {
+	for i < len(buf) && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '\n' || buf[i] == '\r') {
+		i++
+	}
+	if i >= len(buf) {
+		return i
+	}
+	switch buf[i] {
+	case '"':
+		return skipString(buf, i)
+	case '{', '[':
+		depth := 0
+		for i < len(buf) {
+			if buf[i] == '"' {
+				i = skipString(buf, i)
+				continue
+			}
+			if buf[i] == '{' || buf[i] == '[' {
+				depth++
+				i++
+				continue
+			}
+			if buf[i] == '}' || buf[i] == ']' {
+				depth--
+				i++
+				if depth == 0 {
+					return i
+				}
+				continue
+			}
+			i++
+		}
+		return i
+	default:
+		// Number, boolean, null
+		for i < len(buf) && buf[i] != ',' && buf[i] != '}' && buf[i] != ']' &&
+			buf[i] != ' ' && buf[i] != '\t' && buf[i] != '\n' && buf[i] != '\r' {
+			i++
+		}
+		return i
+	}
 }
 
 // Enabled reports whether the handler handles records at the given level.

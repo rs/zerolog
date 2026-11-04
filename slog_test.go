@@ -697,6 +697,162 @@ func TestSlogHandler_Issue787_CustomTimestampHookNoDuplicate(t *testing.T) {
 	}
 }
 
+func TestSlogHandler_Issue787_CustomHookNestedFieldsPreserved(t *testing.T) {
+	var buf bytes.Buffer
+	hook := HookFunc(func(e *Event, level Level, message string) {
+		e.Dict("payload", Dict().
+			Int("time", 1).
+			Str("caller", "nested_caller.go:10").
+			Str("keep", "ok"),
+		)
+	})
+
+	logger := slog.New(NewSlogHandler(New(&buf).With().Timestamp().Caller().Logger().Hook(hook)))
+	logger.Info("msg")
+
+	m := decodeJSON(t, &buf)
+
+	// Verify top-level record metadata is present
+	if _, ok := m[TimestampFieldName]; !ok {
+		t.Fatalf("expected top-level %q field", TimestampFieldName)
+	}
+	callerVal, ok := m[CallerFieldName].(string)
+	if !ok {
+		t.Fatalf("expected top-level %q field, got %v", CallerFieldName, m[CallerFieldName])
+	}
+	if !strings.Contains(callerVal, "slog_test.go") {
+		t.Errorf("expected top-level caller to reference slog_test.go, got %q", callerVal)
+	}
+
+	// Verify nested payload fields survive completely
+	payload, ok := m["payload"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected payload dict, got %T (%v)", m["payload"], m["payload"])
+	}
+	if timeVal, ok := payload["time"].(float64); !ok || timeVal != 1 {
+		t.Errorf("expected payload.time=1, got %v", payload["time"])
+	}
+	if nestedCaller, ok := payload["caller"].(string); !ok || nestedCaller != "nested_caller.go:10" {
+		t.Errorf("expected payload.caller='nested_caller.go:10', got %v", payload["caller"])
+	}
+	if keepVal, ok := payload["keep"].(string); !ok || keepVal != "ok" {
+		t.Errorf("expected payload.keep='ok', got %v", payload["keep"])
+	}
+}
+
+func TestSlogHandler_Issue787_CustomHookTopLevelStrippedNestedPreserved(t *testing.T) {
+	var buf bytes.Buffer
+	hook := HookFunc(func(e *Event, level Level, message string) {
+		e.Time(TimestampFieldName, time.Unix(0, 0))
+		e.Str(CallerFieldName, "duplicate_caller.go:99")
+		e.Dict("payload", Dict().
+			Int("time", 1).
+			Str("caller", "nested_caller.go:10").
+			Str("keep", "ok"),
+		)
+	})
+
+	logger := slog.New(NewSlogHandler(New(&buf).With().Timestamp().Caller().Logger().Hook(hook)))
+	logger.Info("msg")
+
+	m := decodeJSON(t, &buf)
+
+	callerVal, ok := m[CallerFieldName].(string)
+	if !ok || strings.Contains(callerVal, "duplicate_caller") {
+		t.Errorf("expected top-level caller to be record caller, got %q", callerVal)
+	}
+
+	payload, ok := m["payload"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected payload dict, got %T (%v)", m["payload"], m["payload"])
+	}
+	if payload["time"] != float64(1) {
+		t.Errorf("expected payload.time=1, got %v", payload["time"])
+	}
+	if payload["caller"] != "nested_caller.go:10" {
+		t.Errorf("expected payload.caller='nested_caller.go:10', got %v", payload["caller"])
+	}
+	if payload["keep"] != "ok" {
+		t.Errorf("expected payload.keep='ok', got %v", payload["keep"])
+	}
+}
+
+func TestStripFieldFromBuf(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		start     int
+		fieldName string
+		want      string
+	}{
+		{
+			name:      "nested object preserved",
+			input:     `{"level":"info","payload":{"time":1,"keep":"ok"}}`,
+			start:     14,
+			fieldName: "time",
+			want:      `{"level":"info","payload":{"time":1,"keep":"ok"}}`,
+		},
+		{
+			name:      "nested caller preserved",
+			input:     `{"level":"info","payload":{"caller":"foo.go:1","keep":"ok"}}`,
+			start:     14,
+			fieldName: "caller",
+			want:      `{"level":"info","payload":{"caller":"foo.go:1","keep":"ok"}}`,
+		},
+		{
+			name:      "top-level field stripped with leading comma",
+			input:     `{"level":"info","time":"2023-11-04T00:00:00Z"}`,
+			start:     14,
+			fieldName: "time",
+			want:      `{"level":"info"}`,
+		},
+		{
+			name:      "top-level field stripped with trailing comma",
+			input:     `{"time":"2023-11-04T00:00:00Z","level":"info"}`,
+			start:     1,
+			fieldName: "time",
+			want:      `{"level":"info"}`,
+		},
+		{
+			name:      "top-level sole field stripped",
+			input:     `{"time":"2023-11-04T00:00:00Z"}`,
+			start:     1,
+			fieldName: "time",
+			want:      `{}`,
+		},
+		{
+			name:      "top-level stripped but nested in array preserved",
+			input:     `{"level":"info","items":[{"time":1}],"time":"now"}`,
+			start:     14,
+			fieldName: "time",
+			want:      `{"level":"info","items":[{"time":1}]}`,
+		},
+		{
+			name:      "string literal containing field name preserved",
+			input:     `{"level":"info","msg":"time: 123","time":"now"}`,
+			start:     14,
+			fieldName: "time",
+			want:      `{"level":"info","msg":"time: 123"}`,
+		},
+		{
+			name:      "field added before start is preserved",
+			input:     `{"time":"record","time":"hook"}`,
+			start:     16,
+			fieldName: "time",
+			want:      `{"time":"record"}`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := string(stripFieldFromBuf([]byte(tc.input), tc.start, tc.fieldName))
+			if got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestSlogHandler_Issue787_CallerRespected(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(NewSlogHandler(New(&buf).With().Timestamp().Caller().Logger()))
