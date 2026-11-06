@@ -231,6 +231,69 @@ func TestWithReset(t *testing.T) {
 	}
 }
 
+func TestNilMarshalers(t *testing.T) {
+	obj := fixtureObj{"a", "z", 1}
+	tests := []struct {
+		name string
+		log  func(l Logger)
+		want string
+	}{
+		{
+			"Event.Objects",
+			func(l Logger) { l.Log().Objects("k", []LogObjectMarshaler{obj, nil, obj}).Msg("") },
+			`{"k":[{"Pub":"a","Tag":"z","priv":1},null,{"Pub":"a","Tag":"z","priv":1}]}` + "\n",
+		},
+		{
+			"Event.ObjectsV",
+			func(l Logger) { l.Log().ObjectsV("k", nil, nil).Msg("") },
+			`{"k":[null,null]}` + "\n",
+		},
+		{
+			"Event.Array",
+			func(l Logger) { l.Log().Array("k", nil).Msg("") },
+			`{"k":null}` + "\n",
+		},
+		{
+			"Array.Object",
+			func(l Logger) { l.Log().Array("k", Arr().Object(nil).Str("s")).Msg("") },
+			`{"k":[null,"s"]}` + "\n",
+		},
+		{
+			"Context.Objects",
+			func(l Logger) {
+				c := l.With().Objects("k", []LogObjectMarshaler{nil}).Logger()
+				c.Log().Msg("")
+			},
+			`{"k":[null]}` + "\n",
+		},
+		{
+			"Context.ObjectsV",
+			func(l Logger) {
+				c := l.With().ObjectsV("k", nil).Logger()
+				c.Log().Msg("")
+			},
+			`{"k":[null]}` + "\n",
+		},
+		{
+			"Context.Array",
+			func(l Logger) {
+				c := l.With().Array("k", nil).Logger()
+				c.Log().Msg("")
+			},
+			`{"k":null}` + "\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			tt.log(New(out))
+			if got := decodeIfBinaryToString(out.Bytes()); got != tt.want {
+				t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFieldsMap(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)

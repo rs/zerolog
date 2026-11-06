@@ -59,6 +59,10 @@ func (c Context) CreateArray() *Array {
 // implement the LogArrayMarshaler interface.
 func (c Context) Array(key string, arr LogArrayMarshaler) Context {
 	c.l.context = enc.AppendKey(c.l.context, key)
+	if arr == nil {
+		c.l.context = enc.AppendNil(c.l.context)
+		return c
+	}
 	if arr, ok := arr.(*Array); ok {
 		c.l.context = arr.write(c.l.context)
 		return c
