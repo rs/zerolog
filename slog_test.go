@@ -1,8 +1,8 @@
 package zerolog_test
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -243,6 +243,24 @@ func TestSlogHandler_WithGroupEmpty(t *testing.T) {
 	child := handler.WithGroup("")
 	if child != handler {
 		t.Error("expected WithGroup('') to return same handler")
+	}
+}
+
+func TestSlogHandler_WithAttrsBeforeWithGroup(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newSlogLogger(&buf).With("root", "value").WithGroup("group")
+
+	logger.Info("handled", "nested", "value")
+
+	m := decodeJSON(t, &buf)
+	if m["root"] != "value" {
+		t.Errorf("expected root=value, got %v", m["root"])
+	}
+	if _, ok := m["group.root"]; ok {
+		t.Error("attribute attached before WithGroup was incorrectly grouped")
+	}
+	if m["group.nested"] != "value" {
+		t.Errorf("expected group.nested=value, got %v", m["group.nested"])
 	}
 }
 

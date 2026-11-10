@@ -12,7 +12,12 @@ import (
 type SlogHandler struct {
 	logger Logger
 	prefix string // group prefix for nested groups
-	attrs  []slog.Attr
+	attrs  []slogAttr
+}
+
+type slogAttr struct {
+	attr   slog.Attr
+	prefix string
 }
 
 // NewSlogHandler creates a new slog.Handler that writes log records to the
@@ -52,7 +57,7 @@ func (h *SlogHandler) Handle(ctx context.Context, record slog.Record) error {
 
 	// Add pre-attached attrs from WithAttrs
 	for _, a := range h.attrs {
-		event = appendSlogAttr(event, a, h.prefix)
+		event = appendSlogAttr(event, a.attr, a.prefix)
 	}
 
 	// Add attrs from the record itself
@@ -90,7 +95,9 @@ func (h *SlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		return h
 	}
 	h2 := h.clone()
-	h2.attrs = append(h2.attrs, attrs...)
+	for _, attr := range attrs {
+		h2.attrs = append(h2.attrs, slogAttr{attr: attr, prefix: h.prefix})
+	}
 	return h2
 }
 
@@ -115,7 +122,7 @@ func (h *SlogHandler) clone() *SlogHandler {
 		prefix: h.prefix,
 	}
 	if len(h.attrs) > 0 {
-		h2.attrs = make([]slog.Attr, len(h.attrs))
+		h2.attrs = make([]slogAttr, len(h.attrs))
 		copy(h2.attrs, h.attrs)
 	}
 	return h2
