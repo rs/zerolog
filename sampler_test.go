@@ -4,6 +4,7 @@
 package zerolog
 
 import (
+	"math"
 	"testing"
 	"time"
 )
@@ -203,5 +204,22 @@ func TestRandomSamplerUint32Rates(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestBasicSamplerCadence(t *testing.T) {
+	s := &BasicSampler{N: 3}
+	// Start just before the point where a 32-bit counter used to wrap, so
+	// the cadence is checked across it.
+	s.counter.Store(math.MaxUint32 - 5)
+	prev := -1
+	for i := 0; i < 30; i++ {
+		if !s.Sample(InfoLevel) {
+			continue
+		}
+		if prev >= 0 && i-prev != 3 {
+			t.Fatalf("event %d sampled, but the previous sampled event was %d; want every 3rd", i, prev)
+		}
+		prev = i
 	}
 }

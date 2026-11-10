@@ -37,8 +37,11 @@ func (s RandomSampler) Sample(lvl Level) bool {
 // BasicSampler is a sampler that will send every Nth event, regardless of
 // their level.
 type BasicSampler struct {
-	N       uint32
-	counter uint32
+	N uint32
+	// counter is 64 bits wide so it does not wrap in practice. A wrapping
+	// uint32 broke the every-Nth cadence after 2^32 events whenever 2^32
+	// is not a multiple of N.
+	counter atomic.Uint64
 }
 
 // Sample implements the Sampler interface.
@@ -50,8 +53,8 @@ func (s *BasicSampler) Sample(lvl Level) bool {
 	if n == 1 {
 		return true
 	}
-	c := atomic.AddUint32(&s.counter, 1)
-	return c%n == 1
+	c := s.counter.Add(1)
+	return c%uint64(n) == 1
 }
 
 // BurstSampler lets Burst events pass per Period then pass the decision to
