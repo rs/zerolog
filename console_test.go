@@ -95,7 +95,8 @@ func TestConsoleLogger(t *testing.T) {
 			Uint64("small", 123).
 			Uint64("big", 1152921504606846976).
 			Msg("msg")
-		if got, want := strings.TrimSpace(buf.String()), "<nil> INF msg big=1152921504606846976 float=1.23 small=123"; got != want {
+		// Contextual fields keep JSON document order (float, small, big), not alpha sort.
+		if got, want := strings.TrimSpace(buf.String()), "<nil> INF msg float=1.23 small=123 big=1152921504606846976"; got != want {
 			t.Errorf("\ngot:\n%s\nwant:\n%s", got, want)
 		}
 	})
@@ -363,7 +364,8 @@ func TestConsoleWriter(t *testing.T) {
 			t.Errorf("Unexpected error when writing output: %s", err)
 		}
 
-		expectedOutput := "<nil> DBG Foobar bar=true foo=[1,2,3]\n"
+		// JSON order is foo then bar (not alphabetical).
+		expectedOutput := "<nil> DBG Foobar foo=[1,2,3] bar=true\n"
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
@@ -549,6 +551,49 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		actualOutput := buf.String()
 		if actualOutput != expectedOutput {
 			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("Preserves JSON field order without FieldsOrder", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+		// Document order is zebra, mussel, aardvark — not alphabetical.
+		evt := `{"level": "info", "message": "Zoo", "zebra": "Zulu", "mussel": "Mountain", "aardvark": "Able"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "<nil> INF Zoo zebra=Zulu mussel=Mountain aardvark=Able\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
+	t.Run("Error field still first without FieldsOrder", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: true}
+
+		evt := `{"level": "error", "message": "boom", "zebra": "Z", "error": "nope", "aardvark": "A"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		actualOutput := buf.String()
+		errIdx := strings.Index(actualOutput, "error=")
+		zIdx := strings.Index(actualOutput, "zebra=")
+		aIdx := strings.Index(actualOutput, "aardvark=")
+		if errIdx < 0 || zIdx < 0 || aIdx < 0 {
+			t.Fatalf("missing fields in %q", actualOutput)
+		}
+		if !(errIdx < zIdx && errIdx < aIdx) {
+			t.Errorf("error field not first among context fields: %q", actualOutput)
+		}
+		if !(zIdx < aIdx) {
+			t.Errorf("JSON order not preserved for remaining fields: %q", actualOutput)
 		}
 	})
 

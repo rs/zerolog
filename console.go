@@ -144,6 +144,11 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		return n, fmt.Errorf("cannot decode event: %s", err)
 	}
 
+	// Capture top-level key order from the JSON line. Decoding into a map
+	// loses order; ConsoleWriter still needs document order when FieldsOrder
+	// is not set (see #727).
+	jsonOrder, _ := jsonTopLevelFieldOrder(p)
+
 	if w.FormatPrepare != nil {
 		err = w.FormatPrepare(evt)
 		if err != nil {
@@ -155,7 +160,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		w.writePart(buf, evt, p)
 	}
 
-	w.writeFields(evt, buf)
+	w.writeFields(evt, buf, jsonOrder)
 
 	if w.FormatExtra != nil {
 		err = w.FormatExtra(evt, buf)
@@ -182,8 +187,78 @@ func (w ConsoleWriter) Close() error {
 	return nil
 }
 
+// jsonTopLevelFieldOrder returns top-level object keys in JSON document order.
+func jsonTopLevelFieldOrder(data []byte) ([]string, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	t, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+	d, ok := t.(json.Delim)
+	if !ok || d != '{' {
+		return nil, fmt.Errorf("not a JSON object")
+	}
+
+	var keys []string
+	for dec.More() {
+		t, err = dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := t.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected object key")
+		}
+		keys = append(keys, key)
+		var skip json.RawMessage
+		if err := dec.Decode(&skip); err != nil {
+			return nil, err
+		}
+	}
+	return keys, nil
+}
+
+// orderFieldsByJSON returns fields reordered to match JSON document order.
+// Keys present in fields but missing from order are appended alphabetically.
+func orderFieldsByJSON(fields []string, order []string) []string {
+	if len(order) == 0 {
+		sort.Strings(fields)
+		return fields
+	}
+
+	present := make(map[string]struct{}, len(fields))
+	for _, field := range fields {
+		present[field] = struct{}{}
+	}
+
+	ordered := make([]string, 0, len(fields))
+	seen := make(map[string]struct{}, len(fields))
+	for _, field := range order {
+		if _, ok := present[field]; !ok {
+			continue
+		}
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		ordered = append(ordered, field)
+		seen[field] = struct{}{}
+	}
+
+	rest := make([]string, 0, len(fields)-len(ordered))
+	for _, field := range fields {
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		rest = append(rest, field)
+	}
+	sort.Strings(rest)
+
+	return append(ordered, rest...)
+}
+
 // writeFields appends formatted key-value pairs to buf.
-func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
+// jsonOrder is top-level JSON key order from the original log line (may be nil).
+func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer, jsonOrder []string) {
 	var fields = make([]string, 0, len(evt))
 	for field := range evt {
 		var isExcluded bool
@@ -226,7 +301,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 	if len(w.FieldsOrder) > 0 {
 		w.orderFields(fields)
 	} else {
-		sort.Strings(fields)
+		fields = orderFieldsByJSON(fields, jsonOrder)
 	}
 
 	// Write space only if something has already been written to the buffer, and if there are fields.
@@ -234,19 +309,17 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		buf.WriteByte(' ')
 	}
 
-	// Move the "error" field to the front
-	ei := sort.Search(len(fields), func(i int) bool { return fields[i] >= ErrorFieldName })
-	if ei < len(fields) && fields[ei] == ErrorFieldName {
-		fields[ei] = ""
-		fields = append([]string{ErrorFieldName}, fields...)
-		var xfields = make([]string, 0, len(fields))
-		for _, field := range fields {
-			if field == "" { // Skip empty fields
-				continue
-			}
-			xfields = append(xfields, field)
+	// Move the "error" field to the front (linear scan: fields may not be sorted).
+	for ei, field := range fields {
+		if field != ErrorFieldName {
+			continue
 		}
-		fields = xfields
+		if ei == 0 {
+			break
+		}
+		copy(fields[1:ei+1], fields[0:ei])
+		fields[0] = ErrorFieldName
+		break
 	}
 
 	for i, field := range fields {
