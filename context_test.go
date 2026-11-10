@@ -141,3 +141,16 @@ func TestContext_ErrWithStackMarshalerInterface(t *testing.T) {
 		t.Errorf("Context.Err() with stack marshaler interface = %q, want %q", got, want)
 	}
 }
+
+func TestContext_EmbedObjectNil(t *testing.T) {
+	var buf bytes.Buffer
+	log := New(&buf).With().Str("a", "1").EmbedObject(nil).Str("b", "2").Logger()
+
+	log.Info().Msg("test message")
+
+	got := decodeIfBinaryToString(buf.Bytes())
+	want := `{"level":"info","a":"1","b":"2","message":"test message"}` + "\n"
+	if got != want {
+		t.Errorf("Context.EmbedObject() with nil = %q, want %q", got, want)
+	}
+}
