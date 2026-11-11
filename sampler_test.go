@@ -4,6 +4,7 @@
 package zerolog
 
 import (
+	"math"
 	"testing"
 	"time"
 )
@@ -88,6 +89,30 @@ func TestSamplers(t *testing.T) {
 				t.Errorf("%s.Sample(0) == true %d on %d, want [%d, %d]", s.name, got, s.total, s.wantMin, s.wantMax)
 			}
 		})
+	}
+}
+
+func TestBasicSamplerUint32CounterWrap(t *testing.T) {
+	const n = 3
+	// The sampler selects every event whose one-based counter value is 1 mod n,
+	// i.e. 1, 4, 7, ... Start a few events before the uint32 counter wraps so
+	// that the selected events 4,294,967,293, 4,294,967,296 and 4,294,967,299
+	// straddle the wrap boundary.
+	s := &BasicSampler{N: n, counter: math.MaxUint32 - 3}
+	want := []bool{
+		true,  // 4,294,967,293
+		false, // 4,294,967,294
+		false, // 4,294,967,295
+		true,  // 4,294,967,296 (counter wraps to 0)
+		false, // 4,294,967,297
+		false, // 4,294,967,298
+		true,  // 4,294,967,299
+	}
+	for i, w := range want {
+		event := uint64(math.MaxUint32-3) + uint64(i) + 1
+		if got := s.Sample(InfoLevel); got != w {
+			t.Errorf("event %d: Sample() = %t, want %t", event, got, w)
+		}
 	}
 }
 
