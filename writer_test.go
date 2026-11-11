@@ -252,6 +252,20 @@ func TestTriggerLevelWriter(t *testing.T) {
 		},
 		[]byte("yes2\nyes1\nyes3\nyes4\n"),
 		[]byte("yes2\nyes1\nyes3\nyes4\n"),
+	}, {
+		[]testWrite{
+			{DebugLevel, []byte("no-newline-1")},
+			{InfoLevel, []byte("yes-newline\n")},
+		},
+		[]byte("yes-newline\n"),
+		[]byte("yes-newline\nno-newline-1"),
+	}, {
+		[]testWrite{
+			{DebugLevel, []byte("multi\nline\nlog\n")},
+			{ErrorLevel, []byte("trigger\n")},
+		},
+		[]byte("multi\nline\nlog\ntrigger\n"),
+		[]byte("multi\nline\nlog\ntrigger\n"),
 	}}
 
 	for k, tt := range tests {
