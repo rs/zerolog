@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net"
 	"reflect"
@@ -15,6 +16,19 @@ import (
 	"testing"
 	"time"
 )
+
+func TestMultiLevelWriterWithoutOutputs(t *testing.T) {
+	writer := MultiLevelWriter()
+	const message = "discarded log\n"
+	n, err := io.Copy(writer, strings.NewReader(message))
+	if err != nil || n != int64(len(message)) {
+		t.Fatalf("copy returned (%d, %v), want (%d, nil)", n, err, len(message))
+	}
+	written, err := writer.WriteLevel(InfoLevel, []byte(message))
+	if err != nil || written != len(message) {
+		t.Fatalf("level write returned (%d, %v), want (%d, nil)", written, err, len(message))
+	}
+}
 
 func TestLog(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {

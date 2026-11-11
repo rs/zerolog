@@ -80,6 +80,7 @@ type multiLevelWriter struct {
 }
 
 func (t multiLevelWriter) Write(p []byte) (n int, err error) {
+	n = len(p)
 	for _, w := range t.writers {
 		if _n, _err := w.Write(p); err == nil {
 			n = _n
@@ -94,6 +95,7 @@ func (t multiLevelWriter) Write(p []byte) (n int, err error) {
 }
 
 func (t multiLevelWriter) WriteLevel(l Level, p []byte) (n int, err error) {
+	n = len(p)
 	for _, w := range t.writers {
 		if _n, _err := w.WriteLevel(l, p); err == nil {
 			n = _n
