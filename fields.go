@@ -42,6 +42,9 @@ func appendFields(dst []byte, fields interface{}, stack bool, ctx context.Contex
 }
 
 func appendObject(dst []byte, obj LogObjectMarshaler, stack bool, ctx context.Context, hooks []Hook) []byte {
+	if obj == nil {
+		return enc.AppendNil(dst)
+	}
 	e := newEvent(LevelWriterAdapter{io.Discard}, DebugLevel, stack, ctx, hooks)
 	e.buf = e.buf[:0] // discard the beginning marker added by newEvent
 	e.appendObject(obj)

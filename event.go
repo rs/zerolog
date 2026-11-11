@@ -231,6 +231,12 @@ func (e *Event) Array(key string, arr LogArrayMarshaler) *Event {
 		return e
 	}
 	e.buf = enc.AppendKey(e.buf, key)
+	if arr == nil {
+		e.buf = enc.AppendNil(e.buf)
+
+		return e
+	}
+
 	var a *Array
 	if aa, ok := arr.(*Array); ok {
 		a = aa
