@@ -985,6 +985,21 @@ func TestAppendIPPrefix(t *testing.T) {
 	}
 }
 
+func TestAppendIPPrefixRoundTrip(t *testing.T) {
+	for _, pfx := range []net.IPNet{
+		{IP: net.IP{192, 0, 2, 0}, Mask: net.CIDRMask(24, 32)},
+		{IP: net.ParseIP("192.0.2.0"), Mask: net.CIDRMask(24, 32)},
+		{IP: net.ParseIP("::ffff:192.0.2.0"), Mask: net.CIDRMask(120, 128)},
+		{IP: net.ParseIP("2001:db8::"), Mask: net.CIDRMask(64, 128)},
+	} {
+		encoded := enc.AppendIPPrefix(nil, pfx)
+		got := string(decodeTagData(getReader(string(encoded))))
+		if want := `"` + pfx.String() + `"`; got != want {
+			t.Errorf("IP length %d, mask length %d: got %s, want %s", len(pfx.IP), len(pfx.Mask), got, want)
+		}
+	}
+}
+
 func TestAppendIPPrefixArray(t *testing.T) {
 	for _, tc := range internal.IPPrefixArrayTestCases {
 		s := enc.AppendIPPrefixes([]byte{}, tc.Val)

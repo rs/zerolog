@@ -483,8 +483,12 @@ func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
 	// Prefix is a tuple (aka MAP of 1 pair of elements) -
 	// first element is prefix, second is mask length.
 	dst = append(dst, majorTypeMap|0x1)
-	dst = e.AppendBytes(dst, pfx.IP)
-	maskLen, _ := pfx.Mask.Size()
+	ip := pfx.IP
+	maskLen, bits := pfx.Mask.Size()
+	if ip4 := ip.To4(); bits == 32 && ip4 != nil {
+		ip = ip4
+	}
+	dst = e.AppendBytes(dst, ip)
 	return e.AppendUint8(dst, uint8(maskLen))
 }
 
