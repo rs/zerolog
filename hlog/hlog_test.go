@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
@@ -39,6 +40,22 @@ func TestNewHandler(t *testing.T) {
 		}
 	}))
 	h.ServeHTTP(nil, &http.Request{})
+}
+
+func TestAccessHandlerStatusAfterFlush(t *testing.T) {
+	var status int
+	h := AccessHandler(func(_ *http.Request, got, _ int, _ time.Duration) {
+		status = got
+	})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.(http.Flusher).Flush()
+	}))
+
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if status != http.StatusOK {
+		t.Fatalf("status = %d, want %d", status, http.StatusOK)
+	}
 }
 
 func TestURLHandler(t *testing.T) {
