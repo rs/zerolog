@@ -1,5 +1,5 @@
-// +build !windows
-// +build !binary_log
+//go:build !windows && !binary_log
+// +build !windows,!binary_log
 
 package zerolog
 
@@ -34,23 +34,25 @@ func SyslogLevelWriter(w SyslogWriter) LevelWriter {
 }
 
 // SyslogCEEWriter wraps a SyslogWriter with a SyslogLevelWriter that adds a
-// MITRE CEE prefix for JSON syslog entries, compatible with rsyslog 
-// and syslog-ng JSON logging support. 
+// MITRE CEE prefix for JSON syslog entries, compatible with rsyslog
+// and syslog-ng JSON logging support.
 // See https://www.rsyslog.com/json-elasticsearch/
 func SyslogCEEWriter(w SyslogWriter) LevelWriter {
 	return syslogWriter{w, ceePrefix}
 }
 
 func (sw syslogWriter) Write(p []byte) (n int, err error) {
-	var pn int
-	if sw.prefix != "" {
-		pn, err = sw.w.Write([]byte(sw.prefix))
-		if err != nil {
-			return pn, err
-		}
+	if sw.prefix == "" {
+		return sw.w.Write(p)
 	}
-	n, err = sw.w.Write(p)
-	return pn + n, err
+
+	// A syslog Write emits a complete record, so send the prefix and payload together.
+	n, err = sw.w.Write(append([]byte(sw.prefix), p...))
+	n -= len(sw.prefix)
+	if n < 0 {
+		n = 0
+	}
+	return n, err
 }
 
 // WriteLevel implements LevelWriter interface.
