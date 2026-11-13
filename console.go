@@ -457,9 +457,13 @@ func consoleDefaultFormatTimestamp(timeFormat string, location *time.Location, n
 				case TimeFormatUnixNano:
 					sec, nsec = 0, i
 				case TimeFormatUnixMicro:
-					sec, nsec = 0, int64(time.Duration(i)*time.Microsecond)
+					// Multiplying the whole count by the unit wraps past MaxInt64.
+					// 9223372036854776 microseconds was formatted as year 1677.
+					sec = i / 1e6
+					nsec = (i % 1e6) * 1e3
 				case TimeFormatUnixMs:
-					sec, nsec = 0, int64(time.Duration(i)*time.Millisecond)
+					sec = i / 1e3
+					nsec = (i % 1e3) * 1e6
 				default:
 					sec, nsec = i, 0
 				}

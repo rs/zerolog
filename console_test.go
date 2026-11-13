@@ -690,6 +690,52 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 	})
 }
 
+func TestConsoleWriterUnixTimestampPastNanosecondRange(t *testing.T) {
+	of := zerolog.TimeFieldFormat
+	defer func() { zerolog.TimeFieldFormat = of }()
+
+	cases := []struct {
+		format string
+		raw    int64
+		want   time.Time
+	}{
+		{
+			format: zerolog.TimeFormatUnixMs,
+			raw:    9223372036855,
+			want:   time.Unix(9223372036, 855000000).UTC(),
+		},
+		{
+			format: zerolog.TimeFormatUnixMicro,
+			raw:    9223372036854776,
+			want:   time.Unix(9223372036, 854776000).UTC(),
+		},
+		{
+			format: zerolog.TimeFormatUnixMs,
+			raw:    -1500,
+			want:   time.Unix(-1, -500000000).UTC(),
+		},
+	}
+	for _, tc := range cases {
+		zerolog.TimeFieldFormat = tc.format
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out:          buf,
+			NoColor:      true,
+			TimeFormat:   time.RFC3339Nano,
+			TimeLocation: time.UTC,
+		}
+		_, err := w.Write([]byte(fmt.Sprintf(`{"time": %d, "level": "debug", "message": "x"}`, tc.raw)))
+		if err != nil {
+			t.Fatalf("%s %d: %s", tc.format, tc.raw, err)
+		}
+		got := buf.String()
+		want := tc.want.Format(time.RFC3339Nano) + " DBG x\n"
+		if got != want {
+			t.Errorf("%s %d: got %q, want %q", tc.format, tc.raw, got, want)
+		}
+	}
+}
+
 func BenchmarkConsoleWriter(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
