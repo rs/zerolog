@@ -28,13 +28,16 @@ func (e Encoder) AppendTime(dst []byte, t time.Time, format string) []byte {
 		return e.AppendInt64(dst, t.UnixNano()/1000)
 	case timeFormatUnixNano:
 		return e.AppendInt64(dst, t.UnixNano())
+	case time.RFC3339, time.RFC3339Nano:
+		return append(t.AppendFormat(append(dst, '"'), format), '"')
 	}
-	return append(t.AppendFormat(append(dst, '"'), format), '"')
+	var buf [64]byte
+	return e.AppendBytes(dst, t.AppendFormat(buf[:0], format))
 }
 
 // AppendTimes converts the input times with the given format
 // and appends the encoded string list to the input byte slice.
-func (Encoder) AppendTimes(dst []byte, vals []time.Time, format string) []byte {
+func (e Encoder) AppendTimes(dst []byte, vals []time.Time, format string) []byte {
 	switch format {
 	case timeFormatUnix:
 		return appendUnixTimes(dst, vals)
@@ -49,10 +52,10 @@ func (Encoder) AppendTimes(dst []byte, vals []time.Time, format string) []byte {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = append(vals[0].AppendFormat(append(dst, '"'), format), '"')
+	dst = e.AppendTime(dst, vals[0], format)
 	if len(vals) > 1 {
 		for _, t := range vals[1:] {
-			dst = append(t.AppendFormat(append(dst, ',', '"'), format), '"')
+			dst = e.AppendTime(append(dst, ','), t, format)
 		}
 	}
 	dst = append(dst, ']')

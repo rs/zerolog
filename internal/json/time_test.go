@@ -161,6 +161,51 @@ func TestAppendTimeNow(t *testing.T) {
 	}
 }
 
+func TestAppendTimeEscaping(t *testing.T) {
+	tm := time.Date(2000, time.January, 2, 3, 4, 5, 0, time.UTC)
+	for _, tt := range []struct {
+		name   string
+		format string
+		want   string
+	}{
+		{"RFC3339", time.RFC3339, `"2000-01-02T03:04:05Z"`},
+		{"quotes", `2006 "MST"`, `"2000 \"UTC\""`},
+		{"backslash", `2006\01`, `"2000\\01"`},
+		{"control characters", "2006\n\t\r\x00", `"2000\n\t\r\u0000"`},
+		{"UTF-8", "2006 سال", `"2000 سال"`},
+		{"invalid UTF-8", "2006\xff", `"2000\ufffd"`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, capacity := range []int{0, 1024} {
+				dst := append(make([]byte, 0, capacity), "prefix:"...)
+				got := enc.AppendTime(dst, tm, tt.format)
+				if want := "prefix:" + tt.want; string(got) != want {
+					t.Errorf("AppendTime (capacity %d) = %q, want %q", capacity, got, want)
+				}
+
+				dst = append(make([]byte, 0, capacity), "prefix:"...)
+				got = enc.AppendTimes(dst, []time.Time{tm, tm}, tt.format)
+				if want := "prefix:[" + tt.want + "," + tt.want + "]"; string(got) != want {
+					t.Errorf("AppendTimes (capacity %d) = %q, want %q", capacity, got, want)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkAppendTimeFormats(b *testing.B) {
+	tm := time.Date(2000, time.January, 2, 3, 4, 5, 0, time.UTC)
+	for _, format := range []string{time.RFC3339, time.RFC3339Nano, `2006 "MST"`} {
+		b.Run(format, func(b *testing.B) {
+			buf := make([]byte, 0, 100)
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				_ = enc.AppendTime(buf, tm, format)
+			}
+		})
+	}
+}
+
 func TestAppendTimePastPresentInteger(t *testing.T) {
 	for _, tt := range internal.TimeIntegerTestcases {
 		tin, err := time.Parse(time.RFC3339, tt.Txt)
