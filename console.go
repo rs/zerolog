@@ -136,8 +136,7 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	}()
 
 	var evt map[string]interface{}
-	p = decodeIfBinaryToBytes(p)
-	d := json.NewDecoder(bytes.NewReader(p))
+	d := json.NewDecoder(bytes.NewReader(decodeIfBinaryToBytes(p)))
 	d.UseNumber()
 	err = d.Decode(&evt)
 	if err != nil {
