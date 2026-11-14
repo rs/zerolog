@@ -7,10 +7,40 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
 )
+
+var timeFormats map[string]string = map[string]string{
+	"default":     time.Kitchen,
+	"ansic":       time.ANSIC,
+	"unix":        time.UnixDate,
+	"rfc822":      time.RFC822,
+	"rfc822z":     time.RFC822Z,
+	"rfc850":      time.RFC850,
+	"rfc1123":     time.RFC1123,
+	"rfc1123z":    time.RFC1123Z,
+	"rfc3339":     time.RFC3339,
+	"rfc3339nano": time.RFC3339Nano,
+	"stamp":       time.Stamp,
+	"stampmilli":  time.StampMilli,
+	"datetime":    time.DateTime,
+	"timeonly":    time.TimeOnly,
+	"full":        time.RFC1123,
+}
+
+func allowedTimeFormats() string {
+	formats := make([]string, 0, len(timeFormats))
+	for k := range timeFormats {
+		formats = append(formats, k)
+	}
+	sort.Strings(formats)
+
+	return strings.Join(formats, ", ")
+}
 
 func isInputFromPipe() bool {
 	fileInfo, _ := os.Stdin.Stat()
@@ -34,31 +64,39 @@ func processInput(reader io.Reader, writer io.Writer) error {
 	return scanner.Err()
 }
 
-func main() {
-	timeFormats := map[string]string{
-		"default": time.Kitchen,
-		"full":    time.RFC1123,
+func getTimeFormat(flagValue string) string {
+	format, ok := timeFormats[flagValue]
+	if !ok {
+		return flagValue
 	}
 
+	return format
+}
+
+func main() {
 	timeFormatFlag := flag.String(
 		"time-format",
 		"default",
-		"Time format, either 'default' or 'full'",
+		"Time format, one of: "+allowedTimeFormats()+" or a custom golang time format",
+	)
+	timeLocationFlag := flag.String(
+		"time-location",
+		"UTC",
+		"Time location, one of: UTC, Local or a custom location",
 	)
 
 	flag.Parse()
-
-	timeFormat, ok := timeFormats[*timeFormatFlag]
-	if !ok {
-		panic("Invalid time-format provided")
+	loc, err := time.LoadLocation(*timeLocationFlag)
+	if err != nil {
+		fmt.Printf("time location %s: %v", *timeLocationFlag, err)
+		os.Exit(1)
 	}
 
 	writer := zerolog.NewConsoleWriter()
-	writer.TimeFormat = timeFormat
+	writer.TimeFormat = getTimeFormat(*timeFormatFlag)
+	writer.TimeLocation = loc
 
-	if isInputFromPipe() {
-		_ = processInput(os.Stdin, writer)
-	} else if flag.NArg() >= 1 {
+	if flag.NArg() >= 1 {
 		for _, filename := range flag.Args() {
 			// Scan each line from filename and write it into writer
 			reader, err := os.Open(filename)
@@ -72,6 +110,8 @@ func main() {
 				os.Exit(1)
 			}
 		}
+	} else if isInputFromPipe() {
+		_ = processInput(os.Stdin, writer)
 	} else {
 		fmt.Println("Usage:")
 		fmt.Println("  app_with_zerolog | 2> >(prettylog)")
