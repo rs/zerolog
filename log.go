@@ -5,14 +5,14 @@
 //	import "github.com/rs/zerolog/log"
 //
 //	log.Info().Msg("hello world")
-//	// Output: {"time":1494567715,"level":"info","message":"hello world"}
+//	// Output: {"level":"info","time":1494567715,"message":"hello world"}
 //
 // NOTE: To import the global logger, import the "log" subpackage "github.com/rs/zerolog/log".
 //
 // Fields can be added to log messages:
 //
 //	log.Info().Str("foo", "bar").Msg("hello world")
-//	// Output: {"time":1494567715,"level":"info","message":"hello world","foo":"bar"}
+//	// Output: {"level":"info","foo":"bar","time":1494567715,"message":"hello world"}
 //
 // Create logger instance to manage different outputs:
 //
@@ -20,13 +20,13 @@
 //	logger.Info().
 //	       Str("foo", "bar").
 //	       Msg("hello world")
-//	// Output: {"time":1494567715,"level":"info","message":"hello world","foo":"bar"}
+//	// Output: {"level":"info","foo":"bar","time":1494567715,"message":"hello world"}
 //
 // Sub-loggers let you chain loggers with additional context:
 //
 //	sublogger := log.With().Str("component", "foo").Logger()
 //	sublogger.Info().Msg("hello world")
-//	// Output: {"time":1494567715,"level":"info","message":"hello world","component":"foo"}
+//	// Output: {"level":"info","component":"foo","time":1494567715,"message":"hello world"}
 //
 // Level logging
 //
@@ -40,21 +40,21 @@
 //	    value := compute()
 //	    e.Str("foo", value).Msg("some debug message")
 //	}
-//	// Output: {"level":"info","time":1494567715,"routed message"}
+//	// Output: {"level":"info","time":1494567715,"message":"routed message"}
 //
 // Customize automatic field names:
 //
-//	log.TimestampFieldName = "t"
-//	log.LevelFieldName = "p"
-//	log.MessageFieldName = "m"
+//	zerolog.TimestampFieldName = "t"
+//	zerolog.LevelFieldName = "p"
+//	zerolog.MessageFieldName = "m"
 //
 //	log.Info().Msg("hello world")
-//	// Output: {"t":1494567715,"p":"info","m":"hello world"}
+//	// Output: {"p":"info","t":1494567715,"m":"hello world"}
 //
 // Log with no level and message:
 //
 //	log.Log().Str("foo","bar").Msg("")
-//	// Output: {"time":1494567715,"foo":"bar"}
+//	// Output: {"foo":"bar","time":1494567715}
 //
 // Add contextual fields to global Logger:
 //
