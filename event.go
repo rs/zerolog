@@ -900,7 +900,7 @@ func (e *Event) IPPrefix(key string, pfx net.IPNet) *Event {
 	return e
 }
 
-// IPPrefixes the field key with pfx as a net.IPNet array of IPv4 or IPv6 Prefixes (address and mask) to the event
+// IPPrefixes adds the field key with pfx as a net.IPNet array of IPv4 or IPv6 Prefixes (address and mask) to the event
 func (e *Event) IPPrefixes(key string, pfx []net.IPNet) *Event {
 	if e == nil {
 		return e
