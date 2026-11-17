@@ -1,3 +1,6 @@
+//go:build !go1.8
+// +build !go1.8
+
 package mutil
 
 import (
@@ -148,5 +151,4 @@ var (
 	_ http.Flusher       = &fancyWriter{}
 	_ http.Hijacker      = &fancyWriter{}
 	_ io.ReaderFrom      = &fancyWriter{}
-	_ http.Flusher       = &flushWriter{}
 )
