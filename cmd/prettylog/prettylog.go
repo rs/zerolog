@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"time"
 
@@ -19,6 +20,7 @@ func isInputFromPipe() bool {
 
 func processInput(reader io.Reader, writer io.Writer) error {
 	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(nil, math.MaxInt)
 	for scanner.Scan() {
 		bytesToWrite := scanner.Bytes()
 		_, err := writer.Write(bytesToWrite)
