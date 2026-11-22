@@ -27,18 +27,26 @@ func appendFields(dst []byte, fields interface{}, stack bool, ctx context.Contex
 		}
 		dst = appendFieldList(dst, fields, stack, ctx, hooks)
 	case map[string]interface{}:
-		keys := make([]string, 0, len(fields))
-		for key := range fields {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
 		kv := make([]interface{}, 2)
-		for _, key := range keys {
+		for _, key := range sortedFieldKeys(fields) {
 			kv[0], kv[1] = key, fields[key]
 			dst = appendFieldList(dst, kv, stack, ctx, hooks)
 		}
+	case map[string]string:
+		for _, key := range sortedFieldKeys(fields) {
+			dst = enc.AppendString(enc.AppendKey(dst, key), fields[key])
+		}
 	}
 	return dst
+}
+
+func sortedFieldKeys[V any](fields map[string]V) []string {
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func appendObject(dst []byte, obj LogObjectMarshaler, stack bool, ctx context.Context, hooks []Hook) []byte {

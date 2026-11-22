@@ -266,6 +266,19 @@ func TestFieldsMap(t *testing.T) {
 		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
 	}
 }
+
+func TestFieldsStringMap(t *testing.T) {
+	out := &bytes.Buffer{}
+	log := New(out).With().Fields(map[string]string{"service": "api"}).Logger()
+	log.Log().Str("foo", "bar").Fields(map[string]string{
+		"n":   "1",
+		"bar": "baz",
+	}).Msg("hello world")
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"service":"api","foo":"bar","bar":"baz","n":"1","message":"hello world"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
 func TestFieldsMap_Arrays(t *testing.T) {
 	out := &bytes.Buffer{}
 	log := New(out)
