@@ -344,6 +344,9 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 			f = w.FormatCaller
 		}
 	default:
+		if _, ok := evt[p]; !ok {
+			return
+		}
 		if w.FormatPartValueByName != nil {
 			fvn = w.FormatPartValueByName
 		} else if w.FormatFieldValue != nil {
