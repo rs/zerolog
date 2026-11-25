@@ -595,6 +595,27 @@ func TestConsoleWriterConfiguration(t *testing.T) {
 		}
 	})
 
+	t.Run("PartsOrder skips a missing custom field", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{
+			Out:        buf,
+			NoColor:    true,
+			PartsOrder: []string{zerolog.LevelFieldName, "request_id", zerolog.MessageFieldName},
+		}
+
+		evt := `{"level": "info", "message": "Foobar"}`
+		_, err := w.Write([]byte(evt))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "INF Foobar\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("PartsExclude suppresses custom fields from trailing writeFields", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		w := zerolog.ConsoleWriter{
