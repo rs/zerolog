@@ -67,7 +67,7 @@ type BurstSampler struct {
 	NextSampler Sampler
 
 	counter uint32
-	resetAt int64
+	resetAt atomic.Int64
 }
 
 // Sample implements the Sampler interface.
@@ -85,13 +85,13 @@ func (s *BurstSampler) Sample(lvl Level) bool {
 
 func (s *BurstSampler) inc() uint32 {
 	now := TimestampFunc().UnixNano()
-	resetAt := atomic.LoadInt64(&s.resetAt)
+	resetAt := s.resetAt.Load()
 	var c uint32
 	if now >= resetAt {
 		c = 1
 		atomic.StoreUint32(&s.counter, c)
 		newResetAt := now + s.Period.Nanoseconds()
-		reset := atomic.CompareAndSwapInt64(&s.resetAt, resetAt, newResetAt)
+		reset := s.resetAt.CompareAndSwap(resetAt, newResetAt)
 		if !reset {
 			// Lost the race with another goroutine trying to reset.
 			c = atomic.AddUint32(&s.counter, 1)
