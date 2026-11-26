@@ -38,9 +38,9 @@ func (s RandomSampler) Sample(lvl Level) bool {
 // their level.
 type BasicSampler struct {
 	// counter is a uint64 so that the sampling cadence is preserved when it
-	// passes the uint32 range. It is declared first to keep it 64-bit aligned
-	// for atomic access on 32-bit platforms.
-	counter uint64
+	// passes the uint32 range. atomic.Uint64 guarantees the alignment required
+	// for atomic access on 32-bit platforms, including when embedded.
+	counter atomic.Uint64
 	N       uint32
 }
 
@@ -53,7 +53,7 @@ func (s *BasicSampler) Sample(lvl Level) bool {
 	if n == 1 {
 		return true
 	}
-	c := atomic.AddUint64(&s.counter, 1)
+	c := s.counter.Add(1)
 	return c%n == 1
 }
 

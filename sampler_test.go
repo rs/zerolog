@@ -98,7 +98,8 @@ func TestBasicSamplerUint32CounterWrap(t *testing.T) {
 	// i.e. 1, 4, 7, ... Start a few events before the uint32 counter wraps so
 	// that the selected events 4,294,967,293, 4,294,967,296 and 4,294,967,299
 	// straddle the wrap boundary.
-	s := &BasicSampler{N: n, counter: math.MaxUint32 - 3}
+	s := &BasicSampler{N: n}
+	s.counter.Store(math.MaxUint32 - 3)
 	want := []bool{
 		true,  // 4,294,967,293
 		false, // 4,294,967,294
@@ -112,6 +113,25 @@ func TestBasicSamplerUint32CounterWrap(t *testing.T) {
 		event := uint64(math.MaxUint32-3) + uint64(i) + 1
 		if got := s.Sample(InfoLevel); got != w {
 			t.Errorf("event %d: Sample() = %t, want %t", event, got, w)
+		}
+	}
+}
+
+func TestBasicSamplerEmbeddedAlignment(t *testing.T) {
+	// The leading bool places an embedded uint64 counter at a four-byte offset
+	// on 32-bit platforms unless the counter provides its own alignment.
+	sampler := &struct {
+		enabled bool
+		BasicSampler
+	}{
+		enabled:      true,
+		BasicSampler: BasicSampler{N: 3},
+	}
+
+	for event := 1; event <= 7; event++ {
+		want := event == 1 || event == 4 || event == 7
+		if got := sampler.Sample(InfoLevel); got != want {
+			t.Errorf("event %d: Sample() = %t, want %t", event, got, want)
 		}
 	}
 }
