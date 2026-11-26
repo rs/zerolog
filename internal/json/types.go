@@ -407,12 +407,16 @@ func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
 	// 2. new content starts with '{' - which should be replaced with ','
 	//    to separate with existing content OR
 	// 3. existing content has already other fields
+	if len(o) == 0 {
+		return dst
+	}
 	if o[0] == '{' {
-		if len(dst) > 1 {
-			dst = append(dst, ',')
-		}
 		o = o[1:]
-	} else if len(dst) > 1 {
+		if len(o) == 0 {
+			return dst
+		}
+	}
+	if len(dst) > 1 {
 		dst = append(dst, ',')
 	}
 	return append(dst, o...)
