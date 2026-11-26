@@ -37,20 +37,23 @@ func (s RandomSampler) Sample(lvl Level) bool {
 // BasicSampler is a sampler that will send every Nth event, regardless of
 // their level.
 type BasicSampler struct {
+	// counter is a uint64 so that the sampling cadence is preserved when it
+	// passes the uint32 range. atomic.Uint64 guarantees the alignment required
+	// for atomic access on 32-bit platforms, including when embedded.
+	counter atomic.Uint64
 	N       uint32
-	counter uint32
 }
 
 // Sample implements the Sampler interface.
 func (s *BasicSampler) Sample(lvl Level) bool {
-	n := s.N
+	n := uint64(s.N)
 	if n == 0 {
 		return false
 	}
 	if n == 1 {
 		return true
 	}
-	c := atomic.AddUint32(&s.counter, 1)
+	c := s.counter.Add(1)
 	return c%n == 1
 }
 
