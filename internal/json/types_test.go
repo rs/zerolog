@@ -433,6 +433,10 @@ func TestAppendObjectData(t *testing.T) {
 		{[]byte(`{"qux":"quz"`), []byte(`{"foo":"bar"}`), []byte(`{"qux":"quz","foo":"bar"}`)},
 		{[]byte{}, []byte(`"foo":"bar"`), []byte(`"foo":"bar"`)},
 		{[]byte(`{"qux":"quz"`), []byte(`"foo":"bar"`), []byte(`{"qux":"quz","foo":"bar"`)},
+		{[]byte{}, []byte{}, []byte{}},
+		{[]byte(`{"qux":"quz"`), []byte{}, []byte(`{"qux":"quz"`)},
+		{[]byte(`{"qux":"quz"`), []byte(`{`), []byte(`{"qux":"quz"`)},
+		{[]byte(`{`), []byte(`{`), []byte(`{`)},
 	}
 	for _, tt := range tests {
 		t.Run("ObjectData", func(t *testing.T) {
