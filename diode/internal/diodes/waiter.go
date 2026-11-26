@@ -54,7 +54,12 @@ func NewWaiter(d Diode, opts ...WaiterConfigOption) *Waiter {
 // to wake up any readers.
 func (w *Waiter) Set(data GenericDataType) {
 	w.Diode.Set(data)
+
+	// Mutex is strictly necessary here to avoid a race in Next() (between
+	// w.Diode.TryNext() and w.c.Wait()) and w.c.Broadcast() here.
+	w.mu.Lock()
 	w.c.Broadcast()
+	w.mu.Unlock()
 }
 
 // Next returns the next data point on the wrapped diode. If there is not any
