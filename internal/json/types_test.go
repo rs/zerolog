@@ -383,6 +383,67 @@ func TestAppendIPPrefix(t *testing.T) {
 	}
 }
 
+func TestAppendNetTextMatchesString(t *testing.T) {
+	ips := []net.IP{
+		nil,
+		{},
+		{1, 2, 3},
+		{10, 0, 0, 1},
+		net.IPv4(10, 0, 0, 1),
+		net.IPv4(255, 255, 255, 255),
+		net.IPv6zero,
+		net.IPv6loopback,
+		net.IPv6linklocalallnodes,
+		net.ParseIP("::ffff:192.0.2.1"),
+		net.ParseIP("2001:db8::1"),
+		net.ParseIP("2001:db8:85a3::8a2e:370:7334"),
+		{0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		make(net.IP, 5),
+		make(net.IP, 17),
+	}
+	for _, ip := range ips {
+		got := enc.AppendIPAddr(nil, ip)
+		want := []byte(`"` + ip.String() + `"`)
+		if !bytes.Equal(got, want) {
+			t.Errorf("AppendIPAddr(%v) = %s, want %s", ip, got, want)
+		}
+	}
+	pfxs := []net.IPNet{
+		{},
+		{IP: net.IP{192, 168, 0, 100}, Mask: net.CIDRMask(24, 32)},
+		{IP: net.ParseIP("192.0.2.1"), Mask: net.CIDRMask(24, 32)},
+		{IP: net.ParseIP("2001:db8::1"), Mask: net.CIDRMask(48, 128)},
+		{IP: net.ParseIP("::ffff:192.0.2.1"), Mask: net.CIDRMask(120, 128)},
+		{IP: net.IP{1, 2, 3, 4}, Mask: net.IPMask{0xff, 0x00, 0xff, 0x00}},
+		{IP: net.IP{1, 2, 3, 4}, Mask: net.CIDRMask(64, 128)},
+		{IP: net.ParseIP("2001:db8::1"), Mask: net.CIDRMask(24, 32)},
+		{IP: nil, Mask: net.CIDRMask(24, 32)},
+		{IP: net.IPv6loopback, Mask: nil},
+	}
+	for _, pfx := range pfxs {
+		got := enc.AppendIPPrefix(nil, pfx)
+		want := []byte(`"` + pfx.String() + `"`)
+		if !bytes.Equal(got, want) {
+			t.Errorf("AppendIPPrefix(%v) = %s, want %s", pfx, got, want)
+		}
+	}
+	macs := []net.HardwareAddr{
+		nil,
+		{},
+		{0x00, 0x14, 0x22, 0x01, 0x23, 0x45},
+		{0x01},
+		make(net.HardwareAddr, 8),
+		make(net.HardwareAddr, 20),
+	}
+	for _, ha := range macs {
+		got := enc.AppendMACAddr(nil, ha)
+		want := []byte(`"` + ha.String() + `"`)
+		if !bytes.Equal(got, want) {
+			t.Errorf("AppendMACAddr(%v) = %s, want %s", ha, got, want)
+		}
+	}
+}
+
 func TestAppendMACAddr(t *testing.T) {
 	MACtests := []struct {
 		input net.HardwareAddr
