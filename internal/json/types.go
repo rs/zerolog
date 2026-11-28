@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/netip"
 	"reflect"
 	"strconv"
 )
@@ -419,48 +420,137 @@ func (Encoder) AppendObjectData(dst []byte, o []byte) []byte {
 }
 
 // AppendIPAddr adds a net.IP IPv4 or IPv6 address to dst.
-func (e Encoder) AppendIPAddr(dst []byte, ip net.IP) []byte {
-	return e.AppendString(dst, ip.String())
+func (Encoder) AppendIPAddr(dst []byte, ip net.IP) []byte {
+	return appendQuotedIP(dst, ip)
 }
 
 // AppendIPAddrs adds a []net.IP array of IPv4 or IPv6 address to dst.
-func (e Encoder) AppendIPAddrs(dst []byte, ips []net.IP) []byte {
+func (Encoder) AppendIPAddrs(dst []byte, ips []net.IP) []byte {
 	if len(ips) == 0 {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = e.AppendString(dst, ips[0].String())
-	if len(ips) > 1 {
-		for _, ip := range ips[1:] {
-			dst = e.AppendString(append(dst, ','), ip.String())
-		}
+	dst = appendQuotedIP(dst, ips[0])
+	for _, ip := range ips[1:] {
+		dst = appendQuotedIP(append(dst, ','), ip)
 	}
-	dst = append(dst, ']')
-	return dst
+	return append(dst, ']')
 }
 
 // AppendIPPrefix adds a net.IPNet IPv4 or IPv6 Prefix (address & mask) to dst.
-func (e Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
-	return e.AppendString(dst, pfx.String())
+func (Encoder) AppendIPPrefix(dst []byte, pfx net.IPNet) []byte {
+	return appendQuotedIPNet(dst, pfx)
 }
 
 // AppendIPPrefixes adds a []net.IPNet array of IPv4 or IPv6 Prefix (address & mask) to dst.
-func (e Encoder) AppendIPPrefixes(dst []byte, pfxs []net.IPNet) []byte {
+func (Encoder) AppendIPPrefixes(dst []byte, pfxs []net.IPNet) []byte {
 	if len(pfxs) == 0 {
 		return append(dst, '[', ']')
 	}
 	dst = append(dst, '[')
-	dst = e.AppendString(dst, pfxs[0].String())
-	if len(pfxs) > 1 {
-		for _, pfx := range pfxs[1:] {
-			dst = e.AppendString(append(dst, ','), pfx.String())
-		}
+	dst = appendQuotedIPNet(dst, pfxs[0])
+	for _, pfx := range pfxs[1:] {
+		dst = appendQuotedIPNet(append(dst, ','), pfx)
 	}
-	dst = append(dst, ']')
-	return dst
+	return append(dst, ']')
 }
 
 // AppendMACAddr adds a net.HardwareAddr MAC address to dst.
-func (e Encoder) AppendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
-	return e.AppendString(dst, ha.String())
+func (Encoder) AppendMACAddr(dst []byte, ha net.HardwareAddr) []byte {
+	dst = append(dst, '"')
+	if len(ha) == 0 {
+		return append(dst, '"')
+	}
+	dst = append(dst, hexCharacters[ha[0]>>4], hexCharacters[ha[0]&0xF])
+	for _, b := range ha[1:] {
+		dst = append(dst, ':', hexCharacters[b>>4], hexCharacters[b&0xF])
+	}
+	return append(dst, '"')
+}
+
+func appendQuotedIP(dst []byte, ip net.IP) []byte {
+	dst = append(dst, '"')
+	dst = appendIP(dst, ip)
+	return append(dst, '"')
+}
+
+func appendQuotedIPNet(dst []byte, n net.IPNet) []byte {
+	dst = append(dst, '"')
+	dst = appendIPNet(dst, n)
+	return append(dst, '"')
+}
+
+func appendIP(dst []byte, ip net.IP) []byte {
+	if len(ip) == 0 {
+		return append(dst, "<nil>"...)
+	}
+	if len(ip) != net.IPv4len && len(ip) != net.IPv6len {
+		dst = append(dst, '?')
+		return appendHexLower(dst, ip)
+	}
+	if ip4 := ip.To4(); len(ip4) == net.IPv4len {
+		return netip.AddrFrom4([4]byte(ip4)).AppendTo(dst)
+	}
+	return netip.AddrFrom16([16]byte(ip)).AppendTo(dst)
+}
+
+func appendIPNet(dst []byte, n net.IPNet) []byte {
+	ip := n.IP.To4()
+	if ip == nil {
+		ip = n.IP
+		if len(ip) != net.IPv6len {
+			return append(dst, "<nil>"...)
+		}
+	}
+	m := n.Mask
+	switch len(m) {
+	case net.IPv4len:
+		if len(ip) != net.IPv4len {
+			return append(dst, "<nil>"...)
+		}
+	case net.IPv6len:
+		if len(ip) == net.IPv4len {
+			m = m[12:]
+		}
+	default:
+		return append(dst, "<nil>"...)
+	}
+	dst = appendIP(dst, ip)
+	dst = append(dst, '/')
+	ones := maskOnes(m)
+	if ones < 0 {
+		return appendHexLower(dst, m)
+	}
+	return strconv.AppendInt(dst, int64(ones), 10)
+}
+
+func maskOnes(mask net.IPMask) int {
+	var n int
+	for i, v := range mask {
+		if v == 0xff {
+			n += 8
+			continue
+		}
+		for v&0x80 != 0 {
+			n++
+			v <<= 1
+		}
+		if v != 0 {
+			return -1
+		}
+		for i++; i < len(mask); i++ {
+			if mask[i] != 0 {
+				return -1
+			}
+		}
+		break
+	}
+	return n
+}
+
+func appendHexLower(dst, b []byte) []byte {
+	for _, tn := range b {
+		dst = append(dst, hexCharacters[tn>>4], hexCharacters[tn&0xF])
+	}
+	return dst
 }
