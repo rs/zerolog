@@ -225,7 +225,11 @@ func (e Encoder) AppendInts64(dst []byte, vals []int64) []byte {
 
 // AppendUint encodes and inserts an unsigned integer value into the dst byte array.
 func (e Encoder) AppendUint(dst []byte, val uint) []byte {
-	return e.AppendInt64(dst, int64(val))
+	// Do not funnel through AppendInt64: on 64-bit platforms any uint above
+	// math.MaxInt64 would wrap to a negative int64 and come back out as a
+	// negative CBOR integer (math.MaxUint64 encoded as -1). AppendUint64
+	// covers the whole 0..2^64-1 range.
+	return e.AppendUint64(dst, uint64(val))
 }
 
 // AppendUints encodes and inserts an array of unsigned integer values into the dst byte array.
