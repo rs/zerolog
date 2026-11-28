@@ -522,3 +522,24 @@ func TestDecodeSimpleFloat(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeLargeUint(t *testing.T) {
+	// AppendUint is the encoder behind Event.Uint / Context.Uint / Array.Uint.
+	// Unlike AppendUint64 it used to funnel through int64, so any uint above
+	// math.MaxInt64 came back out as a negative number (MaxUint64 came back
+	// as -1). The writer and the reader (#796) must agree over the whole
+	// 0..2^64-1 range.
+	var enc Encoder
+	for _, val := range []uint{0, 1, uint(math.MaxInt64), 1 << 63, math.MaxUint64} {
+		b := enc.AppendBeginMarker(nil)
+		b = enc.AppendKey(b, "k")
+		b = enc.AppendUint(b, val)
+		b = enc.AppendEndMarker(b)
+
+		want := fmt.Sprintf("{\"k\":%d}", val)
+		got := strings.TrimSpace(DecodeIfBinaryToString(b))
+		if got != want {
+			t.Errorf("DecodeIfBinaryToString(AppendUint(%d))=%s, want: %s", val, got, want)
+		}
+	}
+}

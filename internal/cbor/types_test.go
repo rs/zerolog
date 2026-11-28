@@ -742,9 +742,6 @@ func TestAppendUint(t *testing.T) {
 		s := enc.AppendUint([]byte{}, tc.Val)
 		got := string(s)
 		want := tc.Bigbinary
-		if tc.Val == math.MaxUint64 {
-			want = "\x20" // this is special case for uint max value when using AppendUint
-		}
 		if got != want {
 			t.Errorf("AppendUint(0x%x)=0x%s, want: 0x%s",
 				tc.Val, hex.EncodeToString(s),
@@ -761,9 +758,6 @@ func TestAppendUints(t *testing.T) {
 	for _, tc := range internal.UnsignedIntegerTestCases {
 		array = append(array, uint(tc.Val))
 		expected := tc.Bigbinary
-		if tc.Val == math.MaxUint64 {
-			expected = "\x20" // this is special case for uint max value when using AppendUint
-		}
 		want = append(want, expected...)
 	}
 
