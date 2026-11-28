@@ -136,6 +136,23 @@ func TestConsoleWriter(t *testing.T) {
 		}
 	})
 
+	t.Run("Write long colorized message", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		w := zerolog.ConsoleWriter{Out: buf, NoColor: false}
+		msg := strings.Repeat("x", 300)
+
+		_, err := w.Write([]byte(`{"level": "error", "message": "` + msg + `", "n": 12}`))
+		if err != nil {
+			t.Errorf("Unexpected error when writing output: %s", err)
+		}
+
+		expectedOutput := "\x1b[90m<nil>\x1b[0m \x1b[31mERR\x1b[0m \x1b[1m" + msg + "\x1b[0m \x1b[36mn=\x1b[0m12\n"
+		actualOutput := buf.String()
+		if actualOutput != expectedOutput {
+			t.Errorf("Unexpected output %q, want: %q", actualOutput, expectedOutput)
+		}
+	})
+
 	t.Run("NO_COLOR = true", func(t *testing.T) {
 		os.Setenv("NO_COLOR", "anything")
 

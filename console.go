@@ -412,9 +412,26 @@ func colorize(s interface{}, c int, disabled bool) string {
 	}
 
 	if disabled {
+		if str, ok := s.(string); ok {
+			return str
+		}
 		return fmt.Sprintf("%s", s)
 	}
-	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
+	str, ok := s.(string)
+	if !ok {
+		return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
+	}
+	const maxStack = 256
+	if 2+3+1+len(str)+4 > maxStack {
+		return fmt.Sprintf("\x1b[%dm%s\x1b[0m", c, str)
+	}
+	var tmp [maxStack]byte
+	b := append(tmp[:0], "\x1b["...)
+	b = strconv.AppendInt(b, int64(c), 10)
+	b = append(b, 'm')
+	b = append(b, str...)
+	b = append(b, "\x1b[0m"...)
+	return string(b)
 }
 
 // ----- DEFAULT FORMATTERS ---------------------------------------------------
@@ -524,31 +541,42 @@ func consoleDefaultFormatMessage(noColor bool, level interface{}) Formatter {
 		}
 		switch level {
 		case LevelInfoValue, LevelWarnValue, LevelErrorValue, LevelFatalValue, LevelPanicValue:
-			return colorize(fmt.Sprintf("%s", i), colorBold, noColor)
+			return colorize(consoleSprint(i), colorBold, noColor)
 		default:
-			return fmt.Sprintf("%s", i)
+			return consoleSprint(i)
 		}
 	}
 }
 
 func consoleDefaultFormatFieldName(noColor bool) Formatter {
 	return func(i interface{}) string {
-		return colorize(fmt.Sprintf("%s=", i), colorCyan, noColor)
+		return colorize(consoleSprint(i)+"=", colorCyan, noColor)
 	}
 }
 
 func consoleDefaultFormatFieldValue(i interface{}) string {
-	return fmt.Sprintf("%s", i)
+	return consoleSprint(i)
 }
 
 func consoleDefaultFormatErrFieldName(noColor bool) Formatter {
 	return func(i interface{}) string {
-		return colorize(fmt.Sprintf("%s=", i), colorCyan, noColor)
+		return colorize(consoleSprint(i)+"=", colorCyan, noColor)
 	}
 }
 
 func consoleDefaultFormatErrFieldValue(noColor bool) Formatter {
 	return func(i interface{}) string {
-		return colorize(colorize(fmt.Sprintf("%s", i), colorBold, noColor), colorRed, noColor)
+		return colorize(colorize(consoleSprint(i), colorBold, noColor), colorRed, noColor)
+	}
+}
+
+func consoleSprint(i interface{}) string {
+	switch v := i.(type) {
+	case string:
+		return v
+	case json.Number:
+		return string(v)
+	default:
+		return fmt.Sprintf("%s", i)
 	}
 }
